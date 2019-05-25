@@ -13,6 +13,7 @@
     <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
     <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
     <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+    <link type="text/css" rel="stylesheet" href="styles/overwrites.css">
 </head>
 <body>
 
@@ -54,20 +55,20 @@
  * @namespace
  */
 
-var Prism = (function(){
+var Prism = (function (_self){
 
 // Private helper vars
 var lang = /\blang(?:uage)?-([\w-]+)\b/i;
 var uniqueId = 0;
 
-var _ = _self.Prism = {
+var _ = {
 	manual: _self.Prism &amp;&amp; _self.Prism.manual,
 	disableWorkerMessageHandler: _self.Prism &amp;&amp; _self.Prism.disableWorkerMessageHandler,
 	util: {
 		encode: function (tokens) {
 			if (tokens instanceof Token) {
 				return new Token(tokens.type, _.util.encode(tokens.content), tokens.alias);
-			} else if (_.util.type(tokens) === 'Array') {
+			} else if (Array.isArray(tokens)) {
 				return tokens.map(_.util.encode);
 			} else {
 				return tokens.replace(/&amp;/g, '&amp;amp;').replace(/&lt;/g, '&amp;lt;').replace(/\u00a0/g, ' ');
@@ -173,7 +174,7 @@ var _ = _self.Prism = {
 		 * This is usually a language id.
 		 * @param {string} before The key to insert before.
 		 * @param {Grammar} insert An object containing the key-value pairs to be inserted.
-		 * @param {Object.&lt;string, Grammar>} [root] The object containing `inside`, i.e. the object that contains the object that will be modified.
+		 * @param {Object&lt;string, Grammar>} [root] The object containing `inside`, i.e. the object that contains the object that will be modified.
 		 *
 		 * Defaults to `Prism.languages`.
 		 * @returns {Grammar} The new grammar created.
@@ -252,7 +253,6 @@ var _ = _self.Prism = {
 	 *
 	 * This is equivalent to `Prism.highlightAllUnder(document, async, callback)`.
 	 *
-	 * @param {HTMLElement} container The root element, whose descendants that have a `.language-xxxx` class will be highlighted.
 	 * @param {boolean} [async=false] Same as in {@link Prism.highlightAllUnder}.
 	 * @param {Prism.HighlightCallback} [callback] Same as in {@link Prism.highlightAllUnder}.
 	 * @memberof Prism
@@ -269,7 +269,7 @@ var _ = _self.Prism = {
 	 * 1. `before-highlightall`
 	 * 2. All hooks of {@link Prism.highlightElement} for each element.
 	 *
-	 * @param {HTMLElement} container The root element, whose descendants that have a `.language-xxxx` class will be highlighted.
+	 * @param {ParentNode} container The root element, whose descendants that have a `.language-xxxx` class will be highlighted.
 	 * @param {boolean} [async=false] Whether each element is to be highlighted asynchronously using Web Workers.
 	 * @param {Prism.HighlightCallback} [callback] An optional callback to be invoked on each element after its highlighting is done.
 	 * @memberof Prism
@@ -300,7 +300,7 @@ var _ = _self.Prism = {
 	 * 5. `after-highlight`
 	 * 6. `complete`
 	 *
-	 * @param {HTMLElement} element The element containing the code.
+	 * @param {Element} element The element containing the code.
 	 * It must have a class of `language-xxxx` to be processed, where `xxxx` is a valid language identifier.
 	 * @param {boolean} [async=false] Whether the element is to be highlighted asynchronously using Web Workers
 	 * to improve performance and avoid blocking the UI when highlighting very large chunks of code. This option is
@@ -315,14 +315,14 @@ var _ = _self.Prism = {
 	 */
 	highlightElement: function(element, async, callback) {
 		// Find language
-		var language, grammar, parent = element;
+		var language = 'none', grammar, parent = element;
 
 		while (parent &amp;&amp; !lang.test(parent.className)) {
 			parent = parent.parentNode;
 		}
 
 		if (parent) {
-			language = (parent.className.match(lang) || [,''])[1].toLowerCase();
+			language = (parent.className.match(lang) || [,'none'])[1].toLowerCase();
 			grammar = _.languages[language];
 		}
 
@@ -423,8 +423,6 @@ var _ = _self.Prism = {
 	},
 
 	matchGrammar: function (text, strarr, grammar, index, startPos, oneshot, target) {
-		var Token = _.Token;
-
 		for (var token in grammar) {
 			if(!grammar.hasOwnProperty(token) || !grammar[token]) {
 				continue;
@@ -562,7 +560,7 @@ var _ = _self.Prism = {
 	 * @param {Grammar} grammar An object containing the tokens to use.
 	 *
 	 * Usually a language definition like `Prism.languages.markup`.
-	 * @returns {Array.&lt;string | Prism.Token>} An array of strings, tokens and other arrays.
+	 * @returns {Array&lt;string | Prism.Token>} An array of strings, tokens and other arrays.
 	 * @memberof Prism
 	 */
 	tokenize: function(text, grammar) {
@@ -615,7 +613,7 @@ var _ = _self.Prism = {
 		 * Callbacks will be invoked synchronously and in the order in which they were registered.
 		 *
 		 * @param {string} name The name of the hook.
-		 * @param {Object.&lt;string, any>} env The environment variables of the hook passed to all callbacks registered.
+		 * @param {Object&lt;string, any>} env The environment variables of the hook passed to all callbacks registered.
 		 */
 		run: function (name, env) {
 			var callbacks = _.hooks.all[name];
@@ -632,12 +630,13 @@ var _ = _self.Prism = {
 
 	Token: Token
 };
+_self.Prism = _;
 
 /**
  * Creates a new token.
  *
  * @param {string} type See {@link Prism.Token#type type}
- * @param {string | Prism.Token | Array.&lt;string|Prism.Token>} content See {@link Prism.Token#content content}
+ * @param {string | Prism.Token | Array&lt;string|Prism.Token>} content See {@link Prism.Token#content content}
  * @param {string|string[]} [alias] The alias(es) of the token.
  * @param {string} [matchedStr=""] A copy of the full string this token was created from.
  * @param {boolean} [greedy=false] See {@link Prism.Token#greedy greedy}
@@ -656,7 +655,7 @@ function Token(type, content, alias, matchedStr, greedy) {
 	 * The strings or tokens contained by this token.
 	 *
 	 * This will be a token stream if the pattern matched also defined an `inside` grammar.
-	 * @member {string | Prism.Token | Array.&lt;string|Prism.Token>}
+	 * @member {string | Prism.Token | Array&lt;string|Prism.Token>}
 	 */
 	this.content = content;
 	/**
@@ -666,7 +665,7 @@ function Token(type, content, alias, matchedStr, greedy) {
 	 */
 	this.alias = alias;
 	/**
-	 *
+	 * The length of the matched string or 0.
 	 * @member {number}
 	 */
 	this.length = (matchedStr || "").length|0;
@@ -678,29 +677,39 @@ function Token(type, content, alias, matchedStr, greedy) {
 	this.greedy = !!greedy;
 }
 
-Token.stringify = function(o, language, parent) {
+/**
+ * Converts the given token or token stream to an HTML representation.
+ *
+ * The following hooks will be run:
+ * 1. `wrap`: On each {@link Prism.Token}.
+ *
+ * @param {string | Prism.Token | Array&lt;string|Prism.Token>} o The token or token stream to be converted.
+ * @param {string} language The name of current language.
+ * @return {string} The HTML representation of the token or token stream.
+ * @private
+ */
+Token.stringify = function(o, language) {
 	if (typeof o == 'string') {
 		return o;
 	}
 
-	if (_.util.type(o) === 'Array') {
+	if (Array.isArray(o)) {
 		return o.map(function(element) {
-			return Token.stringify(element, language, o);
+			return Token.stringify(element, language);
 		}).join('');
 	}
 
 	var env = {
 		type: o.type,
-		content: Token.stringify(o.content, language, parent),
+		content: Token.stringify(o.content, language),
 		tag: 'span',
 		classes: ['token', o.type],
 		attributes: {},
-		language: language,
-		parent: parent
+		language: language
 	};
 
 	if (o.alias) {
-		var aliases = _.util.type(o.alias) === 'Array' ? o.alias : [o.alias];
+		var aliases = Array.isArray(o.alias) ? o.alias : [o.alias];
 		Array.prototype.push.apply(env.classes, aliases);
 	}
 
@@ -711,13 +720,12 @@ Token.stringify = function(o, language, parent) {
 	}).join(' ');
 
 	return '&lt;' + env.tag + ' class="' + env.classes.join(' ') + '"' + (attributes ? ' ' + attributes : '') + '>' + env.content + '&lt;/' + env.tag + '>';
-
 };
 
 if (!_self.document) {
 	if (!_self.addEventListener) {
 		// in Node.js
-		return _self.Prism;
+		return _;
 	}
 
 	if (!_.disableWorkerMessageHandler) {
@@ -735,7 +743,7 @@ if (!_self.document) {
 		}, false);
 	}
 
-	return _self.Prism;
+	return _;
 }
 
 //Get current script and highlight
@@ -758,9 +766,9 @@ if (script) {
 	}
 }
 
-return _self.Prism;
+return _;
 
-})();
+})(_self);
 
 if (typeof module !== 'undefined' &amp;&amp; module.exports) {
 	module.exports = Prism;
