@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    color-scheme: light dark;
+}
+
+body {
+    line-height: 1.5rem;
+}
+
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+}
