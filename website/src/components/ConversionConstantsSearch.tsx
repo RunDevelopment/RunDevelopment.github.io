@@ -1,26 +1,56 @@
 import { lazy } from "@/lib/util";
 import { useEffect, useMemo, useState } from "react";
 
+type RoundingFunction = "round" | "floor" | "ceil";
+interface Request {
+    inputRange: number;
+    R: RoundingFunction;
+    S: number;
+    T: number;
+}
 interface Conversion {
     factor: number;
     add: number;
     shift: number;
 }
 
-function bruteForceSync(from: number, to: number): Conversion | null {
+async function bruteForceSync(
+    { inputRange, R, S, T }: Request,
+    signal: AbortSignal,
+): Promise<Conversion | null> {
+    const debug = 0;
+
     const getActual = (i: number, { factor, shift, add }: Conversion) => {
         // use bigint, because bit-shift is 32-bit only
         return Number((BigInt(i) * BigInt(factor) + BigInt(add)) >> BigInt(shift));
     };
-    const getExpected = (i: number) => Math.round((i * to) / from);
-
-    const expectedArray: number[] = [];
-    for (let i = 0; i <= from; i++) {
-        expectedArray.push(getExpected(i));
+    // eslint-disable-next-line no-unused-vars
+    function getRoundingFunction(): (x: number) => number {
+        switch (R) {
+            case "round":
+                return Math.round;
+            case "floor":
+                return Math.floor;
+            case "ceil":
+                return Math.ceil;
+        }
+    }
+    function yieldThread() {
+        return new Promise<void>((resolve) => {
+            setTimeout(resolve, 0);
+        });
     }
 
+    // pre-compute all expected values
+    const expectedArray: number[] = [];
+    const round = getRoundingFunction();
+    for (let x = 0; x <= inputRange; x++) {
+        expectedArray.push(round((x * T) / S));
+    }
+    const outputRange = expectedArray[inputRange];
+
     // values that are very likely to be rejected
-    const rejectTestValues = new Set<number>([0, 1, from - 1, from]);
+    const rejectTestValues = new Set<number>([0, 1, inputRange - 1, inputRange]);
 
     let lastRejected: number | null = null;
     let rejectedCount = 0;
@@ -35,34 +65,34 @@ function bruteForceSync(from: number, to: number): Conversion | null {
         }
 
         // use slow bigint version only if necessary
-        if (from * conversion.factor + conversion.add < Number.MAX_SAFE_INTEGER) {
+        if (inputRange * conversion.factor + conversion.add < Number.MAX_SAFE_INTEGER) {
             // slower with floor division
             const { factor, add, shift } = conversion;
             const div = 2 ** shift;
 
             // start with values that were rejected before
-            for (const i of rejectTestValues) {
-                if (Math.floor((i * factor + add) / div) !== expectedArray[i]) {
+            for (const x of rejectTestValues) {
+                if (Math.floor((x * factor + add) / div) !== expectedArray[x]) {
                     return false;
                 }
             }
 
             // test all values
-            for (let i = 0; i <= from; i++) {
-                if (Math.floor((i * factor + add) / div) !== expectedArray[i]) {
-                    rejectTestValues.add(i);
-                    if (i !== lastRejected) {
+            for (let x = 0; x <= inputRange; x++) {
+                if (Math.floor((x * factor + add) / div) !== expectedArray[x]) {
+                    if (debug >= 2 && x !== lastRejected) {
                         if (rejectedCount > 0) {
                             console.log(
                                 `Rejected for ${lastRejected} a total of ${rejectedCount} times`,
                             );
                         }
-                        // console.log(`Rejected for ${i}`);
-                        lastRejected = i;
                         rejectedCount = 1;
                     } else {
                         rejectedCount++;
                     }
+
+                    rejectTestValues.add(x);
+                    lastRejected = x;
                     return false;
                 }
             }
@@ -71,16 +101,28 @@ function bruteForceSync(from: number, to: number): Conversion | null {
             // slowest bigint
 
             // start with values that were rejected before
-            for (const i of rejectTestValues) {
-                if (getActual(i, conversion) !== expectedArray[i]) {
+            for (const x of rejectTestValues) {
+                if (getActual(x, conversion) !== expectedArray[x]) {
                     return false;
                 }
             }
 
             // test all values
-            for (let i = 0; i <= from; i++) {
-                if (getActual(i, conversion) !== expectedArray[i]) {
-                    rejectTestValues.add(i);
+            for (let x = 0; x <= inputRange; x++) {
+                if (getActual(x, conversion) !== expectedArray[x]) {
+                    if (debug >= 2 && x !== lastRejected) {
+                        if (rejectedCount > 0) {
+                            console.log(
+                                `Rejected for ${lastRejected} a total of ${rejectedCount} times`,
+                            );
+                        }
+                        rejectedCount = 1;
+                    } else {
+                        rejectedCount++;
+                    }
+
+                    rejectTestValues.add(x);
+                    lastRejected = x;
                     return false;
                 }
             }
@@ -88,13 +130,18 @@ function bruteForceSync(from: number, to: number): Conversion | null {
         return true;
     };
 
-    const getClosestOffIntegers = (f: number) => {
-        const closest = Math.round(f);
+    // eslint-disable-next-line no-unused-vars
+    const getClosestOffIntegers = (shift: number) => {
+        const real = (T * 2 ** shift) / S;
+        const closest = Math.round(real);
+        if (shift === 0) {
+            return [closest];
+        }
         if (closest % 2 === 0) {
             const low = closest - 1;
             const high = closest + 1;
-            const lowDist = Math.abs(f - low);
-            const highDist = Math.abs(f - high);
+            const lowDist = Math.abs(real - low);
+            const highDist = Math.abs(real - high);
             if (lowDist < highDist) {
                 return [low];
             } else if (highDist < lowDist) {
@@ -110,22 +157,27 @@ function bruteForceSync(from: number, to: number): Conversion | null {
     for (let shift = 0; shift < 64; shift++) {
         const shiftAbs = 2 ** shift;
 
-        for (const factor of getClosestOffIntegers((to * shiftAbs) / from)) {
+        for (const factor of getClosestOffIntegers(shift)) {
+            await yieldThread();
+            signal.throwIfAborted();
+
             const start = performance.now();
 
             let addMin = 0;
             let addMax = shiftAbs - 1;
 
-            if (getActual(from, { factor, add: addMin, shift }) > to) {
+            if (getActual(inputRange, { factor, add: addMin, shift }) > outputRange) {
                 // the factor is too high
                 break;
             }
-            if (getActual(from, { factor, add: addMax, shift }) < to) {
+            if (getActual(inputRange, { factor, add: addMax, shift }) < outputRange) {
                 // the factor is too low
                 continue;
             }
 
-            console.log(`factor=${factor} shift=${shift}`);
+            if (debug >= 1) {
+                console.log(`factor=${factor} shift=${shift}`);
+            }
 
             // narrow add range
             const incStart = Math.floor(shiftAbs / 2) + 1;
@@ -157,23 +209,32 @@ function bruteForceSync(from: number, to: number): Conversion | null {
                 }
             }
 
-            console.log(`kValues=${kValues.length} minSteps=${minSteps} maxSteps=${maxSteps}`);
+            if (debug >= 1) {
+                console.log(`kValues=${kValues.length} minSteps=${minSteps} maxSteps=${maxSteps}`);
+            }
 
             if (addMin <= addMax) {
-                console.log(`Exhaustive test for ${addMax - addMin + 1} add values`);
+                if (debug >= 1) {
+                    console.log(`Exhaustive test for ${addMax - addMin + 1} add values`);
+                }
                 lastRejected = null;
                 rejectedCount = 0;
                 for (let add = addMin; add <= addMax; add++) {
                     const candidate = { factor, add, shift };
-                    if (getActual(from, candidate) === to && exhaustiveTest(candidate)) {
+                    if (
+                        getActual(inputRange, candidate) === outputRange &&
+                        exhaustiveTest(candidate)
+                    ) {
                         return candidate;
                     }
                 }
-                if (rejectedCount > 0) {
+                if (debug >= 2 && rejectedCount > 0) {
                     console.log(`Rejected for ${lastRejected} a total of ${rejectedCount} times`);
                 }
             }
-            console.log(`Rejected in ${performance.now() - start}ms`);
+            if (debug >= 1) {
+                console.log(`Rejected factor in ${performance.now() - start}ms`);
+            }
         }
     }
 
@@ -181,23 +242,44 @@ function bruteForceSync(from: number, to: number): Conversion | null {
 }
 
 const webWorkerBruteForce = lazy(() => {
+    let lastAbort: AbortController | null = null;
+    let lastPromise: Promise<unknown> = Promise.resolve();
     const onmessage = (e: MessageEvent) => {
-        const { id, from, to } = e.data;
-        try {
-            const start = Date.now();
-            const conversion = bruteForceSync(from, to);
-            const time = Date.now() - start;
-            postMessage({ id, conversion, from, to, time });
-        } catch (e) {
-            postMessage({ id, error: String(e) });
-        }
+        const { id, request } = e.data;
+        const process = async () => {
+            try {
+                lastAbort?.abort("Took too long");
+                await lastPromise;
+                const abort = new AbortController();
+                lastAbort = abort;
+
+                const start = Date.now();
+                const promise = bruteForceSync(request, abort.signal);
+                lastPromise = promise.catch(() => {});
+                const conversion = await promise;
+                const time = Date.now() - start;
+                postMessage({ id, conversion, request, time });
+            } catch (e) {
+                postMessage({ id, error: String(e) });
+            }
+        };
+        process().catch(console.error);
     };
 
     const worker = new Worker(
         URL.createObjectURL(
-            new Blob([bruteForceSync.toString() + "\nonmessage = " + onmessage.toString()], {
-                type: "application/javascript",
-            }),
+            new Blob(
+                [
+                    bruteForceSync.toString() +
+                        "\nlet lastAbort = null;" +
+                        "\nlet lastPromise = Promise.resolve();" +
+                        "\nonmessage = " +
+                        onmessage.toString(),
+                ],
+                {
+                    type: "application/javascript",
+                },
+            ),
         ),
     );
 
@@ -214,9 +296,9 @@ const webWorkerBruteForce = lazy(() => {
         }
     };
 
-    return (from: number, to: number) => {
+    return (request: Request) => {
         const id = idCounter++;
-        worker.postMessage({ id, from, to });
+        worker.postMessage({ id, request });
         return new Promise<BruteForceResult>((resolve, reject) => {
             listeners.set(id, (result) => {
                 if (result.error) {
@@ -225,8 +307,7 @@ const webWorkerBruteForce = lazy(() => {
                     resolve({
                         conversion: result.conversion,
                         time: result.time,
-                        from: result.from,
-                        to: result.to,
+                        request: request,
                     });
                 }
             });
@@ -236,19 +317,19 @@ const webWorkerBruteForce = lazy(() => {
 
 interface BruteForceResult {
     conversion: Conversion | null;
-    from: number;
-    to: number;
+    request: Request;
     time: number;
 }
 
-async function bruteForce(from: number, to: number): Promise<BruteForceResult> {
+async function bruteForce(request: Request): Promise<BruteForceResult> {
     if (typeof Worker !== "undefined") {
-        return webWorkerBruteForce()(from, to);
+        return webWorkerBruteForce()(request);
     }
     const start = Date.now();
-    const conversion = bruteForceSync(from, to);
+    const abort = new AbortController();
+    const conversion = await bruteForceSync(request, abort.signal);
     const time = Date.now() - start;
-    return { conversion, time, from, to };
+    return { conversion, time, request };
 }
 
 interface NumberInputProps {
@@ -299,19 +380,49 @@ function NumberInput({ value, onChange, min, max, className }: NumberInputProps)
     );
 }
 
+interface DowndownProps<T extends string> {
+    value: T;
+    // eslint-disable-next-line no-unused-vars
+    onChange: (value: T) => void;
+    options: readonly T[];
+    // eslint-disable-next-line no-unused-vars
+    getLabel?: (value: T) => string;
+    className?: string;
+}
+function Downdown<T extends string>({
+    value,
+    onChange,
+    options,
+    getLabel,
+    className,
+}: DowndownProps<T>) {
+    return (
+        <select className={className} value={value} onChange={(e) => onChange(e.target.value as T)}>
+            {options.map((option) => (
+                <option key={option} value={option}>
+                    {getLabel?.(option) ?? option}
+                </option>
+            ))}
+        </select>
+    );
+}
+
 export function ConversionConstantsSearch() {
+    const [inputRange, setInputRange] = useState(31);
     const [from, setFrom] = useState(31);
     const [to, setTo] = useState(255);
+    const [round, setRound] = useState<RoundingFunction>("round");
 
     const [result, setResult] = useState<BruteForceResult>({
         conversion: { factor: 527, add: 23, shift: 6 },
-        from,
-        to,
+        request: { inputRange, R: round, S: from, T: to },
         time: 0,
     });
     useEffect(() => {
-        bruteForce(from, to).then(setResult, (e) => console.error(e));
-    }, [from, to]);
+        bruteForce({ inputRange, R: round, S: from, T: to }).then(setResult, (e) =>
+            console.error(e),
+        );
+    }, [inputRange, from, to, round]);
 
     const resultLines = useMemo(() => {
         if (!result.conversion) {
@@ -319,6 +430,8 @@ export function ConversionConstantsSearch() {
         }
 
         const { factor, add, shift } = result.conversion;
+        const inputRange = result.request.inputRange;
+        const outputRange = Math.floor((factor * inputRange + add) / 2 ** shift);
 
         const bitsToTypeSize = (bits: number) => {
             if (bits <= 8) {
@@ -334,27 +447,26 @@ export function ConversionConstantsSearch() {
             }
         };
 
-        const fromType = bitsToTypeSize(Math.log2(result.from + 1));
-        const toType = bitsToTypeSize(Math.log2(result.to + 1));
+        const fromType = bitsToTypeSize(Math.log2(inputRange + 1));
+        const toType = bitsToTypeSize(Math.log2(outputRange + 1));
         let rustCode;
 
         let formula;
         if (add === 0 && shift === 0) {
             formula = `x * ${factor}`;
-            if (fromType < toType) {
-                rustCode = `x as u${toType} * ${factor}`;
-            } else {
-                rustCode = `x * ${factor}`;
-            }
+            rustCode = fromType < toType ? `x as u${toType}` : `x`;
+            rustCode += factor === 1 ? `` : ` * ${factor}`;
         } else {
-            const maxIntermediate = result.from * factor + add;
+            const maxIntermediate = inputRange * factor + add;
             const interBits = Math.ceil(Math.log2(maxIntermediate));
             formula = `(x * ${factor} + ${add}) >> ${shift}  (${interBits} bits required)`;
 
             const interType = bitsToTypeSize(interBits);
 
-            const inter = interType > fromType ? ` as u${interType}` : "";
-            rustCode = `(x${inter} * ${factor} + ${add}) >> ${shift}`;
+            rustCode = fromType < interType ? `x as u${toType}` : `x`;
+            rustCode += factor === 1 ? `` : ` * ${factor}`;
+            rustCode += add === 0 ? `` : ` + ${add}`;
+            rustCode = `(${rustCode}) >> ${shift}`;
             if (interType > toType) {
                 rustCode = `(${rustCode}) as u${toType}`;
             }
@@ -365,9 +477,9 @@ export function ConversionConstantsSearch() {
             `        f: ${factor}, a: ${add}, s: ${shift}`,
             `        took ${result.time}ms`,
             ``,
-            `/// Converts a value 0..=${result.from} to a value 0..=${result.to}`,
+            `/// Converts a value 0..=${inputRange} to a value 0..=${outputRange}`,
             `fn convert_range(x: u${fromType}) -> u${toType} {`,
-            `    debug_assert!(x <= ${result.from});`,
+            `    debug_assert!(x <= ${inputRange});`,
             `    ${rustCode}`,
             `}`,
         ];
@@ -376,23 +488,44 @@ export function ConversionConstantsSearch() {
     return (
         <pre>
             <div>
-                {">>> From  0 - "}
+                {">>> (U) Input range:  0 - "}
                 <NumberInput
                     className="bg-black"
-                    min={2}
+                    min={1}
                     max={4294967296}
-                    value={from}
-                    onChange={setFrom}
+                    value={inputRange}
+                    onChange={setInputRange}
                 />
             </div>
             <div>
-                {">>> To    0 - "}
+                {">>> (S) Divisor:      0 - "}
                 <NumberInput
                     className="bg-black"
-                    min={2}
+                    min={1}
+                    max={4294967296}
+                    value={from}
+                    onChange={setFrom}
+                />{" "}
+                <input type="checkbox" checked={from === 1} readOnly /> linked to input range
+            </div>
+            <div>
+                {">>> (T) Denominator:  0 - "}
+                <NumberInput
+                    className="bg-black"
+                    min={1}
                     max={4294967296}
                     value={to}
                     onChange={setTo}
+                />
+            </div>
+            <div>
+                {">>> (R) Rounding Fn:  "}
+                <Downdown
+                    className="bg-black"
+                    value={round}
+                    onChange={setRound}
+                    options={["round", "floor", "ceil"]}
+                    getLabel={(value) => value}
                 />
             </div>
             {"\n" + resultLines.join("\n")}

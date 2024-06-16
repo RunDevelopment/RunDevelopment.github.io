@@ -340,7 +340,7 @@ Let's define the variables first:
 -   $S \in \N, S \ne 0$ is the maximum input number.
 -   $T \in \N, T \ne 0$ is the maximum output number.
 
-What are want a values for $f \in \N_0$, $a \in \N_0$, and $s \in \N_0$ such that:
+What are want values for $f \in \N_0$, $a \in \N_0$, and $s \in \N_0$ such that:
 
 $$
 \lfloor \frac{x \cdot f + a}{2^s} \rfloor = round(\frac{x}{S} \cdot T), \space \forall x \in \N_0, 0 \le x \le S
@@ -349,9 +349,9 @@ $$
 Here's what we know:
 
 1. $f \ne 0$. Showing this formally is a bit tedious, but the basic idea is that if $f = 0$, then we can only satisfy the above equation for a single value of $x$. However, since there always at least 2 possible values of $x$, $f = 0$ cannot be part of a valid solution.
-1. There are infinitely many triples $(f, a, s)$ that satisfy the equation. If a triple $(f, a, s)$ is a solution, then $(f \cdot 2, a \cdot 2, s+1)$ is also a solution.
+2. There are infinitely many triples $(f, a, s)$ that satisfy the equation. If a triple $(f, a, s)$ is a solution, then $(f \cdot 2, a \cdot 2, s+1)$ and $(f \cdot 2, a \cdot 2 + 1, s+1)$ are also solutions.
 
-Since there are infinitely many solutions, let's require our solution to be minimal. So given a solution $(f, a, s)$, there is no solution $(f', a', s')$ such that $(f' \cdot 2, a' \cdot 2, s' + 1) = (f, a, s)$.
+Since there are infinitely many solutions, let's require our solution to be minimal. A solution $(f, a, s)$ is minimal, iff $(f/2, \lfloor a/2 \rfloor, s-1)$ is not a solution.
 
 With this out of the way, let's continue:
 
@@ -363,7 +363,7 @@ With this out of the way, let's continue:
 
     For a proof of the last equality, see the appendix.
 
-4. $a < 2^s$. If $a \ge 2^s$, then for $x=0$ we get:
+4. $a < 2^s$. If $a \ge 2^s$, then for $x=0$ we would get:
 
     $$
     \lfloor \frac{x \cdot f + a}{2^s} \rfloor
@@ -400,7 +400,6 @@ With this out of the way, let's continue:
     \begin{split}
     s = 0 &\implies \frac{T}{S} \le f < \frac{T+1}{S} \implies f = \frac{T}{S} \\
     s > 0 &\implies \frac{(T-1) \cdot 2^s}{S} < f < \frac{(T+1) \cdot 2^s}{S} \\
-          &\implies f = \frac{T \cdot 2^s}{S} \pm \frac{2^s}{S} \\
     \end{split}
     $$
 
@@ -414,63 +413,119 @@ With this out of the way, let's continue:
     \begin{split}
     s = 0 &\implies f = \frac{T}{S} \\
     s > 0 &\implies \frac{(k \cdot T-1) \cdot 2^s}{k \cdot S} < f < \frac{(k \cdot T+1) \cdot 2^s}{k \cdot S} \\
-          &\implies f = \frac{T \cdot 2^s}{S} \pm \frac{2^s}{k \cdot S} \\
+          &\iff \frac{T \cdot 2^s}{S} - \frac{2^s}{k \cdot S} < f < \frac{T \cdot 2^s}{S} + \frac{2^s}{k \cdot S} \\
     \end{split}
     $$
 
-    If we let $k \to \infin$, then the $s>0$ case converges to $f = T \cdot 2^s/S$ as well. Since we know that $k \to \infin$ makes the bounds of $f$ converge, we can choose a value $k \ge 1$ such that the bound is as small as possible while still containing an odd integer. Since the distance of the lower and upper bound from $T \cdot 2^s/S$ is the same, we know that the optimal $f$ is an odd integer closest to $T \cdot 2^s/S$. Note that there can be 2 such values for $f$ if $T \cdot 2^s/S$ is an integer.
-
-    While I cannot proof this, I claim that choosing a closest odd integer for $f$ is still a minimal solution, if no $s=0$ solution exists. My basis for this claim are experiments I did where using the full bounds for $f$ always gave the same solution as choosing close odd integers.
+    If we let $k \to \infin$, then the $s>0$ case converges to $f = T \cdot 2^s/S$ as well. Since we know that $k \to \infin$ makes the bounds of $f$ converge, we can choose a value $k \ge 1$ such that the bound is as small as possible while still containing an odd integer. Since the distance of the lower and upper bound from $T \cdot 2^s/S$ is the same, we know that the optimal $f$ is an odd integer closest to $T \cdot 2^s/S$. Note that there can be 2 such values for $f$ if $T \cdot 2^s/S$ is an even integer.
 
 With this, we can now understand the magic number 527 from the 5 bit to 8 bit conversion better. 527 is closest odd integer to $255 * 2^6 / 31 = 526.45$.
 
-### When in doubt: Brute force
+From my experimentation, I also discovered the following properties:
 
-Since the magic code has the form `(x * f + a) >> s`, let's see what we can find out by simply analyzing the expression. Here's what we know:
+8. There are multiple minimal solutions, and there are multiple minimal solutions with the same values for $f$ and $s$.
+
+    E.g. for $S=31, T=255$, all solutions with $s<10$ are (all solutions with an odd $f$ are minimal):
+
+    - $f=527, a=23, s=6$
+    - $f=1053, a \in \set{60, 61,62,63, 64}, s=7$
+    - $f=1054, a \in \set{46, 47}, s=7$
+    - $f=2105, a=140, s=8$
+    - $f=2106, a \in \set{120, ..., 129}, s=8$
+    - $f=2107, a \in \set{100, ..., 118}, s=8$
+    - $f=2108, a \in \set{92, 93,94, 95}, s=8$
+    - $f=4210, a \in \set{280, 281}, s=9$
+    - $f=4211, a \in \set{260, ..., 270}, s=9$
+    - $f=4212, a \in \set{240, ..., 259}, s=9$
+    - $f=4213, a \in \set{220, ..., 248}, s=9$
+    - $f=4214, a \in \set{200, ..., 237}, s=9$
+    - $f=4215, a \in \set{191, ..., 215}, s=9$
+    - $f=4216, a \in \set{184, ..., 191}, s=9$
+
+    There can even be multiple minimal solutions with the the smallest $s$ value. E.g. the solutions with the smallest $s$ for $S=123,T=1000$ are:
+
+    - $f=8325, a \in \set{518,...,530}, s=10$
+
+### Generalizing the expression
+
+In the above analysis, we did not use 2 properties of our equation:
 
 $$
-\lfloor \frac{x \cdot f + a}{2^s} \rfloor = round(x/S \cdot T)
+\lfloor \frac{x \cdot f + a}{2^s} \rfloor = round(\frac{x}{S} \cdot T), \space \forall x \in \N_0, 0 \le x \le S
 $$
 
--   `f`, `a`, and `s` are all unsigned integers. Since we are doing arithmetic on unsigned integers, we require them to be as well.
--   `s` is less than 64. This is simply a practical limitation. If `s` is 64 or greater, we need at least 128-bit integers to represent the possible values of `(x * f + a)`.
+1. The bounds of $x$. 1) only used there are at least 2 possible values of $x$.
+2. The properties of the $round$ function. We only used the property $round(i) = i, i \in \N$, but there are other functions that satisfy this property.
 
-Since the magic code has the form `(x * f + a) >> s`, I wrote a simple JavaScript program to find values for `f`, `a`, and `s` such that `(x * f + a) >> s == Math.round(x * 255 / 31)` for all `x` in the range 0-31. It works as follows:
+So let's modify the equation to:
 
-```javascript
-for (let s = 0; s < 32; s++) {
-    let fRadius = 8; // arbitrary search radius
-    let fBase = Math.round((255 / 31) * 2 ** s);
-    for (let f = fBase - fRadius; f <= fBase + fRadius; f++) {
-        for (let a = 0; a < 2 ** s; a++) {
-            // check whether the values work for all x in 0-31
-            if (exhaustiveCheck(f, a, s)) {
-                console.log(`f: ${f}, a: ${a}, s: ${s}`);
-                return;
+$$
+\lfloor \frac{x \cdot f + a}{2^s} \rfloor = R(\frac{x}{S} \cdot T), \space \forall x \in \N_0, 0 \le x \le U
+$$
+
+Where $U \in \N,U>0$ and $R$ is a function that satisfies the following properties:
+
+1. $R(i) = i, \forall i \in \N_0$,
+2. $R(x) \in \N, \forall x\in\R$, and
+3. $R$ is monotonically increasing.
+
+Basically, we want $R$ to be a rounding function, but we don't require a specific rounding function. E.g. possible functions are $R(x) = round(x)$, $R(x) = \lfloor x \rfloor$, and $R(x) = \lceil x \rceil$.
+
+We now have something very powerful on our hands. If we can find the right constants for $(f, a, s)$, we can multiply any number $x \in \set{0,1,...,U}$ with an arbitrary fraction $T/S$ and round it to an integer with an arbitrary rounding function $R$. We just need to find the right constants.
+
+### Brute forcing magic constants
+
+Since we've already know quite a bit about the constants we want, brute forcing them is quite straightforward. Here's the basic algorithm in Rust-like pseudo code:
+
+```rust
+for s in 0..64 {
+    for f in get_optimal_factors(s) {
+        for a in 0..(1 << s) {
+            if exhaustive_check(f, a, s) {
+                return (f, a, s);
             }
         }
     }
 }
-console.log(`nothing found`);
+
+fn exhaustive_check(f: uint, a: uint, s: uint) -> bool {
+    for x in 0..=U {
+        if (x * f + a) >> s != get_expected(x) {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn get_expected(x: uint) -> uint {
+    return R((x * T) as decimal / S);
+}
 ```
 
-Sure enough, after less than a second, the program found the magic numbers:
+`get_optimal_factors` returns the optimal values for $f$ for a given $s$ as described in 7).
 
-```
-f: 527, a: 23, s: 6
-```
+While this works, it's quite slow since the number of `exhaustive_check`s we need to do grows exponentially with $s$. However, we can optimize this **a lot** using two observations I made:
 
-### Generalizing
+1. If $(f,a,s)$ is not a solution, because it doesn't work for a specific $x$, then $(f,a+1,s)$ will likely also not work for the same $x$. This means that we can often skip checking the full range by keeping track of the value of $x$ that caused `exhaustive_check` to reject the previous solution.
+2. Only a few specific values of $x$ ever cause `exhaustive_check` to reject a solution. So by keeping track of all values of $x$ that previously caused a rejection, we can check these values before checking the full range.
 
-While playing around with the brute force program, I noticed that it can find magic numbers for arbitrary conversion function. So it can find constants to remap any number 0-S to a number 0-T, where S and T are arbitrary integers >= 2.
+Lastly, we can optimize the values of $a$ that we check. Since we keep track of values that are very likely to reject a solution, we can use a binary-search-like algorithm to find the smallest and largest values of $a$ that for a specific value of $f$.
 
-If you want to know the constants for a specific conversion, here's a little tool to brute force them for you. I implemented a few optimizations, so it should find most constants in less than a second if $S+T<2^{20}$.
+### Playground
+
+I implemented the above algorithm in TypeScript for this website, so feel free to play around with it. Thanks to the above optimizations, it's fairly fast and can find the magic constants for most values of $S+T+U<100'000$ in less than a second.
 
 ```json:custom
 {
     "component": "conversion-brute-force"
 }
 ```
+
+## Beating the compiler at its own game
+
+Remember how the compiler replaced the `/ 31` with a multiplication and some other instructions? We can do the same thing with our magic constants.
+
+We select $S=31, T=1, U=255$ and use $R(x) = \lfloor x \rfloor$ as the rounding function.
 
 ## Appendix
 
