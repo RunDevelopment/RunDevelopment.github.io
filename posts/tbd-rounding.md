@@ -5,7 +5,7 @@ draft: true
 
 # Rounding numbers: Old new tricks
 
-I recently implemented a new DDS decoder for [the `image` crate](https://github.com/image-rs/image). DDS is a container format that supports a variety of image formats (compressed and uncompressed) with the purpose of storing textures, volumes, cubemaps, and more for games and 3D applications. What's interesting about these image formats is that [the specification](https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#Chapter19Contents) is written in terms of floating point numbers. This presents an interesting optimization problem for decoders that output 8-bit-per-channel images.
+I recently implemented a new DDS decoder for [the `image` crate](https://github.com/image-rs/image). DDS is a container format that supports a variety of image formats (compressed and uncompressed) with the purpose of storing textures, volumes, cubemaps, and more for games and 3D applications. What's interesting about these image formats is that [the specification](https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#Chapter19Contents) is written in terms of floating point numbers. This presents an interesting optimization problem for decoders that output images with `u8`/`uint8` channels.
 
 This article will focus on the `B5G6R5_UNORM` format. This is a 16-bit-per-pixel uncompressed (but quantized) RGB format. The R and B channels are 5 bits each, and the G channel is 6 bits. The formula for converting a n-bit number $x$ to 8 bit is:
 
@@ -20,6 +20,8 @@ fn u5_to_u8_naive(x: u16) -> u8 {
     (x as f32 / 31.0 * 255.0).round() as u8
 }
 ```
+
+> For those unfamiliar with Rust: `u8` is an 8-bit unsigned integer, `f32` is a 32-bit floating point number, and `.round()` rounds a floating point number the nearest integer. Also, the last expression in a function body is the return value of the function.
 
 However, while talking to the maintainer of the `image` crate, he pointed me towards the direction of [the `bcdec` C library](https://github.com/iOrange/bcdec). So I took a peak at their code and found that they used this for the 5 bit to 8 bit conversion (here, translated to Rust):
 
@@ -87,7 +89,7 @@ u5_to_u8_naive          time:   [11.108 µs 11.147 µs 11.195 µs]
 u5_to_u8_bcdec          time:   [527.47 ns 531.42 ns 536.16 ns]
 ```
 
-Yep, 21.15x faster. Let's try to catch up.
+Yep, `u5_to_u8_bcdec` is 21.15x faster. Let's try to catch up.
 
 ## Optimizing the naive implementation
 
@@ -189,7 +191,7 @@ u5_to_u8_naive_v2       time:   [1.3806 µs 1.3848 µs 1.3898 µs]
 u5_to_u8_bcdec          time:   [527.47 ns 531.42 ns 536.16 ns]
 ```
 
-That's a lot better. Our optimizations made the naive implementation 8x faster. We got a lot more competitive with the `bcdec` version, but we're still not quite there.
+That's a lot better. Our optimizations made the naive implementation 8x faster. We got a lot more competitive with the `bcdec` version, but we're still not quite there yet.
 
 The unnecessary clamping is next. Rust only performs the clamping to be safe, because it doesn't know that the floating point value is already between 0 and 255(.999). But we know that. Luckily, Rust provides us with the [`f32::to_int_unchecked`](https://doc.rust-lang.org/std/primitive.f32.html#method.to_int_unchecked) method to get around this.
 
@@ -419,6 +421,8 @@ With this out of the way, let's continue:
 
     If we let $k \to \infin$, then the $s>0$ case converges to $f = T \cdot 2^s/S$ as well. Since we know that $k \to \infin$ makes the bounds of $f$ converge, we can choose a value $k \ge 1$ such that the bound is as small as possible while still containing an odd integer. Since the distance of the lower and upper bound from $T \cdot 2^s/S$ is the same, we know that the optimal $f$ is an odd integer closest to $T \cdot 2^s/S$. Note that there can be 2 such values for $f$ if $T \cdot 2^s/S$ is an even integer.
 
+    While I cannot prove this, I believe that picking a value of $f$ in this manner is optimal in that it (1) is guaranteed to find a solution (if there exists one), and (2) it will find a minimal solution with the smallest possible $s$.
+
 With this, we can now understand the magic number 527 from the 5 bit to 8 bit conversion better. 527 is closest odd integer to $255 * 2^6 / 31 = 526.45$.
 
 From my experimentation, I also discovered the following properties:
@@ -445,6 +449,8 @@ From my experimentation, I also discovered the following properties:
     There can even be multiple minimal solutions with the the smallest $s$ value. E.g. the solutions with the smallest $s$ for $S=123,T=1000$ are:
 
     - $f=8325, a \in \set{518,...,530}, s=10$
+
+Based on my experiments, I also believe that if $(f,a_0,s)$ and $(f+2,a_2, s)$ are solutions, then a solution $(f+1,a_1,s)$ exists.
 
 ### Generalizing the expression
 
@@ -509,11 +515,13 @@ While this works, it's quite slow since the number of `exhaustive_check`s we nee
 1. If $(f,a,s)$ is not a solution, because it doesn't work for a specific $x$, then $(f,a+1,s)$ will likely also not work for the same $x$. This means that we can often skip checking the full range by keeping track of the value of $x$ that caused `exhaustive_check` to reject the previous solution.
 2. Only a few specific values of $x$ ever cause `exhaustive_check` to reject a solution. So by keeping track of all values of $x$ that previously caused a rejection, we can check these values before checking the full range.
 
-Lastly, we can optimize the values of $a$ that we check. Since we keep track of values that are very likely to reject a solution, we can use a binary-search-like algorithm to find the smallest and largest values of $a$ that for a specific value of $f$.
+Lastly, we can optimize the values of $a$ that we check. The property we'll use is that $\lfloor (x \cdot f + a') / 2^s \rfloor < R(x \cdot T / S)$ implies that all $a\le a'$ cannot be part of a solution for given values of $f,s,x$. This can used to find the lowest value of $a$ that can be part of a solution. A similar property can be used to find the highest value of $a$. Since we already keep track of values that are likely to reject a solution, we can use a binary-search-like algorithm to find the smallest and largest values of $a$.
+
+Note that none of these optimizations are sufficient to prove that a solution is correct. They only allow us to quickly reject solutions that are guaranteed to be incorrect.
 
 ### Playground
 
-I implemented the above algorithm in TypeScript for this website, so feel free to play around with it. Thanks to the above optimizations, it's fairly fast and can find the magic constants for most values of $S+T+U<100'000$ in less than a second.
+I implemented everything we talked about in TypeScript. It's fairly fast and can find the magic constants for most values of $S+T+U<100'000$ in less than a second. Of course, this is just a proof of concept, and the code is not optimized for performance. An optimized implementation in a language like C/C++ or Rust would likely be at least an order of magnitude faster.
 
 ```json:custom
 {

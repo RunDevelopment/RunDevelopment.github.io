@@ -8,16 +8,45 @@ interface Request {
     S: number;
     T: number;
 }
+interface SearchOptions {
+    /**
+     * The max number of shift that will be checked after the first solution has been found.
+     *
+     * @default 0
+     */
+    maxShiftAfterFirstSolution?: number;
+    /**
+     * Only the solution with the smallest add value will be returned for a solution for a given factor and shift.
+     *
+     * @default false
+     */
+    onlySmallestAdd?: boolean;
+    /**
+     * If true, then only solutions with off factors (if shift > 0) will be returned.
+     *
+     * @default false
+     */
+    onlyMinimalSolutions?: boolean;
+}
+interface SolutionRequirements {
+    optimizeFactor: boolean;
+    addZero: boolean;
+}
 interface Conversion {
     factor: number;
     add: number;
     shift: number;
 }
 
-async function bruteForceSync(
+async function* bruteForceAllSolutions(
     { inputRange, R, S, T }: Request,
+    {
+        maxShiftAfterFirstSolution = 0,
+        onlySmallestAdd = false,
+        onlyMinimalSolutions = false,
+    }: SearchOptions,
     signal: AbortSignal,
-): Promise<Conversion | null> {
+): AsyncIterable<Conversion> {
     const debug = 0;
 
     const getActual = (i: number, { factor, shift, add }: Conversion) => {
@@ -154,10 +183,30 @@ async function bruteForceSync(
         }
     };
 
+    let firstS = null;
     for (let shift = 0; shift < 64; shift++) {
         const shiftAbs = 2 ** shift;
 
-        for (const factor of getClosestOffIntegers(shift)) {
+        if (firstS !== null && firstS + maxShiftAfterFirstSolution > shift) {
+            break;
+        }
+
+        const factorsToCheck = getClosestOffIntegers(shift);
+        const checkedFactors = new Set<number>();
+        const addFactorToCheck = (factor: number) => {
+            if (!checkedFactors.has(factor) && factor >= 0) {
+                checkedFactors.add(factor);
+                if (onlyMinimalSolutions && shift > 0 && factor % 2 === 0) {
+                    // solutions with this factor can't be minimal
+                    return;
+                }
+                factorsToCheck.push(factor);
+            }
+        };
+
+        while (factorsToCheck.length > 0) {
+            const factor = factorsToCheck.shift()!;
+
             await yieldThread();
             signal.throwIfAborted();
 
@@ -219,15 +268,29 @@ async function bruteForceSync(
                 }
                 lastRejected = null;
                 rejectedCount = 0;
+                let foundAnySolution = false;
                 for (let add = addMin; add <= addMax; add++) {
                     const candidate = { factor, add, shift };
                     if (
                         getActual(inputRange, candidate) === outputRange &&
                         exhaustiveTest(candidate)
                     ) {
-                        return candidate;
+                        foundAnySolution = true;
+                        yield candidate;
+
+                        if (onlySmallestAdd) {
+                            break;
+                        }
                     }
                 }
+                if (foundAnySolution) {
+                    if (firstS === null) {
+                        firstS = shift;
+                    }
+                    addFactorToCheck(factor - 1);
+                    addFactorToCheck(factor + 1);
+                }
+
                 if (debug >= 2 && rejectedCount > 0) {
                     console.log(`Rejected for ${lastRejected} a total of ${rejectedCount} times`);
                 }
@@ -237,15 +300,101 @@ async function bruteForceSync(
             }
         }
     }
+}
+async function bruteForceSolution(
+    request: Request,
+    requirements: SolutionRequirements,
+    signal: AbortSignal,
+): Promise<Conversion | null> {
+    if (!requirements.optimizeFactor && !requirements.addZero) {
+        // any solution will do
+        for await (const solution of bruteForceAllSolutions(request, {}, signal)) {
+            return solution;
+        }
+        return null;
+    }
 
-    return null;
+    if (!requirements.optimizeFactor && requirements.addZero) {
+        // just try to find a solution with add=0
+        let minSolution: Conversion | null = null;
+        for await (const solution of bruteForceAllSolutions(
+            request,
+            { maxShiftAfterFirstSolution: 12, onlySmallestAdd: true, onlyMinimalSolutions: true },
+            signal,
+        )) {
+            if (solution.add === 0) {
+                return solution;
+            }
+            if (minSolution === null) {
+                minSolution = solution;
+            }
+        }
+        return minSolution;
+    }
+
+    const factorCostScale = 1;
+    const addCostScale = requirements.addZero ? 1 : 0;
+
+    const getFactorCost = (factor: number) => {
+        const COST_SHIFT = 1;
+        const COST_LEA = 1.5;
+        const COST_ADD = 2;
+        const COST_MULTIPLY = 6;
+
+        let factorsTwo = 0;
+        while (factor % 2 ** (factorsTwo + 1) === 0) {
+            factorsTwo++;
+        }
+
+        if (factor === 2 ** factorsTwo) {
+            // factor is a power of two and can be done with a shift
+            return COST_SHIFT;
+        }
+        if (Math.abs(factor - 2 ** factorsTwo) === 1) {
+            // shift + add/sub self
+            return COST_SHIFT + COST_ADD;
+        }
+
+        const rest = factor / 2 ** factorsTwo;
+        if (rest === 3 || rest === 5 || rest === 9) {
+            // shift + lea
+            return COST_SHIFT + COST_LEA;
+        }
+
+        return COST_MULTIPLY;
+    };
+    const getAddCost = (add: number) => {
+        const COST_ADD = 2;
+        return add === 0 ? 0 : COST_ADD;
+    };
+    const isBetter = (a: Conversion, b: Conversion) => {
+        const costA = factorCostScale * getFactorCost(a.factor) + addCostScale * getAddCost(a.add);
+        const costB = factorCostScale * getFactorCost(b.factor) + addCostScale * getAddCost(b.add);
+        return costA < costB;
+    };
+
+    let bestSolution: Conversion | null = null;
+
+    for await (const solution of bruteForceAllSolutions(
+        request,
+        { maxShiftAfterFirstSolution: 12, onlySmallestAdd: true },
+        signal,
+    )) {
+        if (!bestSolution) {
+            bestSolution = solution;
+        } else if (isBetter(solution, bestSolution)) {
+            bestSolution = solution;
+        }
+    }
+
+    return bestSolution;
 }
 
 const webWorkerBruteForce = lazy(() => {
     let lastAbort: AbortController | null = null;
     let lastPromise: Promise<unknown> = Promise.resolve();
     const onmessage = (e: MessageEvent) => {
-        const { id, request } = e.data;
+        const { id, request, requirements } = e.data;
         const process = async () => {
             try {
                 lastAbort?.abort("Took too long");
@@ -254,7 +403,7 @@ const webWorkerBruteForce = lazy(() => {
                 lastAbort = abort;
 
                 const start = Date.now();
-                const promise = bruteForceSync(request, abort.signal);
+                const promise = bruteForceSolution(request, requirements, abort.signal);
                 lastPromise = promise.catch(() => {});
                 const conversion = await promise;
                 const time = Date.now() - start;
@@ -270,7 +419,8 @@ const webWorkerBruteForce = lazy(() => {
         URL.createObjectURL(
             new Blob(
                 [
-                    bruteForceSync.toString() +
+                    bruteForceAllSolutions.toString() +
+                        bruteForceSolution.toString() +
                         "\nlet lastAbort = null;" +
                         "\nlet lastPromise = Promise.resolve();" +
                         "\nonmessage = " +
@@ -296,9 +446,9 @@ const webWorkerBruteForce = lazy(() => {
         }
     };
 
-    return (request: Request) => {
+    return (request: Request, requirements: SolutionRequirements) => {
         const id = idCounter++;
-        worker.postMessage({ id, request });
+        worker.postMessage({ id, request, requirements });
         return new Promise<BruteForceResult>((resolve, reject) => {
             listeners.set(id, (result) => {
                 if (result.error) {
@@ -321,13 +471,16 @@ interface BruteForceResult {
     time: number;
 }
 
-async function bruteForce(request: Request): Promise<BruteForceResult> {
+async function bruteForce(
+    request: Request,
+    requirements: SolutionRequirements,
+): Promise<BruteForceResult> {
     if (typeof Worker !== "undefined") {
-        return webWorkerBruteForce()(request);
+        return webWorkerBruteForce()(request, requirements);
     }
     const start = Date.now();
     const abort = new AbortController();
-    const conversion = await bruteForceSync(request, abort.signal);
+    const conversion = await bruteForceSolution(request, requirements, abort.signal);
     const time = Date.now() - start;
     return { conversion, time, request };
 }
@@ -338,10 +491,15 @@ interface NumberInputProps {
     onChange: (value: number) => void;
     min: number;
     max: number;
+    readOnly?: boolean;
     className?: string;
 }
-function NumberInput({ value, onChange, min, max, className }: NumberInputProps) {
+function NumberInput({ value, onChange, min, max, readOnly, className }: NumberInputProps) {
     const [text, setText] = useState(value.toString());
+
+    useEffect(() => {
+        setText(value.toString());
+    }, [value]);
 
     const commit = (): void => {
         const newValue = parseInt(text, 10);
@@ -358,8 +516,9 @@ function NumberInput({ value, onChange, min, max, className }: NumberInputProps)
     return (
         <input
             type="number"
-            className={className}
+            className={"read-only:text-neutral-500 " + (className || "")}
             min={min}
+            readOnly={readOnly}
             max={max}
             value={text}
             onChange={(e) => {
@@ -412,6 +571,15 @@ export function ConversionConstantsSearch() {
     const [from, setFrom] = useState(31);
     const [to, setTo] = useState(255);
     const [round, setRound] = useState<RoundingFunction>("round");
+    const [linkedInputRange, setLinkedInputRange] = useState(true);
+
+    console.log(linkedInputRange, inputRange, from);
+
+    useEffect(() => {
+        if (linkedInputRange) {
+            setFrom(inputRange);
+        }
+    }, [linkedInputRange, inputRange]);
 
     const [result, setResult] = useState<BruteForceResult>({
         conversion: { factor: 527, add: 23, shift: 6 },
@@ -419,9 +587,10 @@ export function ConversionConstantsSearch() {
         time: 0,
     });
     useEffect(() => {
-        bruteForce({ inputRange, R: round, S: from, T: to }).then(setResult, (e) =>
-            console.error(e),
-        );
+        bruteForce(
+            { inputRange, R: round, S: from, T: to },
+            { addZero: false, optimizeFactor: false },
+        ).then(setResult, (e) => console.error(e));
     }, [inputRange, from, to, round]);
 
     const resultLines = useMemo(() => {
@@ -463,7 +632,7 @@ export function ConversionConstantsSearch() {
 
             const interType = bitsToTypeSize(interBits);
 
-            rustCode = fromType < interType ? `x as u${toType}` : `x`;
+            rustCode = fromType < interType ? `x as u${interType}` : `x`;
             rustCode += factor === 1 ? `` : ` * ${factor}`;
             rustCode += add === 0 ? `` : ` + ${add}`;
             rustCode = `(${rustCode}) >> ${shift}`;
@@ -475,9 +644,9 @@ export function ConversionConstantsSearch() {
         return [
             `Result: ${formula}`,
             `        f: ${factor}, a: ${add}, s: ${shift}`,
-            `        took ${result.time}ms`,
+            `        search took ${result.time}ms`,
             ``,
-            `/// Converts a value 0..=${inputRange} to a value 0..=${outputRange}`,
+            `/// Converts a value 0..=${inputRange} to a value 0..=${outputRange} by multiplying with ${result.request.T}/${result.request.S} and then rounding with ${result.request.R}.`,
             `fn convert_range(x: u${fromType}) -> u${toType} {`,
             `    debug_assert!(x <= ${inputRange});`,
             `    ${rustCode}`,
@@ -494,7 +663,12 @@ export function ConversionConstantsSearch() {
                     min={1}
                     max={4294967296}
                     value={inputRange}
-                    onChange={setInputRange}
+                    onChange={(value) => {
+                        setInputRange(value);
+                        if (linkedInputRange) {
+                            setFrom(value);
+                        }
+                    }}
                 />
             </div>
             <div>
@@ -504,9 +678,19 @@ export function ConversionConstantsSearch() {
                     min={1}
                     max={4294967296}
                     value={from}
+                    readOnly={linkedInputRange}
                     onChange={setFrom}
                 />{" "}
-                <input type="checkbox" checked={from === 1} readOnly /> linked to input range
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={linkedInputRange}
+                        onChange={(e) => {
+                            setLinkedInputRange(e.target.checked);
+                        }}
+                    />{" "}
+                    linked to input range
+                </label>
             </div>
             <div>
                 {">>> (T) Denominator:  0 - "}
