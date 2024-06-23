@@ -12,4 +12,5 @@ export interface PostMetadata {
     datePublished: string;
     dateModified: string;
     draft: boolean;
+    inlineCodeLanguage?: string;
 }

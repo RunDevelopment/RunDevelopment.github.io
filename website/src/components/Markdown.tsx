@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import React, { memo } from "react";
+import React, { createContext, memo, useContext } from "react";
 import ReactMarkdown, { Components } from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { ConversionConstantsSearch } from "./ConversionConstantsSearch";
 import "katex/dist/katex.min.css";
@@ -13,7 +14,6 @@ import { SyntaxHighlight } from "./SyntaxHighlight";
 const knownComponents = {
     "conversion-brute-force": ConversionConstantsSearch,
 };
-// eslint-disable-next-line react/display-name
 const CustomComponent = memo(({ json }: { json: string }) => {
     interface ComponentDesc {
         component: string;
@@ -21,7 +21,7 @@ const CustomComponent = memo(({ json }: { json: string }) => {
     }
     const value = JSON.parse(json) as ComponentDesc;
 
-    const Component = knownComponents[value.component];
+    const Component = knownComponents[value.component as keyof typeof knownComponents];
 
     return <Component {...(value.props ?? {})} />;
 });
@@ -37,11 +37,12 @@ const components: Partial<Components> = {
         if (inline) {
             return (
                 <code className="bg-black py-0.5 rounded-md whitespace-pre">
-                    {" " + code + " "}
+                    {" "}
+                    <HighlightInlineCode>{code}</HighlightInlineCode>{" "}
                 </code>
             );
         } else {
-            const lang = /\blanguage-([\w:\-]+)/.exec(className || "")?.[1];
+            const lang = /\blanguage-([-\w:]+)/.exec(className || "")?.[1];
             let inner;
             if (lang === "json:custom") {
                 return <CustomComponent json={code} />;
@@ -51,14 +52,14 @@ const components: Partial<Components> = {
                 inner = <code>{children}</code>;
             }
             return (
-                <pre className="bg-neutral-950 px-[calc(0.6*4rem)] py-3 mb-6 rounded-md whitespace-pre overflow-auto max-w-full">
+                <pre className="bg-neutral-950 px-[calc(0.6*4rem)] py-3 mb-6 rounded-md whitespace-pre overflow-auto max-w-full text-base">
                     {inner}
                 </pre>
             );
         }
     },
     p({ children }) {
-        return <p className="my-6">{children}</p>;
+        return <p className="my-6 text-justify">{children}</p>;
     },
     a({ children, href }) {
         return (
@@ -73,6 +74,13 @@ const components: Partial<Components> = {
             <ol className="list-decimal my-6 pl-[calc(0.6*4rem)]" dir="auto">
                 {children}
             </ol>
+        );
+    },
+    ul({ children }) {
+        return (
+            <ul className="list-disc my-6 pl-[calc(0.6*4rem)]" dir="auto">
+                {children}
+            </ul>
         );
     },
     li({ children }) {
@@ -95,21 +103,60 @@ const components: Partial<Components> = {
             </h1>
         );
     },
+
+    div(props) {
+        if (props.className === "info" || props.className === "side-note") {
+            const title = props.className === "side-note" ? "Side note" : "Info";
+            return (
+                <div className="info-box bg-gray-800 px-[calc(0.6*4rem)] pb-6 pt-4 rounded-md my-6">
+                    <div className="pb-3">
+                        <strong>{title}:</strong>
+                    </div>
+                    <div className="inner [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                        {props.children}
+                    </div>
+                </div>
+            );
+        }
+
+        return <div {...props} />;
+    },
 };
+
+const InlineCodeLangContext = createContext<string | undefined>(undefined);
+
+const HighlightInlineCode = memo(({ children }: { children: string }) => {
+    const lang = useContext(InlineCodeLangContext);
+    if (lang) {
+        return <SyntaxHighlight code={children} lang={lang} />;
+    } else {
+        return <>{children}</>;
+    }
+});
 
 interface MarkdownProps {
     code: string;
+    inlineCodeLanguage?: string;
 }
 
-// eslint-disable-next-line react/display-name
-export const Markdown = memo(({ code }: MarkdownProps) => {
-    return (
+export const Markdown = memo(({ code, inlineCodeLanguage }: MarkdownProps) => {
+    let element = (
         <ReactMarkdown
             components={components}
             rehypePlugins={[rehypeRaw, rehypeKatex]}
-            remarkPlugins={[remarkMath]}
+            remarkPlugins={[remarkGfm, remarkMath]}
         >
             {code}
         </ReactMarkdown>
     );
+
+    if (inlineCodeLanguage) {
+        element = (
+            <InlineCodeLangContext.Provider value={inlineCodeLanguage}>
+                {element}
+            </InlineCodeLangContext.Provider>
+        );
+    }
+
+    return element;
 });

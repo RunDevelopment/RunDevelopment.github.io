@@ -16,7 +16,10 @@ export default async function Page({ params }: Props) {
     return (
         <div>
             <article>
-                <Markdown code={post.markdown} />
+                <Markdown
+                    code={post.markdown}
+                    inlineCodeLanguage={post.metadata.inlineCodeLanguage}
+                />
             </article>
         </div>
     );

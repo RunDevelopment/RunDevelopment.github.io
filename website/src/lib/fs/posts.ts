@@ -46,6 +46,7 @@ interface FrontMatter {
     datePublished: string;
     dateModified: string;
     draft: boolean;
+    inlineCodeLanguage: string;
 }
 
 function getMetadata(frontMatter: Partial<FrontMatter>, markdown: string): PostMetadata {
@@ -62,7 +63,9 @@ function getMetadata(frontMatter: Partial<FrontMatter>, markdown: string): PostM
 
     const draft = frontMatter.draft ?? false;
 
-    return { title, slug, datePublished, dateModified, draft };
+    const inlineCodeLanguage = frontMatter.inlineCodeLanguage;
+
+    return { title, slug, datePublished, dateModified, draft, inlineCodeLanguage };
 }
 
 function getMarkdownHeader(content: string): string {

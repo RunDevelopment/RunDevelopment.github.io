@@ -5,7 +5,7 @@ type RoundingFunction = "round" | "floor" | "ceil";
 interface Request {
     inputRange: number;
     R: RoundingFunction;
-    S: number;
+    D: number;
     T: number;
 }
 interface SearchOptions {
@@ -39,7 +39,7 @@ interface Conversion {
 }
 
 async function* bruteForceAllSolutions(
-    { inputRange, R, S, T }: Request,
+    { inputRange, R, D, T }: Request,
     {
         maxShiftAfterFirstSolution = 0,
         onlySmallestAdd = false,
@@ -53,7 +53,6 @@ async function* bruteForceAllSolutions(
         // use bigint, because bit-shift is 32-bit only
         return Number((BigInt(i) * BigInt(factor) + BigInt(add)) >> BigInt(shift));
     };
-    // eslint-disable-next-line no-unused-vars
     function getRoundingFunction(): (x: number) => number {
         switch (R) {
             case "round":
@@ -74,7 +73,7 @@ async function* bruteForceAllSolutions(
     const expectedArray: number[] = [];
     const round = getRoundingFunction();
     for (let x = 0; x <= inputRange; x++) {
-        expectedArray.push(round((x * T) / S));
+        expectedArray.push(round((x * T) / D));
     }
     const outputRange = expectedArray[inputRange];
 
@@ -159,9 +158,8 @@ async function* bruteForceAllSolutions(
         return true;
     };
 
-    // eslint-disable-next-line no-unused-vars
     const getClosestOffIntegers = (shift: number) => {
-        const real = (T * 2 ** shift) / S;
+        const real = (T * 2 ** shift) / D;
         const closest = Math.round(real);
         if (shift === 0) {
             return [closest];
@@ -434,12 +432,11 @@ const webWorkerBruteForce = lazy(() => {
     );
 
     let idCounter = 0;
-    // eslint-disable-next-line no-unused-vars
-    const listeners = new Map<number, (result: any) => void>();
+    const listeners = new Map<number, (result: unknown) => void>();
 
     worker.onmessage = (e) => {
         const { id } = e.data;
-        let listener = listeners.get(id);
+        const listener = listeners.get(id);
         if (listener) {
             listener(e.data);
             listeners.delete(id);
@@ -450,7 +447,8 @@ const webWorkerBruteForce = lazy(() => {
         const id = idCounter++;
         worker.postMessage({ id, request, requirements });
         return new Promise<BruteForceResult>((resolve, reject) => {
-            listeners.set(id, (result) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            listeners.set(id, (result: any) => {
                 if (result.error) {
                     reject(new Error(result.error));
                 } else {
@@ -487,7 +485,6 @@ async function bruteForce(
 
 interface NumberInputProps {
     value: number;
-    // eslint-disable-next-line no-unused-vars
     onChange: (value: number) => void;
     min: number;
     max: number;
@@ -541,10 +538,8 @@ function NumberInput({ value, onChange, min, max, readOnly, className }: NumberI
 
 interface DowndownProps<T extends string> {
     value: T;
-    // eslint-disable-next-line no-unused-vars
     onChange: (value: T) => void;
     options: readonly T[];
-    // eslint-disable-next-line no-unused-vars
     getLabel?: (value: T) => string;
     className?: string;
 }
@@ -583,12 +578,12 @@ export function ConversionConstantsSearch() {
 
     const [result, setResult] = useState<BruteForceResult>({
         conversion: { factor: 527, add: 23, shift: 6 },
-        request: { inputRange, R: round, S: from, T: to },
+        request: { inputRange, R: round, D: from, T: to },
         time: 0,
     });
     useEffect(() => {
         bruteForce(
-            { inputRange, R: round, S: from, T: to },
+            { inputRange, R: round, D: from, T: to },
             { addZero: false, optimizeFactor: false },
         ).then(setResult, (e) => console.error(e));
     }, [inputRange, from, to, round]);
@@ -646,7 +641,7 @@ export function ConversionConstantsSearch() {
             `        f: ${factor}, a: ${add}, s: ${shift}`,
             `        search took ${result.time}ms`,
             ``,
-            `/// Converts a value 0..=${inputRange} to a value 0..=${outputRange} by multiplying with ${result.request.T}/${result.request.S} and then rounding with ${result.request.R}.`,
+            `/// Converts a value 0..=${inputRange} to a value 0..=${outputRange} by multiplying with ${result.request.T}/${result.request.D} and then rounding with ${result.request.R}.`,
             `fn convert_range(x: u${fromType}) -> u${toType} {`,
             `    debug_assert!(x <= ${inputRange});`,
             `    ${rustCode}`,
@@ -672,7 +667,7 @@ export function ConversionConstantsSearch() {
                 />
             </div>
             <div>
-                {">>> (S) Divisor:      0 - "}
+                {">>> (D) Divisor:      0 - "}
                 <NumberInput
                     className="bg-black"
                     min={1}

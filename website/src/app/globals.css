@@ -7,7 +7,36 @@
 }
 
 body {
+    line-height: 1.75rem;
+    font-family:
+        system-ui,
+        -apple-system,
+        Segoe UI,
+        Roboto,
+        Ubuntu,
+        Cantarell,
+        Noto Sans,
+        sans-serif,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Helvetica,
+        Arial,
+        sans-serif,
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        "Segoe UI Symbol";
+}
+
+article {
+    font-size: 15px;
+}
+
+div.info-box {
     line-height: 1.5rem;
+}
+
+.katex-display {
+    font-size: 115%;
 }
 
 @layer utilities {

@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-unused-vars
 export function timedCached<F extends (...args: any[]) => any>(ttl: number, fn: F): F {
     const cache = new Map<string, { value: ReturnType<F>; expiry: number }>();
 

@@ -60,7 +60,6 @@ function IgnoreProps({ children }: Record<string, unknown>) {
     return <>{children}</>;
 }
 
-// eslint-disable-next-line react/display-name
 export const SyntaxHighlight = memo(({ code, lang }: SyntaxHighlightProps) => {
     return (
         <SyntaxHighlighter
