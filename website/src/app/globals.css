@@ -28,7 +28,7 @@ body {
 }
 
 article {
-    font-size: 15px;
+    /* font-size: 15px; */
 }
 
 div.info-box {
@@ -36,7 +36,8 @@ div.info-box {
 }
 
 .katex-display {
-    font-size: 115%;
+    font-size: 110%;
+    margin: .5rem 0 !important;
 }
 
 @layer utilities {

@@ -6,7 +6,7 @@ inlineCodeLanguage: rust
 
 # Rounding numbers: Old new tricks
 
-I recently implemented a new DDS decoder for [the `image` crate](https://github.com/image-rs/image). DDS is a container format that supports a variety of image formats (compressed and uncompressed) with the purpose of storing textures, volumes, cubemaps and more for games and other 3D applications. Pretty much every game that has been released in the last 15 years uses it, so it's very wide-spread. What's interesting about DDS' image formats is that [the specification](https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#Chapter19Contents) is written in terms of floating point numbers, even though color data is typically stored as n-bit integers for those formats. This presents an interesting optimization problem for decoders that output images with 8 bit per channels (`u8`/`uint8`).
+I recently implemented a new DDS decoder for [the `image` crate](https://github.com/image-rs/image). DDS is a container format that supports a variety of image formats (compressed and uncompressed) with the purpose of storing textures, volumes, cubemaps and more for games and other 3D applications. Almost much every computer game released in the last 15 years uses it. What's interesting about DDS' image formats is that [the specification](https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#Chapter19Contents) is written in terms of floating point numbers, even though color data is typically stored as n-bit integers for those formats. This presents an interesting optimization problem for decoders that output images with 8 bit per channels (`u8`/`uint8`).
 
 One DDS image format is `B5G6R5_UNORM`, a 16-bit-per-pixel uncompressed (but quantized) RGB format. The R and B channels are 5 bits each, and the G channel is 6 bits. The most basic task of the decoder is to convert this to 8 bits per channel. The formula for converting a $n$-bit number $x$ to 8 bit is:
 
@@ -24,10 +24,13 @@ fn u5_to_u8_naive(x: u16) -> u8 {
 
 <div class="info">
 
+<details>
+<summary>
 For those unfamiliar with Rust:
+</summary>
 
--   `u8` is an 8-bit unsigned integer (`uint8_t` in C).
--   `f32` is a 32-bit floating point number (`float` in C).
+-   `u8` is an **8**-bit **u**nsigned integer.
+-   `f32` is a **32**-bit **f**loating point number.
 -   `expr as T` is a cast between primitive types (`(T) expr` in C).
 -   `fn` is the keyword for [defining a function](https://doc.rust-lang.org/book/ch03-03-how-functions-work.html) and `-> T` annotates the return type.
 -   The last expression in a function body is the return value of the function.
@@ -35,6 +38,8 @@ For those unfamiliar with Rust:
     In Rust, `round` and other floating point operations are instance methods on the `f32` type.
 
 I will explain more Rust-specific concepts as them come up. Otherwise, Rust generally has a C-like syntax and semantics, so if something looks like C, it will most likely behave like it too.
+
+</details>
 
 </div>
 
@@ -48,7 +53,7 @@ fn u5_to_u8_bcdec(x: u16) -> u8 {
 
 Somehow, this random collection of operations produces the same results as the naive floating point version (for all `x` between 0 and 31). The only difference is that it's about **20x** faster.
 
-Surprised by this, I did what any sane person would do: I spend a few days analyzing both the naive and `bcdec` version, figured out how the `bcdec` version works, and then spend another few days generalizing what I found to solve a more difficult problem. Specifically, I ended up with a way to multiply an unsigned integer with an arbitrary fraction and round the result to an integer with an arbitrary rounding function. And that all is done using an expression of the form `(x * f + a) >> s`.
+Surprised by this, I did what any ~~sane~~ person would do: I spend a few days analyzing both the naive and `bcdec` version, figured out how the `bcdec` version works, and then spend another few days generalizing what I found to solve a more difficult problem. Specifically, I ended up with a way to multiply an unsigned integer with an arbitrary fraction and round the result to an integer with an arbitrary rounding function. And that all is done using an expression of the form `(x * f + a) >> s`.
 
 In this article, we will:
 
@@ -58,7 +63,7 @@ In this article, we will:
 4. generalize the `bcdec` version, and finally
 5. beat LLVM at optimizing unsigned integer division by constant (sometimes).
 
-The latter half will involve a lot of math, so get ready.
+The latter half will involve a bit of math, so look out for that.
 
 ## Benchmarking
 
@@ -75,9 +80,9 @@ All benchmarks in this article were performed with `criterion` and with the foll
 Here are the results for the naive and `bcdec` versions. Note the **different units**.
 
 ```
-                                 low       expected       high
-u5_to_u8_naive          time:   [11.108 µs 11.147 µs 11.195 µs]
-u5_to_u8_bcdec          time:   [527.47 ns 531.42 ns 536.16 ns]
+                    low       expected       high
+u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
+u5_to_u8_bcdec     [527.47 ns 531.42 ns 536.16 ns]
 ```
 
 <div class="info">
@@ -90,9 +95,7 @@ See [`criterion`'s documentation](https://bheisler.github.io/criterion.rs/book/u
 
 </div>
 
-Yep, `u5_to_u8_bcdec` is 21.15x faster.
-
-That our baseline, so let's try to catch up with the `bcdec` version.
+Yep, `u5_to_u8_bcdec` is 21.15x faster. That's our baseline, so let's try to catch up.
 
 TODO: Source code for the benchmarks
 
@@ -133,7 +136,7 @@ Well, that's not good. A few things to note:
 2. `round` compiles to a function call to `roundf`.
 3. `as u8` does a surprising amount of work. It first clamps the float to the range 0-255, then converts it to an integer by truncation. So `f as u8` essentially does `f.clamp(0.0, 255.0).trunc() as u8`.
 
-We can easily remove the division by defining a compile-time constant for `255.0 / 31.0`, so let's move on to more interesting optimizations.
+We can easily remove the division by multiplying with `(255.0 / 31.0)` instead. Using parentheses allows the compiler to compute the resulting constant at compile time.
 
 Next: the call to `round`. Mathematically speaking, rounding is defined as:
 
@@ -145,41 +148,15 @@ Let's apply this definition:
 
 ```rust
 fn u5_to_u8_naive_v2_wip(x: u16) -> u8 {
-    const FACTOR: f32 = 255.0 / 31.0;
-    (x as f32 * FACTOR + 0.5).floor() as u8
+    (x as f32 * (255.0 / 31.0) + 0.5).floor() as u8
 }
 ```
-
-<div class="info">
-
-In Rust, `const` defines a compile-time constant. Such values are guaranteed to be computed at compile time.
-
-</div>
-
-<div class="side-note">
-
-We are unfortunately living in an ugly world devoid of the beauty of mathematics. A world with finitely precise 32-bit floating point numbers, where all of the following is true:
-
-```rust
-let a: f32 = 0.49999997;
-assert!(a != 0.5);
-assert!(a + 0.5 == 1.0);
-assert!((a + 0.5).floor() == 1.0);
-assert!(a.round() == 0.0);
-```
-
-So always be careful when dealing with floating point numbers.
-
-That said, these edge cases can't happen with our 5-to-8-bit conversion, so we can ignore all this complexity Rust's `round` method has to deal with.
-
-</div>
 
 We already know that `as u8` _truncates_ the floating point number, so we can remove the call to `floor`. This is correct, because we are only working with non-negative floating point numbers and $\forall x \in R, x \ge 0 : trunc(x) = \lfloor x \rfloor$.
 
 ```rust
 fn u5_to_u8_naive_v2(x: u16) -> u8 {
-    const FACTOR: f32 = 255.0 / 31.0;
-    (x as f32 * FACTOR + 0.5) as u8
+    (x as f32 * (255.0 / 31.0) + 0.5) as u8
 }
 ```
 
@@ -204,22 +181,22 @@ u5_to_u8_naive_v2:
 ```
 
 ```
-u5_to_u8_naive          time:   [11.108 µs 11.147 µs 11.195 µs]
-u5_to_u8_naive_v2       time:   [1.3806 µs 1.3848 µs 1.3898 µs]
-u5_to_u8_bcdec          time:   [527.47 ns 531.42 ns 536.16 ns]
+                    low       expected       high
+u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
+u5_to_u8_naive_v2  [1.3806 µs 1.3848 µs 1.3898 µs]
+u5_to_u8_bcdec     [527.47 ns 531.42 ns 536.16 ns]
 ```
 
-That's a lot better. Our optimizations made the naive implementation 8x faster, but we still aren't there yet. The `bcdec` version is still 2.6x faster.
+That's a lot better. Our optimizations made the naive implementation 8x faster, but the `bcdec` version is still 2.6x faster.
 
-The last optimization we'll do is to remove the unnecessary clamping. Since we know that the number passed to `as u8` is already between 0 and 255, there's no need to perform any clamping. We can use Rust's [`f32::to_int_unchecked`](https://doc.rust-lang.org/std/primitive.f32.html#method.to_int_unchecked) method to perform the integer conversion without clamping (at the cost of causing undefined behavior if we give it a value outside the range 0-255.999).
+The last optimization is to remove the unnecessary clamping. Since we know that the number passed to `as u8` is already between 0 and 255, there's no need to perform any clamping. We can use Rust's [`f32::to_int_unchecked`](https://doc.rust-lang.org/std/primitive.f32.html#method.to_int_unchecked) method to perform the integer conversion without clamping.
 
 ```rust
 /// ## Safety
 /// The caller must ensure that x < 32.
 unsafe fn u5_to_u8_naive_v3(x: u16) -> u8 {
     debug_assert!(x < 32);
-    const FACTOR: f32 = 255.0 / 31.0;
-    let f = x as f32 * FACTOR + 0.5;
+    let f = x as f32 * (255.0 / 31.0) + 0.5;
     unsafe { f.to_int_unchecked() }
 }
 ```
@@ -227,6 +204,23 @@ unsafe fn u5_to_u8_naive_v3(x: u16) -> u8 {
 <div class="info">
 
 In Rust, `unsafe` allows us to call methods and perform actions that can cause undefined behavior (UB) if used incorrectly. While this enables powerful optimizations, it also requires the programmer to ensure that the code does not cause UB. It is generally recommended to avoid using `unsafe` whenever possible.
+
+In our case, `f32::to_int_unchecked` causes UB if the value is outside the range 0-255.999, so we need `unsafe`. In fact, since calling `u5_to_u8_naive_v3(32)` is also causing UB, the function `u5_to_u8_naive_v3` must also be marked as `unsafe`.
+
+```c
+uint8_t convert(int x) {
+    return (uint8_t) (float) x;
+}
+
+int foo(int x) {
+    uint8_t y = convert(x);
+    if (x < 0) {
+        return x;
+    } else {
+        return y;
+    }
+}
+```
 
 </div>
 
@@ -245,10 +239,11 @@ u5_to_u8_naive_v3:
 ```
 
 ```
-u5_to_u8_naive          time:   [11.108 µs 11.147 µs 11.195 µs]
-u5_to_u8_naive_v2       time:   [1.3806 µs 1.3848 µs 1.3898 µs]
-u5_to_u8_naive_v3       time:   [614.04 ns 615.98 ns 618.32 ns]
-u5_to_u8_bcdec          time:   [527.47 ns 531.42 ns 536.16 ns]
+                    low       expected       high
+u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
+u5_to_u8_naive_v2  [1.3806 µs 1.3848 µs 1.3898 µs]
+u5_to_u8_naive_v3  [614.04 ns 615.98 ns 618.32 ns]
+u5_to_u8_bcdec     [527.47 ns 531.42 ns 536.16 ns]
 ```
 
 We're almost caught up. The `bcdec` version is only 1.17x faster now.
@@ -308,11 +303,12 @@ u5_to_u8_int:
 ```
 
 ```
-u5_to_u8_naive          time:   [11.108 µs 11.147 µs 11.195 µs]
-u5_to_u8_naive_v2       time:   [1.3806 µs 1.3848 µs 1.3898 µs]
-u5_to_u8_naive_v3       time:   [614.04 ns 615.98 ns 618.32 ns]
-u5_to_u8_int            time:   [580.73 ns 582.60 ns 584.85 ns]
-u5_to_u8_bcdec          time:   [527.47 ns 531.42 ns 536.16 ns]
+                    low       expected       high
+u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
+u5_to_u8_naive_v2  [1.3806 µs 1.3848 µs 1.3898 µs]
+u5_to_u8_naive_v3  [614.04 ns 615.98 ns 618.32 ns]
+u5_to_u8_int       [580.73 ns 582.60 ns 584.85 ns]
+u5_to_u8_bcdec     [527.47 ns 531.42 ns 536.16 ns]
 ```
 
 LLVM loves optimizing integer operations, so we can see a lot of tricks in the assembly. All of those tricks gave us a nice speed boost, and we are now only 1.1x slower than the `bcdec` version.
@@ -365,11 +361,12 @@ Let's define the variables first:
 
 -   $D \in \N, D \ne 0$ is the maximum input number.
 -   $T \in \N, T \ne 0$ is the maximum output number.
+-   $x \in \N, 0 \le x \le D$ are the possible input values.
 
 What are want values for $f \in \N_0$, $a \in \N_0$, and $s \in \N_0$ such that the triple $(f, a, s)$ is a solution for:
 
 $$
-\lfloor \frac{x \cdot f + a}{2^s} \rfloor = round(\frac{x}{D} \cdot T), \space \forall x \in \N_0, 0 \le x \le D
+\lfloor \frac{x \cdot f + a}{2^s} \rfloor = round(\frac{x}{D} \cdot T)
 $$
 
 Here's what we know:
@@ -379,19 +376,20 @@ Here's what we know:
     If a triple $(f, a, s)$ is a solution, then $(f \cdot 2, a \cdot 2, s+1)$ and $(f \cdot 2, a \cdot 2 + 1, s+1)$ are also solutions.
 
     $$
+    \begin{split}
     \lfloor \frac{x \cdot f \cdot 2 + a \cdot 2}{2^{s+1}} \rfloor
-    = \lfloor \frac{2 \cdot (x \cdot f + a)}{2 \cdot 2^s} \rfloor
-    = \lfloor \frac{x \cdot f + a}{2^s} \rfloor
+    &= \lfloor \frac{2 \cdot (x \cdot f + a)}{2 \cdot 2^s} \rfloor \\
+    &= \lfloor \frac{x \cdot f + a}{2^s} \rfloor
+    \end{split}
     $$
 
     $$
+    \begin{split}
     \lfloor \frac{x \cdot f \cdot 2 + a \cdot 2 + 1}{2^{s+1}} \rfloor
-    = \lfloor \frac{2 \cdot (x \cdot f + a + 0.5)}{2 \cdot 2^s} \rfloor
-    = \lfloor \frac{x \cdot f + a + 0.5}{2^s} \rfloor
-    = \lfloor \frac{x \cdot f + a}{2^s} \rfloor
+    &= \lfloor \frac{x \cdot f + a + 0.5}{2^s} \rfloor \\
+    &\overset{\text{A1}}= \lfloor \frac{x \cdot f + a}{2^s} \rfloor
+    \end{split}
     $$
-
-    See the appendix for a proof of the last equality.
 
 Since we can derive infinitely many solutions from a single solution, it's useful to focus on solutions that aren't derived. A solution $(f, a, s)$ is _minimal_, iff $(f/2, \lfloor a/2 \rfloor, s-1)$ is not a solution. This allows us to differentiate between different kinds of solutions.
 
@@ -410,10 +408,8 @@ Since we can derive infinitely many solutions from a single solution, it's usefu
     $$
     \lfloor \frac{x \cdot f + a}{2^s} \rfloor
     = \lfloor \frac{x \cdot \overbrace{f/2}^{\text{integer}} + a/2}{2^{s-1}} \rfloor
-    = \lfloor \frac{x \cdot f/2 + \lfloor a/2 \rfloor}{2^{s-1}} \rfloor
+    \overset{\text{A2}}= \lfloor \frac{x \cdot f/2 + \lfloor a/2 \rfloor}{2^{s-1}} \rfloor
     $$
-
-    For a proof of the last equality, see the appendix.
 
 5. $a < 2^s$.
 
@@ -477,6 +473,8 @@ Since we can derive infinitely many solutions from a single solution, it's usefu
 
 With this, we can now understand the magic number 527 from the 5 bit to 8 bit conversion better. 527 is closest odd integer to $255 * 2^6 / 31 = 526.45$.
 
+### Experimental results
+
 From my experimentation, I also discovered the following properties:
 
 8. There are multiple minimal solutions, and there are multiple minimal solutions with the same values for $f$ and $s$.
@@ -506,14 +504,14 @@ Based on my experiments, I also believe that if $(f,a_0,s)$ and $(f+2,a_2, s)$ a
 
 ### Generalizing the expression
 
-In the above analysis, we did not use 2 properties of our equation:
+In the above analysis, we did not fully use 2 properties of our equation:
 
 $$
 \lfloor \frac{x \cdot f + a}{2^s} \rfloor = round(\frac{x}{D} \cdot T), \space \forall x \in \N_0, 0 \le x \le D
 $$
 
-1. The bounds of $x$. (The only exception here is 2) $f \ne 0$.)
-2. The properties of the $round$ function. We only used the property $round(i) = i, i \in \N$, but there are other functions that satisfy this property.
+1. The bounds of $x$. They were only used implicitly in a few places and can easily be changed.
+2. The properties of the $round$ function. We only used the property $round(i) = i, i \in \N$ and that it's monotonically increasing, but there are other functions that satisfy these property.
 
 So let's modify the equation to:
 
@@ -523,13 +521,15 @@ $$
 
 Where $U \in \N,U>0$ and $R$ is a function that satisfies the following properties:
 
-1. $R(i) = i, \forall i \in \N_0$,
-2. $R(x) \in \N, \forall x\in\R$, and
+1. $R(i) = i, i \in \Z$,
+2. $R(x) \in \N, x\in\R$, and
 3. $R$ is monotonically increasing.
 
 Basically, we want $R$ to be a rounding function, but we don't require a specific rounding function. E.g. possible functions are $R(x) = round(x)$, $R(x) = \lfloor x \rfloor$, and $R(x) = \lceil x \rceil$.
 
-We now have something very powerful on our hands. If we can find the right constants for $(f, a, s)$, we can multiply any number $x \in \set{0,1,...,U}$ with an arbitrary fraction $T/D$ and round it to an integer with an arbitrary rounding function $R$. We just need to find the right constants.
+We now have something very powerful. If we can find the right constants for $(f, a, s)$, we can multiply any number $x \in \set{0,1,...,U}$ with an arbitrary fraction $T/D$ and round it to an integer with an arbitrary rounding function $R$. We just need to find the right constants.
+
+(Formal proofs for the above theorems for the generalized equation can be found in the appendix.)
 
 ### Brute forcing magic constants
 
@@ -589,9 +589,11 @@ We select $D=31, T=1, U=255$ and use $R(x) = \lfloor x \rfloor$ as the rounding 
 
 ## Appendix
 
-This is a list of formal proofs for the theorems I used throughout the article.
+A list of formal proofs for theorems used throughout the article.
 
-### A1
+### General theorems
+
+#### A1
 
 Let $a,b \in \N, b \ne 0$ and $r\in\R,0\le r < 1$, then:
 
@@ -603,7 +605,7 @@ Proof:
 
 Since $r\ge 0$ and flooring is a monotonic increasing function, we know that $\lfloor a/b \rfloor \le \lfloor (a+r)/b \rfloor$. Since $r<1$, $a+r$ can never reach the next multiple of $b$. Therefore $\lfloor (a+r)/b \rfloor < \lfloor a/b \rfloor + 1$. Since flooring outputs integers, the statement follows from the above bounds. $\square$
 
-### A2
+#### A2
 
 Let $a,b,c \in \N, c \ne 0$. Then:
 
@@ -623,3 +625,174 @@ Proof:
     $$
 
 $\square$
+
+### Magic expression theorems
+
+A list of formal proofs for theorems about the generalized magic expression.
+
+All of the theorems use the following variables:
+
+-   $D \in \N, D \ne 0$ is the divisor of the fraction.
+-   $T \in \N, T \ne 0$ is the denominator of the fraction.
+-   $U \in \N, U > 0$ is the maximum value of $x$ that we want to check.
+-   $R$ is a function that satisfies the following properties:
+    1. $R(i) = i, \forall i \in \N_0$,
+    2. $R(x) \in \N, \forall x\in\R$, and
+    3. $R$ is monotonically increasing.
+-   $f, a, s \in \N$ are the magic constants that we want to find.
+-   A triple $(f, a, s)$ is a _solution_ iff it satisfies the following equation for all $x \in \N_0, 0 \le x \le U$:
+    $$
+    \lfloor \frac{x \cdot f + a}{2^s} \rfloor = R(\frac{x}{D} \cdot T)
+    $$
+
+#### B1
+
+If $(f,a,s)$ is a solution and $R(0) \ne R(U/D \cdot T)$, then $f \ne 0$.
+
+Proof:
+
+If $f$ was $0$, then the left side of the equation would simplify to $\lfloor a / 2^s \rfloor$. Let's define $c=\lfloor a / 2^s \rfloor$. The full equation would then be:
+
+$$
+c = R(\frac{x}{D} \cdot T)
+$$
+
+Substituting $x=0$, it follows that $c = R(0) = 0$. Substituting $x=U$, it follows that $c = R(U/D \cdot T) \ne 0$. However, this is a contradiction, because $c$ can't be 0 and not 0 at the same time. Therefore, the assumption $f=0$ must be wrong. $\square$
+
+Notes:
+
+1. $R(0) \ne R(U/D \cdot T)$ is always the case when $U \ge D/T$, because $U \ge D/T \implies U/D \cdot T \ge 1 \implies R(U/D \cdot T) \ge 1$.
+2. If $R(0) = R(U/D \cdot T)$, then $(f=0, a=0, s=0)$ is a trivial solution.
+
+#### B2
+
+If $(f,a,s)$ is a solution, then $a < 2^s$.
+
+Proof:
+
+If $a \ge 2^s$, then for $x=0$ we would get:
+
+$$
+\lfloor \frac{x \cdot f + a}{2^s} \rfloor
+= \lfloor \frac{a}{2^s} \rfloor
+\ge 1
+\ne 0
+= R(0)
+= R(\frac{x}{D} \cdot T)
+$$
+
+It follows that no $a \ge 2^s$ can satisfy the equation for $x=0$, so no $a\ge 2^s$ can be part of a solution. $\square$
+
+Notes:
+
+1. It trivially follows that $s = 0 \implies a = 0$.
+1. If instead of $a\in\N$, it was defined as $a\in\Z$, a similar argument could be made for why no solution can have an $a < 0$.
+
+#### B3
+
+Let $k\in\N, k\ge 2$. If $(f,a,s)$ is a solution and $(f,a+k,s)$ is a solution, then all triples $\set{(f,a+j,s) | j \in \N ,1\le j \le k}$ are solutions.
+
+Proof:
+
+Since $(f,a,s)$ and $(f,a+k,s)$ are solutions, it follows that:
+
+$$
+\lfloor \frac{x \cdot f + a}{2^s} \rfloor = \lfloor \frac{x \cdot f + a+k}{2^s} \rfloor
+$$
+
+This equality can only be true if $\nexists j\in\N, 1\le j\le k: x \cdot f + a + j \equiv 0 \space \pmod {2^s}$. If there was such a $j$, then $\lfloor (x \cdot f + a+j) /2^s \rfloor > \lfloor (x \cdot f + a) /2^s \rfloor$, which isn't possible, because the two sides of the equation are equal. Therefore, such a $j$ cannot exist. It follows that for all $j\in\N,1\le j\le k$:
+
+$$
+\lfloor \frac{x \cdot f + a}{2^s} \rfloor = \lfloor \frac{x \cdot f + a+j}{2^s} \rfloor
+$$
+
+$\square$
+
+#### B4
+
+If $(f,a,s)$ is a solution, then $(f \cdot 2, a \cdot 2, s+1)$ and $(f \cdot 2, a \cdot 2 + 1, s+1)$ are also solutions.
+
+Proof:
+
+$$
+\begin{split}
+\lfloor \frac{x \cdot f \cdot 2 + a \cdot 2}{2^{s+1}} \rfloor
+&= \lfloor \frac{2 \cdot (x \cdot f + a)}{2 \cdot 2^s} \rfloor \\
+&= \lfloor \frac{x \cdot f + a}{2^s} \rfloor
+\end{split}
+$$
+
+$$
+\begin{split}
+\lfloor \frac{x \cdot f \cdot 2 + a \cdot 2 + 1}{2^{s+1}} \rfloor
+&= \lfloor \frac{x \cdot f + a + 0.5}{2^s} \rfloor \\
+&\overset{\text{A1}}= \lfloor \frac{x \cdot f + a}{2^s} \rfloor
+\end{split}
+$$
+
+Since the two derived triples are equivalent to $(f,a,s)$ when substituted into the equation, they must also be solutions. $\square$
+
+#### Definition: minimal solutions
+
+A solution $(f,a,s)$ is _minimal_ iff there exists such solution $(f',a',s')$ such that $(f,s,a) = (f' \cdot 2, a' \cdot 2, s'+1)$ or $(f,s,a) = (f' \cdot 2, a' \cdot 2+1, s'+1)$.
+
+An alternative equivalent definition is that $(f,a,s)$ is _minimal_ iff $(f/2, \lfloor a/2 \rfloor, s-1)$ is not a solution.
+
+Similarly, a solution is called _derived_ if it is not minimal.
+
+#### B5
+
+If $(f,a,s)$ is a minimal solution and $s > 0$, then $f$ is odd.
+
+Proof:
+
+If $f$ was even, then $(f/2, \lfloor a/2 \rfloor, s-1)$ would be a solution, because:
+
+$$
+\lfloor \frac{x \cdot f + a}{2^s} \rfloor
+= \lfloor \frac{x \cdot \overbrace{f/2}^{\text{integer}} + a/2}{2^{s-1}} \rfloor
+\overset{\text{A2}}= \lfloor \frac{x \cdot f/2 + \lfloor a/2 \rfloor}{2^{s-1}} \rfloor
+$$
+
+However, this contradicts the requirement that $(f,a,s)$ is _minimal_. Therefore, the assumption $f$ is even must be wrong. $\square$
+
+#### B6
+
+Let $V = R(U/D\cdot T)$. If $(f,a,s)$ is a solution, then:
+
+$$
+\frac{(V-1)\cdot 2^s}U < f < \frac{(V+1)\cdot 2^s}U.
+$$
+
+Proof:
+
+Substitute $x=U$ into the equation:
+
+$$
+\lfloor \frac{U \cdot f + a}{2^s} \rfloor = V = R(\frac{U}D \cdot T)
+$$
+
+Using $z-1 < \lfloor z \rfloor \le z, \forall z\in \R$, we get 2 inequalities:
+
+$$
+\frac{U \cdot f + a}{2^s} \ge V \text{ and } \frac{U \cdot f + a}{2^s} - 1 < V
+$$
+
+Rearranging for $f$:
+
+$$
+\frac{V \cdot 2^s - a}U \le f < \frac{(V+1) \cdot 2^s - a}U
+$$
+
+Using $0 \le a < 2^s$ to remove $a$ from the inequalities:
+
+$$
+\frac{(V-1) \cdot 2^s}U < f < \frac{(V+1) \cdot 2^s}U
+$$
+
+$\square$
+
+Notes:
+
+1. For $s=0$, the bounds are $V/U \le f < (V+1)/U$. Note that these bounds can only be satisfied if $V \bmod U =0$.
+2. Unfortunately, these bounds are not very tight as they grow exponentially with $s$.

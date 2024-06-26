@@ -10,6 +10,14 @@ import remarkMath from "remark-math";
 import { ConversionConstantsSearch } from "./ConversionConstantsSearch";
 import "katex/dist/katex.min.css";
 import { SyntaxHighlight } from "./SyntaxHighlight";
+import { CodeBlock } from "./CodeBlock";
+
+function getHeadingId(text: string): string {
+    return text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+}
 
 const knownComponents = {
     "conversion-brute-force": ConversionConstantsSearch,
@@ -36,34 +44,25 @@ const components: Partial<Components> = {
 
         if (inline) {
             return (
-                <code className="bg-black py-0.5 rounded-md whitespace-pre">
-                    {" "}
-                    <HighlightInlineCode>{code}</HighlightInlineCode>{" "}
-                </code>
+                <HighlightInlineCode className="rounded-md bg-black px-2 py-0.5 md:whitespace-pre">
+                    {code}
+                </HighlightInlineCode>
             );
         } else {
             const lang = /\blanguage-([-\w:]+)/.exec(className || "")?.[1];
-            let inner;
             if (lang === "json:custom") {
                 return <CustomComponent json={code} />;
-            } else if (lang) {
-                inner = <SyntaxHighlight code={code.replace(/\n$/, "")} lang={lang} />;
             } else {
-                inner = <code>{children}</code>;
+                return <CodeBlock lang={lang} code={code} />;
             }
-            return (
-                <pre className="bg-neutral-950 px-[calc(0.6*4rem)] py-3 mb-6 rounded-md whitespace-pre overflow-auto max-w-full text-base">
-                    {inner}
-                </pre>
-            );
         }
     },
     p({ children }) {
-        return <p className="my-6 text-justify">{children}</p>;
+        return <p className="my-4">{children}</p>;
     },
     a({ children, href }) {
         return (
-            <Link href={href ?? "#"} className="border-b pb-[2px] border-dotted hover:border-solid">
+            <Link href={href ?? "#"} className="border-b border-dotted pb-[2px] hover:border-solid">
                 {children}
             </Link>
         );
@@ -71,36 +70,58 @@ const components: Partial<Components> = {
 
     ol({ children }) {
         return (
-            <ol className="list-decimal my-6 pl-[calc(0.6*4rem)]" dir="auto">
+            <ol className="my-4 list-decimal pl-10" dir="auto">
                 {children}
             </ol>
         );
     },
     ul({ children }) {
         return (
-            <ul className="list-disc my-6 pl-[calc(0.6*4rem)]" dir="auto">
+            <ul className="my-4 list-disc pl-10" dir="auto">
                 {children}
             </ul>
         );
     },
     li({ children }) {
-        return <li>{children}</li>;
+        return <li className="my-1">{children}</li>;
     },
 
     h1({ children }) {
         return (
-            <h1 className="text-5xl font-bold mb-6 text-white">
-                {"# "}
+            <h1 className="mb-8 text-4xl font-bold text-white md:text-5xl md:leading-[3.5rem]">
                 {children}
             </h1>
         );
     },
     h2({ children }) {
+        const id = getHeadingId(String(children));
         return (
-            <h1 className="font-bold mb-6 mt-24 text-white">
-                {"## "}
-                {children}
-            </h1>
+            <h2
+                id={id}
+                className="mb-12 mt-8 border-b-2 border-b-neutral-500 pt-8 text-3xl text-white"
+            >
+                <Link href={"#" + id}>{children}</Link>
+            </h2>
+        );
+    },
+    h3({ children }) {
+        const id = getHeadingId(String(children));
+        return (
+            <Link href={"#" + id} id={id}>
+                <h3 className="mb-6 mt-12 border-b-2 border-dashed border-b-neutral-500 text-2xl text-white">
+                    {children}
+                </h3>
+            </Link>
+        );
+    },
+    h4({ children }) {
+        const id = getHeadingId(String(children));
+        return (
+            <Link href={"#" + id} id={id}>
+                <h4 className="mb-4 mt-8 border-b-2 border-dotted border-b-neutral-700 text-xl text-white">
+                    {children}
+                </h4>
+            </Link>
         );
     },
 
@@ -108,10 +129,11 @@ const components: Partial<Components> = {
         if (props.className === "info" || props.className === "side-note") {
             const title = props.className === "side-note" ? "Side note" : "Info";
             return (
-                <div className="info-box bg-gray-800 px-[calc(0.6*4rem)] pb-6 pt-4 rounded-md my-6">
+                <div className="info-box my-6 rounded-md bg-gray-800 px-8 pb-6 pt-4">
                     <div className="pb-3">
                         <strong>{title}:</strong>
                     </div>
+                    {/* eslint-disable-next-line tailwindcss/no-custom-classname */}
                     <div className="inner [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
                         {props.children}
                     </div>
@@ -121,18 +143,36 @@ const components: Partial<Components> = {
 
         return <div {...props} />;
     },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    span({ node, ...props }) {
+        if (props.className === "katex-display") {
+            return (
+                <div className="-mx-6 -my-2 overflow-x-auto px-6 py-px md:mx-0 md:px-0">
+                    <span {...props} />
+                </div>
+            );
+        }
+
+        return <span {...props} />;
+    },
 };
 
 const InlineCodeLangContext = createContext<string | undefined>(undefined);
 
-const HighlightInlineCode = memo(({ children }: { children: string }) => {
-    const lang = useContext(InlineCodeLangContext);
-    if (lang) {
-        return <SyntaxHighlight code={children} lang={lang} />;
-    } else {
-        return <>{children}</>;
-    }
-});
+const HighlightInlineCode = memo(
+    ({ children, className }: { children: string; className?: string }) => {
+        const lang = useContext(InlineCodeLangContext);
+        if (lang) {
+            return (
+                <code className={className}>
+                    <SyntaxHighlight code={children} noCodeElement lang={lang} />
+                </code>
+            );
+        } else {
+            return <code className={className}>{children}</code>;
+        }
+    },
+);
 
 interface MarkdownProps {
     code: string;

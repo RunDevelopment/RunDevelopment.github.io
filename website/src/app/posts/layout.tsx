@@ -7,8 +7,8 @@ export default function Layout({
     children: React.ReactNode;
 }>) {
     return (
-        <div className="max-w-[1000px] m-auto flex flex-row px-4 py-8">
-            <nav className="shrink-0 w-48 box-border">
+        <div className="m-auto flex max-w-[1000px] flex-col px-6 py-8 md:flex-row">
+            <nav className="box-border w-48 shrink-0">
                 <ul>
                     <li className="mb-6">
                         <Link href="/">Home</Link>

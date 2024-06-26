@@ -54,16 +54,18 @@ SyntaxHighlighter.registerLanguage("nasm", nasm);
 interface SyntaxHighlightProps {
     code: string;
     lang: string;
+    noCodeElement?: boolean;
 }
 
 function IgnoreProps({ children }: Record<string, unknown>) {
     return <>{children}</>;
 }
 
-export const SyntaxHighlight = memo(({ code, lang }: SyntaxHighlightProps) => {
+export const SyntaxHighlight = memo(({ code, lang, noCodeElement }: SyntaxHighlightProps) => {
     return (
         <SyntaxHighlighter
             PreTag={IgnoreProps}
+            CodeTag={noCodeElement ? IgnoreProps : undefined}
             // eslint-disable-next-line react/no-children-prop
             children={code}
             language={lang}

@@ -1,5 +1,6 @@
 import { lazy } from "@/lib/util";
 import { useEffect, useMemo, useState } from "react";
+import { CodeBlock } from "./CodeBlock";
 
 type RoundingFunction = "round" | "floor" | "ceil";
 interface Request {
@@ -27,14 +28,22 @@ interface SearchOptions {
      * @default false
      */
     onlyMinimalSolutions?: boolean;
+    /**
+     * @default 64
+     */
+    maxShift?: number;
 }
 interface SolutionRequirements {
-    optimizeFactor: boolean;
-    addZero: boolean;
+    optimizeAdd: boolean;
 }
 interface Conversion {
     factor: number;
     add: number;
+    shift: number;
+}
+interface ConversionRange {
+    factor: number;
+    add: [min: number, max: number];
     shift: number;
 }
 
@@ -44,10 +53,11 @@ async function* bruteForceAllSolutions(
         maxShiftAfterFirstSolution = 0,
         onlySmallestAdd = false,
         onlyMinimalSolutions = false,
+        maxShift = 64,
     }: SearchOptions,
     signal: AbortSignal,
-): AsyncIterable<Conversion> {
-    const debug = 0;
+): AsyncIterable<ConversionRange> {
+    const debug = 2;
 
     const getActual = (i: number, { factor, shift, add }: Conversion) => {
         // use bigint, because bit-shift is 32-bit only
@@ -69,162 +79,110 @@ async function* bruteForceAllSolutions(
         });
     }
 
-    // pre-compute all expected values
-    const expectedArray: number[] = [];
-    const round = getRoundingFunction();
-    for (let x = 0; x <= inputRange; x++) {
-        expectedArray.push(round((x * T) / D));
+    // make everything more efficient by reducing the fraction
+    function gcd(a: number, b: number): number {
+        return b === 0 ? a : gcd(b, a % b);
     }
-    const outputRange = expectedArray[inputRange];
+    const g = gcd(T, D);
+    T /= g;
+    D /= g;
 
-    // values that are very likely to be rejected
-    const rejectTestValues = new Set<number>([0, 1, inputRange - 1, inputRange]);
+    const round = getRoundingFunction();
+    const getExpected = (x: number) => round((x * T) / D);
+    const outputRange = getExpected(inputRange);
 
-    let lastRejected: number | null = null;
-    let rejectedCount = 0;
-    const exhaustiveTest = (conversion: Conversion) => {
-        // exhaustive test
-
-        // quick check for last rejected
-        if (lastRejected !== null) {
-            if (getActual(lastRejected, conversion) !== expectedArray[lastRejected]) {
-                return false;
-            }
+    const createCheck1 = () => {
+        // pre-compute all expected values
+        const expectedArray: number[] = [];
+        for (let x = 0; x <= inputRange; x++) {
+            expectedArray.push(getExpected(x));
         }
 
-        // use slow bigint version only if necessary
-        if (inputRange * conversion.factor + conversion.add < Number.MAX_SAFE_INTEGER) {
-            // slower with floor division
-            const { factor, add, shift } = conversion;
-            const div = 2 ** shift;
+        // values that are very likely to be rejected
+        const rejectTestValues = new Set<number>([0, 1, inputRange - 1, inputRange]);
 
-            // start with values that were rejected before
-            for (const x of rejectTestValues) {
-                if (Math.floor((x * factor + add) / div) !== expectedArray[x]) {
+        let lastRejected: number | null = null;
+        let rejectedCount = 0;
+        const exhaustiveTest = (conversion: Conversion) => {
+            // exhaustive test
+
+            // quick check for last rejected
+            if (lastRejected !== null) {
+                if (getActual(lastRejected, conversion) !== expectedArray[lastRejected]) {
                     return false;
                 }
             }
 
-            // test all values
-            for (let x = 0; x <= inputRange; x++) {
-                if (Math.floor((x * factor + add) / div) !== expectedArray[x]) {
-                    if (debug >= 2 && x !== lastRejected) {
-                        if (rejectedCount > 0) {
-                            console.log(
-                                `Rejected for ${lastRejected} a total of ${rejectedCount} times`,
-                            );
-                        }
-                        rejectedCount = 1;
-                    } else {
-                        rejectedCount++;
-                    }
+            // use slow bigint version only if necessary
+            if (inputRange * conversion.factor + conversion.add < Number.MAX_SAFE_INTEGER) {
+                // slower with floor division
+                const { factor, add, shift } = conversion;
+                const div = 2 ** shift;
 
-                    rejectTestValues.add(x);
-                    lastRejected = x;
-                    return false;
+                // start with values that were rejected before
+                for (const x of rejectTestValues) {
+                    if (Math.floor((x * factor + add) / div) !== expectedArray[x]) {
+                        return false;
+                    }
+                }
+
+                // test all values
+                for (let x = 0; x <= inputRange; x++) {
+                    if (Math.floor((x * factor + add) / div) !== expectedArray[x]) {
+                        if (debug >= 2 && x !== lastRejected) {
+                            if (rejectedCount > 0) {
+                                console.log(
+                                    `Rejected for ${lastRejected} a total of ${rejectedCount} times`,
+                                );
+                            }
+                            rejectedCount = 1;
+                        } else {
+                            rejectedCount++;
+                        }
+
+                        rejectTestValues.add(x);
+                        lastRejected = x;
+                        return false;
+                    }
+                }
+                return true;
+            } else {
+                // slowest bigint
+
+                // start with values that were rejected before
+                for (const x of rejectTestValues) {
+                    if (getActual(x, conversion) !== expectedArray[x]) {
+                        return false;
+                    }
+                }
+
+                // test all values
+                for (let x = 0; x <= inputRange; x++) {
+                    if (getActual(x, conversion) !== expectedArray[x]) {
+                        if (debug >= 2 && x !== lastRejected) {
+                            if (rejectedCount > 0) {
+                                console.log(
+                                    `Rejected for ${lastRejected} a total of ${rejectedCount} times`,
+                                );
+                            }
+                            rejectedCount = 1;
+                        } else {
+                            rejectedCount++;
+                        }
+
+                        rejectTestValues.add(x);
+                        lastRejected = x;
+                        return false;
+                    }
                 }
             }
             return true;
-        } else {
-            // slowest bigint
-
-            // start with values that were rejected before
-            for (const x of rejectTestValues) {
-                if (getActual(x, conversion) !== expectedArray[x]) {
-                    return false;
-                }
-            }
-
-            // test all values
-            for (let x = 0; x <= inputRange; x++) {
-                if (getActual(x, conversion) !== expectedArray[x]) {
-                    if (debug >= 2 && x !== lastRejected) {
-                        if (rejectedCount > 0) {
-                            console.log(
-                                `Rejected for ${lastRejected} a total of ${rejectedCount} times`,
-                            );
-                        }
-                        rejectedCount = 1;
-                    } else {
-                        rejectedCount++;
-                    }
-
-                    rejectTestValues.add(x);
-                    lastRejected = x;
-                    return false;
-                }
-            }
-        }
-        return true;
-    };
-
-    const getClosestOffIntegers = (shift: number) => {
-        const real = (T * 2 ** shift) / D;
-        const closest = Math.round(real);
-        if (shift === 0) {
-            return [closest];
-        }
-        if (closest % 2 === 0) {
-            const low = closest - 1;
-            const high = closest + 1;
-            const lowDist = Math.abs(real - low);
-            const highDist = Math.abs(real - high);
-            if (lowDist < highDist) {
-                return [low];
-            } else if (highDist < lowDist) {
-                return [high];
-            } else {
-                return [low, high];
-            }
-        } else {
-            return [closest];
-        }
-    };
-
-    let firstS = null;
-    for (let shift = 0; shift < 64; shift++) {
-        const shiftAbs = 2 ** shift;
-
-        if (firstS !== null && firstS + maxShiftAfterFirstSolution > shift) {
-            break;
-        }
-
-        const factorsToCheck = getClosestOffIntegers(shift);
-        const checkedFactors = new Set<number>();
-        const addFactorToCheck = (factor: number) => {
-            if (!checkedFactors.has(factor) && factor >= 0) {
-                checkedFactors.add(factor);
-                if (onlyMinimalSolutions && shift > 0 && factor % 2 === 0) {
-                    // solutions with this factor can't be minimal
-                    return;
-                }
-                factorsToCheck.push(factor);
-            }
         };
 
-        while (factorsToCheck.length > 0) {
-            const factor = factorsToCheck.shift()!;
-
-            await yieldThread();
-            signal.throwIfAborted();
-
-            const start = performance.now();
-
+        return function* checkFactor(factor: number, shift: number): Iterable<ConversionRange> {
+            const shiftAbs = 2 ** shift;
             let addMin = 0;
             let addMax = shiftAbs - 1;
-
-            if (getActual(inputRange, { factor, add: addMin, shift }) > outputRange) {
-                // the factor is too high
-                break;
-            }
-            if (getActual(inputRange, { factor, add: addMax, shift }) < outputRange) {
-                // the factor is too low
-                continue;
-            }
-
-            if (debug >= 1) {
-                console.log(`factor=${factor} shift=${shift}`);
-            }
 
             // narrow add range
             const incStart = Math.floor(shiftAbs / 2) + 1;
@@ -260,39 +218,163 @@ async function* bruteForceAllSolutions(
                 console.log(`kValues=${kValues.length} minSteps=${minSteps} maxSteps=${maxSteps}`);
             }
 
-            if (addMin <= addMax) {
-                if (debug >= 1) {
-                    console.log(`Exhaustive test for ${addMax - addMin + 1} add values`);
-                }
-                lastRejected = null;
-                rejectedCount = 0;
-                let foundAnySolution = false;
-                for (let add = addMin; add <= addMax; add++) {
-                    const candidate = { factor, add, shift };
-                    if (
-                        getActual(inputRange, candidate) === outputRange &&
-                        exhaustiveTest(candidate)
-                    ) {
-                        foundAnySolution = true;
-                        yield candidate;
+            if (addMin > addMax) {
+                // we ruled out all add values
+                return;
+            }
 
-                        if (onlySmallestAdd) {
-                            break;
-                        }
-                    }
-                }
-                if (foundAnySolution) {
-                    if (firstS === null) {
-                        firstS = shift;
-                    }
-                    addFactorToCheck(factor - 1);
-                    addFactorToCheck(factor + 1);
-                }
-
-                if (debug >= 2 && rejectedCount > 0) {
-                    console.log(`Rejected for ${lastRejected} a total of ${rejectedCount} times`);
+            if (debug >= 1) {
+                console.log(`Exhaustive test for ${addMax - addMin + 1} add values`);
+            }
+            lastRejected = null;
+            rejectedCount = 0;
+            for (let add = addMin; add <= addMax; add++) {
+                const candidate = { factor, add, shift };
+                if (getActual(inputRange, candidate) === outputRange && exhaustiveTest(candidate)) {
+                    yield { factor, add: [add, add], shift };
                 }
             }
+
+            if (debug >= 2 && rejectedCount > 0) {
+                console.log(`Rejected for ${lastRejected} a total of ${rejectedCount} times`);
+            }
+        };
+    };
+    const createCheck2 = () => {
+        return function* checkFactor(factor: number, shift: number): Iterable<ConversionRange> {
+            const shiftAbs = 2 ** shift;
+
+            let addMin = 0;
+            let addMax = shiftAbs - 1;
+
+            const narrowFor = (x: number, expected: number) => {
+                //   x*f+a = 0 (mod 2^shift)
+                //   a = -x*f (mod 2^shift)
+                // Let b=-x*f mod 2^shift
+                //   => a = b + k*2^shift, k in Z
+                const b = (((-x * factor) % shiftAbs) + shiftAbs) % shiftAbs;
+
+                if (addMin <= b && b <= addMax) {
+                    // we can use b to narrow the range
+                    const actual = Math.floor((x * factor + b) / shiftAbs);
+
+                    if (actual < expected) {
+                        addMin = b + shiftAbs;
+                    } else if (actual > expected) {
+                        addMax = b - 1;
+                    } else {
+                        // actual === expected
+                        addMin = b;
+                    }
+                    console.log(`x=${x}: Narrowed range to addMin=${addMin} addMax=${addMax}`);
+                } else {
+                    // if any a, addMin <= a <= addMax reject, then the entire range rejects
+                    // TODO: bigint
+                    if (Math.floor((x * factor + addMin) / shiftAbs) !== expected) {
+                        addMax = -1;
+                        console.log(`x=${x}: Narrowed range to addMin=${addMin} addMax=${addMax}`);
+                    }
+                }
+            };
+
+            // start by narrowing with inputRange, which always seems to e highly effective
+            narrowFor(inputRange, outputRange);
+
+            // narrow add range
+            const max = Math.round(Math.min(inputRange / 2, D));
+            for (let i = 1; i <= max; i++) {
+                narrowFor(i, getExpected(i));
+                narrowFor(inputRange - i, getExpected(inputRange - i));
+
+                if (addMin > addMax) {
+                    // we ruled out all add values
+                    return;
+                }
+            }
+
+            console.log(`Found ${addMax - addMin + 1} add values`);
+            yield { factor, add: [addMin, addMax], shift };
+            return;
+        };
+    };
+
+    const getClosestOffIntegers = (shift: number) => {
+        const real = (T * 2 ** shift) / D;
+        const closest = Math.round(real);
+        if (shift === 0) {
+            return [closest];
+        }
+        if (closest % 2 === 0) {
+            const low = closest - 1;
+            const high = closest + 1;
+            const lowDist = Math.abs(real - low);
+            const highDist = Math.abs(real - high);
+            if (lowDist < highDist) {
+                return [low];
+            } else if (highDist < lowDist) {
+                return [high];
+            } else {
+                return [low, high];
+            }
+        } else {
+            return [closest];
+        }
+    };
+
+    const checks = [createCheck1, createCheck2];
+    const checkFactor = checks[1]();
+
+    for (let shift = 0; shift < maxShift; shift++) {
+        const shiftAbs = 2 ** shift;
+
+        const factorsToCheck = getClosestOffIntegers(shift);
+        const checkedFactors = new Set<number>();
+        const addFactorToCheck = (factor: number) => {
+            if (!checkedFactors.has(factor) && factor >= 0) {
+                checkedFactors.add(factor);
+                if (onlyMinimalSolutions && shift > 0 && factor % 2 === 0) {
+                    // solutions with this factor can't be minimal
+                    return;
+                }
+                factorsToCheck.push(factor);
+            }
+        };
+
+        while (factorsToCheck.length > 0) {
+            const factor = factorsToCheck.shift()!;
+
+            if (
+                getActual(inputRange, { factor, add: 0, shift }) > outputRange ||
+                getActual(inputRange, { factor, add: shiftAbs - 1, shift }) < outputRange
+            ) {
+                // the factor is too high or too low
+                continue;
+            }
+
+            await yieldThread();
+            signal.throwIfAborted();
+
+            if (debug >= 1) {
+                console.log(`factor=${factor} shift=${shift}`);
+            }
+
+            const start = performance.now();
+
+            let foundAnySolution = false;
+            for (const solution of checkFactor(factor, shift)) {
+                foundAnySolution = true;
+                yield solution;
+
+                if (onlySmallestAdd) {
+                    break;
+                }
+            }
+            if (foundAnySolution) {
+                maxShift = Math.min(maxShift, shift + maxShiftAfterFirstSolution);
+                addFactorToCheck(factor - 1);
+                addFactorToCheck(factor + 1);
+            }
+
             if (debug >= 1) {
                 console.log(`Rejected factor in ${performance.now() - start}ms`);
             }
@@ -304,88 +386,55 @@ async function bruteForceSolution(
     requirements: SolutionRequirements,
     signal: AbortSignal,
 ): Promise<Conversion | null> {
-    if (!requirements.optimizeFactor && !requirements.addZero) {
+    const pickAny = (range: ConversionRange): Conversion => {
+        const {
+            factor,
+            add: [addMin, addMax],
+            shift,
+        } = range;
+        if (addMin === 0) {
+            return { factor, add: 0, shift };
+        }
+        if (addMin <= factor && factor <= addMax) {
+            return { factor, add: factor, shift };
+        }
+        if (addMax === 2 ** shift - 1) {
+            return { factor, add: addMax, shift };
+        }
+        return { factor, add: addMin, shift };
+    };
+
+    if (!requirements.optimizeAdd) {
         // any solution will do
         for await (const solution of bruteForceAllSolutions(request, {}, signal)) {
-            return solution;
+            return pickAny(solution);
         }
         return null;
     }
 
-    if (!requirements.optimizeFactor && requirements.addZero) {
-        // just try to find a solution with add=0
-        let minSolution: Conversion | null = null;
-        for await (const solution of bruteForceAllSolutions(
-            request,
-            { maxShiftAfterFirstSolution: 12, onlySmallestAdd: true, onlyMinimalSolutions: true },
-            signal,
-        )) {
-            if (solution.add === 0) {
-                return solution;
-            }
-            if (minSolution === null) {
-                minSolution = solution;
-            }
-        }
-        return minSolution;
-    }
-
-    const factorCostScale = 1;
-    const addCostScale = requirements.addZero ? 1 : 0;
-
-    const getFactorCost = (factor: number) => {
-        const COST_SHIFT = 1;
-        const COST_LEA = 1.5;
-        const COST_ADD = 2;
-        const COST_MULTIPLY = 6;
-
-        let factorsTwo = 0;
-        while (factor % 2 ** (factorsTwo + 1) === 0) {
-            factorsTwo++;
-        }
-
-        if (factor === 2 ** factorsTwo) {
-            // factor is a power of two and can be done with a shift
-            return COST_SHIFT;
-        }
-        if (Math.abs(factor - 2 ** factorsTwo) === 1) {
-            // shift + add/sub self
-            return COST_SHIFT + COST_ADD;
-        }
-
-        const rest = factor / 2 ** factorsTwo;
-        if (rest === 3 || rest === 5 || rest === 9) {
-            // shift + lea
-            return COST_SHIFT + COST_LEA;
-        }
-
-        return COST_MULTIPLY;
-    };
-    const getAddCost = (add: number) => {
-        const COST_ADD = 2;
-        return add === 0 ? 0 : COST_ADD;
-    };
-    const isBetter = (a: Conversion, b: Conversion) => {
-        const costA = factorCostScale * getFactorCost(a.factor) + addCostScale * getAddCost(a.add);
-        const costB = factorCostScale * getFactorCost(b.factor) + addCostScale * getAddCost(b.add);
-        return costA < costB;
-    };
-
-    let bestSolution: Conversion | null = null;
-
+    let any: Conversion | null = null;
+    let factorAdd: Conversion | null = null;
     for await (const solution of bruteForceAllSolutions(
         request,
-        { maxShiftAfterFirstSolution: 12, onlySmallestAdd: true },
+        { maxShiftAfterFirstSolution: 6 },
         signal,
     )) {
-        if (!bestSolution) {
-            bestSolution = solution;
-        } else if (isBetter(solution, bestSolution)) {
-            bestSolution = solution;
+        any ??= pickAny(solution);
+        if (solution.add[0] === 0) {
+            return pickAny(solution);
+        }
+        if (factorAdd === null) {
+            if (solution.add[0] <= solution.factor && solution.factor <= solution.add[1]) {
+                factorAdd = {
+                    factor: solution.factor,
+                    add: solution.factor,
+                    shift: solution.shift,
+                };
+            }
         }
     }
 
-    return bestSolution;
+    return factorAdd ?? any;
 }
 
 const webWorkerBruteForce = lazy(() => {
@@ -567,8 +616,7 @@ export function ConversionConstantsSearch() {
     const [to, setTo] = useState(255);
     const [round, setRound] = useState<RoundingFunction>("round");
     const [linkedInputRange, setLinkedInputRange] = useState(true);
-
-    console.log(linkedInputRange, inputRange, from);
+    const [optimizeAdd, setOptimizeAdd] = useState(false);
 
     useEffect(() => {
         if (linkedInputRange) {
@@ -584,13 +632,18 @@ export function ConversionConstantsSearch() {
     useEffect(() => {
         bruteForce(
             { inputRange, R: round, D: from, T: to },
-            { addZero: false, optimizeFactor: false },
+            { optimizeAdd: optimizeAdd && round === "floor" },
         ).then(setResult, (e) => console.error(e));
-    }, [inputRange, from, to, round]);
+    }, [inputRange, from, to, round, optimizeAdd]);
 
-    const resultLines = useMemo(() => {
+    interface ResultContent {
+        text: string;
+        rustCode?: string;
+        cCode?: string;
+    }
+    const resultContent = useMemo((): ResultContent => {
         if (!result.conversion) {
-            return ["Result: nothing found."];
+            return { text: "Result: nothing found." };
         }
 
         const { factor, add, shift } = result.conversion;
@@ -613,13 +666,16 @@ export function ConversionConstantsSearch() {
 
         const fromType = bitsToTypeSize(Math.log2(inputRange + 1));
         const toType = bitsToTypeSize(Math.log2(outputRange + 1));
-        let rustCode;
 
-        let formula;
+        let formula, rustExpr, cExpr;
         if (add === 0 && shift === 0) {
             formula = `x * ${factor}`;
-            rustCode = fromType < toType ? `x as u${toType}` : `x`;
-            rustCode += factor === 1 ? `` : ` * ${factor}`;
+
+            rustExpr = fromType < toType ? `x as u${toType}` : `x`;
+            rustExpr += factor === 1 ? `` : ` * ${factor}`;
+
+            cExpr = fromType < toType ? `(uint${toType}_t)x` : `x`;
+            cExpr += factor === 1 ? `` : ` * ${factor}`;
         } else {
             const maxIntermediate = inputRange * factor + add;
             const interBits = Math.ceil(Math.log2(maxIntermediate));
@@ -627,87 +683,143 @@ export function ConversionConstantsSearch() {
 
             const interType = bitsToTypeSize(interBits);
 
-            rustCode = fromType < interType ? `x as u${interType}` : `x`;
-            rustCode += factor === 1 ? `` : ` * ${factor}`;
-            rustCode += add === 0 ? `` : ` + ${add}`;
-            rustCode = `(${rustCode}) >> ${shift}`;
+            rustExpr = fromType < interType ? `x as u${interType}` : `x`;
+            rustExpr += factor === 1 ? `` : ` * ${factor}`;
+            rustExpr += add === 0 ? `` : ` + ${add}`;
+            rustExpr = `(${rustExpr}) >> ${shift}`;
             if (interType > toType) {
-                rustCode = `(${rustCode}) as u${toType}`;
+                rustExpr = `(${rustExpr}) as u${toType}`;
             }
+
+            cExpr = fromType < interType ? `(uint${interType}_t)x` : `x`;
+            cExpr += factor === 1 ? `` : ` * ${factor}`;
+            cExpr += add === 0 ? `` : ` + ${add}`;
+            cExpr = `(${cExpr}) >> ${shift}`;
         }
 
-        return [
+        const text = [
             `Result: ${formula}`,
             `        f: ${factor}, a: ${add}, s: ${shift}`,
             `        search took ${result.time}ms`,
-            ``,
-            `/// Converts a value 0..=${inputRange} to a value 0..=${outputRange} by multiplying with ${result.request.T}/${result.request.D} and then rounding with ${result.request.R}.`,
+        ].join("\n");
+
+        const roundingComment: Record<RoundingFunction, string> = {
+            round: "rounding",
+            floor: "rounding down",
+            ceil: "rounding up",
+        };
+        const comment1 = `Converts a value 0..=${inputRange} to 0..=${outputRange}`;
+        const comment2 = `by multiplying with ${result.request.T}/${result.request.D} and then ${roundingComment[result.request.R]}.`;
+        const needsAssert = inputRange !== 2 ** fromType - 1;
+
+        const rustCode = [
+            `/// ${comment1}`,
+            `/// ${comment2}`,
             `fn convert_range(x: u${fromType}) -> u${toType} {`,
-            `    debug_assert!(x <= ${inputRange});`,
-            `    ${rustCode}`,
+            needsAssert ? `    debug_assert!(x <= ${inputRange});` : "",
+            `    ${rustExpr}`,
             `}`,
-        ];
+        ]
+            .filter(Boolean)
+            .join("\n");
+
+        const cCode = [
+            `// ${comment1}`,
+            `// ${comment2}`,
+            `uint${toType}_t convert_range(uint${fromType}_t x) {`,
+            needsAssert ? `    assert(x <= ${inputRange});` : "",
+            `    return ${cExpr};`,
+            `}`,
+        ]
+            .filter(Boolean)
+            .join("\n");
+
+        return { text, rustCode, cCode };
     }, [result]);
 
     return (
-        <pre>
-            <div>
-                {">>> (U) Input range:  0 - "}
-                <NumberInput
-                    className="bg-black"
-                    min={1}
-                    max={4294967296}
-                    value={inputRange}
-                    onChange={(value) => {
-                        setInputRange(value);
-                        if (linkedInputRange) {
-                            setFrom(value);
-                        }
-                    }}
-                />
-            </div>
-            <div>
-                {">>> (D) Divisor:      0 - "}
-                <NumberInput
-                    className="bg-black"
-                    min={1}
-                    max={4294967296}
-                    value={from}
-                    readOnly={linkedInputRange}
-                    onChange={setFrom}
-                />{" "}
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={linkedInputRange}
-                        onChange={(e) => {
-                            setLinkedInputRange(e.target.checked);
+        <>
+            <pre className="whitespace-pre-wrap">
+                <div>
+                    {">>> (U) Input range:  0 - "}
+                    <NumberInput
+                        className="bg-black"
+                        min={1}
+                        max={4294967296}
+                        value={inputRange}
+                        onChange={(value) => {
+                            setInputRange(value);
+                            if (linkedInputRange) {
+                                setFrom(value);
+                            }
                         }}
-                    />{" "}
-                    linked to input range
-                </label>
-            </div>
-            <div>
-                {">>> (T) Denominator:  0 - "}
-                <NumberInput
-                    className="bg-black"
-                    min={1}
-                    max={4294967296}
-                    value={to}
-                    onChange={setTo}
-                />
-            </div>
-            <div>
-                {">>> (R) Rounding Fn:  "}
-                <Downdown
-                    className="bg-black"
-                    value={round}
-                    onChange={setRound}
-                    options={["round", "floor", "ceil"]}
-                    getLabel={(value) => value}
-                />
-            </div>
-            {"\n" + resultLines.join("\n")}
-        </pre>
+                    />
+                </div>
+                <div>
+                    {">>>                       "}
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={linkedInputRange}
+                            onChange={(e) => {
+                                setLinkedInputRange(e.target.checked);
+                            }}
+                        />{" "}
+                        linked
+                    </label>
+                </div>
+                <div>
+                    {">>> (D) Divisor:      0 - "}
+                    <NumberInput
+                        className="bg-black"
+                        min={1}
+                        max={4294967296}
+                        value={from}
+                        readOnly={linkedInputRange}
+                        onChange={setFrom}
+                    />
+                </div>
+                <div>
+                    {">>> (T) Denominator:  0 - "}
+                    <NumberInput
+                        className="bg-black"
+                        min={1}
+                        max={4294967296}
+                        value={to}
+                        onChange={setTo}
+                    />
+                </div>
+                <div>
+                    {">>> (R) Rounding Fn:  "}
+                    <Downdown
+                        className="bg-black"
+                        value={round}
+                        onChange={setRound}
+                        options={["round", "floor", "ceil"]}
+                        getLabel={(value) => value}
+                    />
+                </div>
+                {round === "floor" && (
+                    <div>
+                        <label>
+                            {">>> "}
+                            <span className="inline-flex w-[calc(3*0.6em)] flex-col items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={optimizeAdd}
+                                    onChange={(e) => {
+                                        setOptimizeAdd(e.target.checked);
+                                    }}
+                                />
+                            </span>{" "}
+                            Optimize a
+                        </label>
+                    </div>
+                )}
+                {"\n" + resultContent.text}
+            </pre>
+            {resultContent.rustCode && <CodeBlock code={resultContent.rustCode} lang="rust" />}
+            {resultContent.cCode && <CodeBlock code={resultContent.cCode} lang="c" />}
+        </>
     );
 }
