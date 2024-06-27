@@ -65,6 +65,8 @@ In this article, we will:
 
 The latter half will involve a bit of math, so look out for that.
 
+## Contents
+
 ## Benchmarking
 
 Before we start optimizing, let's define a benchmark.

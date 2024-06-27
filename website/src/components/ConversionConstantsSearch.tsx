@@ -1,6 +1,6 @@
-import { lazy } from "@/lib/util";
+import { lazy } from "../lib/util";
 import { useEffect, useMemo, useState } from "react";
-import { CodeBlock } from "./CodeBlock";
+import { CodeBlock } from "./md/CodeBlock";
 
 type RoundingFunction = "round" | "floor" | "ceil";
 interface Request {

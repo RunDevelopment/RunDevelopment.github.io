@@ -1,4 +1,4 @@
-import { getPosts } from "@/lib/fs/posts";
+import { getPosts } from "../../lib/fs/posts";
 import Link from "next/link";
 
 export default async function Page() {

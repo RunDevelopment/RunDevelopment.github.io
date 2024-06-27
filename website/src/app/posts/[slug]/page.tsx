@@ -1,5 +1,5 @@
-import { Markdown } from "@/components/Markdown";
-import { getPostFromSlug, getPosts } from "@/lib/fs/posts";
+import { Markdown } from "../../../components/md/Markdown";
+import { getPostFromSlug, getPosts } from "../../../lib/fs/posts";
 import { Metadata } from "next";
 import React from "react";
 
@@ -19,6 +19,10 @@ export default async function Page({ params }: Props) {
                 <Markdown
                     code={post.markdown}
                     inlineCodeLanguage={post.metadata.inlineCodeLanguage}
+                    draft={post.metadata.draft}
+                    afterHeader={
+                        <p className="my-4 text-neutral-500">{post.metadata.datePublished}</p>
+                    }
                 />
             </article>
         </div>
