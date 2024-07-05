@@ -9,21 +9,14 @@ interface CodeBlockProps {
     code: string;
 }
 export const CodeBlock = memo(({ lang, code }: CodeBlockProps) => {
-    let inner;
-    if (lang) {
-        inner = <SyntaxHighlight code={code.replace(/\n$/, "")} lang={lang} />;
-    } else {
-        inner = <code>{code}</code>;
-    }
-
     return (
         <pre
             className={
                 sourceCodePro.className +
-                " -mx-6 my-4 w-[calc(100%+3rem)] overflow-auto whitespace-pre rounded-md bg-neutral-950 px-6 py-3 text-base md:mx-0 md:w-auto md:max-w-full md:px-8"
+                " -mx-6 my-4 w-[calc(100%+3rem)] text-[15px] overflow-auto whitespace-pre rounded-md bg-neutral-950 px-6 py-3 text-base leading-5 md:mx-0 md:w-auto md:max-w-full md:px-8"
             }
         >
-            {inner}
+            <SyntaxHighlight code={code.replace(/\n$/, "")} lang={lang || "none"} />
         </pre>
     );
 });

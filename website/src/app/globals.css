@@ -7,7 +7,7 @@
 }
 
 body {
-    line-height: 1.75rem;
+    /* line-height: 1.75rem; */
     font-family:
         system-ui,
         -apple-system,
@@ -27,17 +27,13 @@ body {
         "Segoe UI Symbol";
 }
 
-article {
-    /* font-size: 15px; */
-}
-
 div.info-box {
     line-height: 1.5rem;
 }
 
 .katex-display {
     font-size: 110%;
-    margin: .5rem 0 !important;
+    margin: 0.5rem 0 !important;
 }
 
 @layer utilities {

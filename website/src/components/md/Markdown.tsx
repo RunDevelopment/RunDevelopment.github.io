@@ -82,9 +82,10 @@ const TOC = memo(() => {
 
     return (
         <div className="hover:opacity-100 md:fixed md:bottom-0 md:left-0 md:max-h-[calc(100vh-max(0px,200px-var(--scroll-y)))] md:max-w-[calc(max(200px,50vw-320px))] md:overflow-y-auto md:p-6 md:opacity-50 md:focus-within:opacity-100 md:hover:text-inherit">
-            <h2 className="mb-12 mt-8 border-b-2 border-b-neutral-500 pt-8 text-3xl text-white md:mb-8 md:mt-0 md:pt-0">
-                Contents
-            </h2>
+            <div className="md:hidden">
+                <H2>Contents</H2>
+            </div>
+            <h2 className="mb-4 hidden text-xl text-white md:block">Contents</h2>
             <div className="md:text-sm md:leading-5">
                 {headings.map((h) => {
                     return (
@@ -105,8 +106,14 @@ const Code: Components["code"] = memo(({ children, className }) => {
     const inline = !code.includes("\n");
 
     if (inline) {
+        const short = code.length < 20;
         return (
-            <HighlightInlineCode className="rounded-md bg-black px-2 py-0.5 md:whitespace-pre">
+            <HighlightInlineCode
+                className={
+                    (short ? "whitespace-pre" : "md:whitespace-pre") +
+                    " rounded-md bg-black px-2 py-0.5"
+                }
+            >
                 {code}
             </HighlightInlineCode>
         );
@@ -146,7 +153,7 @@ const H1: Components["h1"] = memo(({ children }) => {
 
     return (
         <>
-            <h1 className="mb-8 text-4xl font-bold text-white md:text-5xl md:leading-[3.5rem]">
+            <h1 className="mb-4 text-3xl font-bold leading-10 text-white md:mb-8 md:text-4xl md:leading-[3rem]">
                 {children}
             </h1>
             {afterHeader}
@@ -154,13 +161,12 @@ const H1: Components["h1"] = memo(({ children }) => {
     );
 });
 const H2: Components["h2"] = memo(({ children, node }) => {
-    if (children === "Contents") {
-        return <TOC />;
-    }
-
     const id = getHeadingId(getTextContent(children, node));
     return (
-        <h2 id={id} className="mb-12 mt-8 border-b-2 border-b-neutral-500 pt-8 text-3xl text-white">
+        <h2
+            id={id}
+            className="mb-8 mt-4 border-b-2 border-b-neutral-500 pt-8 text-2xl text-white md:text-3xl"
+        >
             <Link href={"#" + id}>{children}</Link>
         </h2>
     );
@@ -204,13 +210,18 @@ const components: Partial<Components> = {
     },
 
     h1: H1,
-    h2: H2,
+    h2(props) {
+        if (props.children === "Contents") {
+            return <TOC />;
+        }
+        return <H2 {...props} />;
+    },
     h3({ children, node }) {
         const id = getHeadingId(getTextContent(children, node));
         return (
             <h3
                 id={id}
-                className="mb-6 mt-12 border-b-2 border-dashed border-b-neutral-500 text-2xl text-white"
+                className="mb-4 mt-8 border-b-2 border-dashed border-b-neutral-500 text-xl text-white md:text-2xl"
             >
                 <Link href={"#" + id}>{children}</Link>
             </h3>
@@ -221,7 +232,7 @@ const components: Partial<Components> = {
         return (
             <h4
                 id={id}
-                className="mb-4 mt-8 border-b-2 border-dotted border-b-neutral-700 text-xl text-white"
+                className="mb-4 mt-6 border-b-2 border-dotted border-b-neutral-700 text-lg text-white md:text-xl"
             >
                 <Link href={"#" + id}>{children}</Link>
             </h4>
@@ -232,14 +243,11 @@ const components: Partial<Components> = {
         if (props.className === "info" || props.className === "side-note") {
             const title = props.className === "side-note" ? "Side note" : "Info";
             return (
-                <div className="info-box my-6 rounded-md bg-gray-800 px-8 pb-6 pt-4">
-                    <div className="pb-3">
+                <div className="-mx-6 my-4 rounded-md bg-gray-800 py-px pl-10 pr-6 leading-6 md:mx-0 md:px-8">
+                    <div className="my-4">
                         <strong>{title}:</strong>
                     </div>
-                    {/* eslint-disable-next-line tailwindcss/no-custom-classname */}
-                    <div className="inner [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                        {props.children}
-                    </div>
+                    <div className="my-4">{props.children}</div>
                 </div>
             );
         }
