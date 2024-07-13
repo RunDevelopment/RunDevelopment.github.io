@@ -72,6 +72,28 @@ inlineCodeLanguage: rust
 ---
 ```
 
+### Quotes
+
+Quotes can be added like this:
+
+> This is a single-line quote.
+
+> This is a quote with a source.
+>
+> There's not much to it.
+
+> ```rust
+> pub fn max(self, other: f32) -> f32
+> ```
+>
+> Returns the maximum of the two numbers, ignoring NaN.
+>
+> If one of the arguments is NaN, then the other argument is returned. This follows the IEEE 754-2008 semantics for maxNum, except for handling of signaling NaNs; this function handles all NaNs the same way and avoids maxNum’s problems with associativity. This also matches the behavior of libm’s fmax.
+>
+> *Source:* [doc.rust-lang.org](https://doc.rust-lang.org/std/primitive.f32.html#method.max)
+
+
+
 ### Math
 
 Math is rendered using [KaTeX](https://katex.org/docs/supported.html) can supports inline math: $round(x) = \lfloor x + {1 \over 2} \rfloor$ and math blocks:

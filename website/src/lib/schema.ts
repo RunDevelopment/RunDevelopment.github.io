@@ -13,4 +13,5 @@ export interface PostMetadata {
     dateModified: string;
     draft: boolean;
     inlineCodeLanguage?: string;
+    minutesToRead: number;
 }

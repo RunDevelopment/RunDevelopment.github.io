@@ -196,9 +196,9 @@ round(x) = \begin{cases}
 \end{cases}
 $$
 
-But that's not all. Implementing _seems_ straightforward:
+Implementing this formula might _seems_ straightforward, but floating-point numbers only have a finite precision, so adding/subtracting 0.5 will return a _rounded_ result. All assertions in the following code will pass:
 
-```rust
+```rust runnable
 fn simple_round(x: f32) -> f32 {
     if x >= 0.0 {
         (x + 0.5).floor()
@@ -206,19 +206,14 @@ fn simple_round(x: f32) -> f32 {
         (x - 0.5).ceil()
     }
 }
-```
 
-Unfortunately, this implementation is incorrect. Floating-point numbers only have a finite precision, so adding/subtracting 0.5 will return a _rounded_ result.
-
-All assertions in the following code will pass ([try this code on Rust playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=b041df002ac12e1cd5b5227c0e9e2c9c)):
-
-```rust
 let a: f32 = 0.49999997;
 assert!(a < 0.5);
 assert!(a + 0.5 == 1.0);
 assert!((a + 0.5).floor() == 1.0);
 assert!(simple_round(a) == 1.0);
 assert!(a.round() == 0.0);
+println!("All asserts passed!");
 ```
 
 So always be careful when implementing mathematical formulas when floating-point numbers are involved.
@@ -321,7 +316,7 @@ u5_to_u8_v2:
         ret
 ```
 
-This assembly is suboptimal. The `movss` could have been trivially avoided with a slightly smarter use of registers:
+This assembly is suboptimal. The `movss` could have easily been avoided with a slightly smarter use of registers. This is the type of low-level micro-optimization that compilers should excel at, so I don't understand why LLVM missed it here.
 
 ```asm
 u5_to_u8e_v2:
@@ -330,13 +325,11 @@ u5_to_u8e_v2:
         mulss   xmm0, dword ptr [rip + .LCPI0_0] ; xmm0 = xmm0 * 8.22580624 (= 255/31)
         addss   xmm0, dword ptr [rip + .LCPI0_1] ; xmm0 = xmm0 + 0.5
         xorps   xmm1, xmm1                       ; xmm1 = 0.0              \
-        maxss   xmm1, xmm0                       ; xmm1 = max(xmm1, xmm0)   |
-        minss   xmm1, dword ptr [rip + .LCPI0_2] ; xmm1 = min(xmm1, 255.0)  | as u8
-        cvttss2si       eax, xmm1                ; convert xmm1 to int     /
+        maxss   xmm0, xmm1                       ; xmm0 = max(xmm0, xmm1)   |
+        minss   xmm0, dword ptr [rip + .LCPI0_2] ; xmm0 = min(xmm0, 255.0)  | as u8
+        cvttss2si       eax, xmm0                ; convert xmm0 to int     /
         ret
 ```
-
-This is the type of low-level micro-optimization that compilers should excel at, so I don't understand why LLVM missed it here.
 
 But that's not all. A sufficiently smart compiler could have optimized away the `maxss` and `xorps` as well.
 

@@ -65,7 +65,14 @@ function getMetadata(frontMatter: Partial<FrontMatter>, markdown: string): PostM
 
     const inlineCodeLanguage = frontMatter.inlineCodeLanguage;
 
-    return { title, slug, datePublished, dateModified, draft, inlineCodeLanguage };
+    const minutesToRead = getMinutesToRead(markdown);
+
+    return { title, slug, datePublished, dateModified, draft, inlineCodeLanguage, minutesToRead };
+}
+
+function getMinutesToRead(markdown: string): number {
+    const words = markdown.split(/\s+/).length;
+    return Math.ceil(words / 200);
 }
 
 function getMarkdownHeader(content: string): string {

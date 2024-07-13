@@ -1,8 +1,8 @@
-import { Markdown } from "../../../components/md/Markdown";
 import { getPostFromSlug, getPosts } from "../../../lib/fs/posts";
 import { Metadata } from "next";
 import React from "react";
 import { Footer } from "./Footer";
+import { Article } from "./Article";
 
 interface Props {
     params: { slug: string };
@@ -16,16 +16,7 @@ export default async function Page({ params }: Props) {
 
     return (
         <div>
-            <article className="text-[15px] leading-6 md:text-base md:leading-[1.666rem]">
-                <Markdown
-                    code={post.markdown}
-                    inlineCodeLanguage={post.metadata.inlineCodeLanguage}
-                    draft={post.metadata.draft}
-                    afterHeader={
-                        <p className="my-4 text-zinc-500">{post.metadata.datePublished}</p>
-                    }
-                />
-            </article>
+            <Article post={post} />
             <Footer />
         </div>
     );

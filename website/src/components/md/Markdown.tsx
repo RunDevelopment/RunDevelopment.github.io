@@ -9,10 +9,10 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { SyntaxHighlight } from "./SyntaxHighlight";
 import { CodeBlock } from "./CodeBlock";
-import { FaExternalLinkAlt } from "react-icons/fa";
 import { CustomComponent } from "./CustomComponents";
 import { Components, getAllHeadings, getHeadingId, getTextContent } from "../../lib/md-util";
 import "katex/dist/katex.min.css";
+import { TextLink } from "./TextLink";
 
 interface MdContextProps {
     markdown: string;
@@ -111,7 +111,7 @@ const Code: Components["code"] = memo(({ children, className }) => {
             <HighlightInlineCode
                 className={
                     (short ? "whitespace-pre" : "md:whitespace-pre") +
-                    " rounded-md bg-black px-2 py-0.5"
+                    " rounded-md bg-black px-2 py-0.5 text-[90%]"
                 }
             >
                 {code}
@@ -145,7 +145,7 @@ const P: Components["p"] = memo(({ children }) => {
         }
     }
 
-    return <p className="my-4">{children}</p>;
+    return <p>{children}</p>;
 });
 
 const H1: Components["h1"] = memo(({ children }) => {
@@ -167,7 +167,12 @@ const H2: Components["h2"] = memo(({ children, node }) => {
             id={id}
             className="mb-8 mt-4 border-b-2 border-b-neutral-500 pt-8 text-2xl text-white md:text-3xl"
         >
-            <Link href={"#" + id}>{children}</Link>
+            <Link
+                href={"#" + id}
+                className="relative before:absolute before:-left-8 before:opacity-25 hover:before:opacity-75 md:before:content-['#']"
+            >
+                {children}
+            </Link>
         </h2>
     );
 });
@@ -179,34 +184,25 @@ const components: Partial<Components> = {
     code: Code,
     p: P,
     a({ children, href = "#" }) {
-        const external = href.startsWith("http");
-        return (
-            <Link
-                href={href}
-                className="border-b border-dotted pb-[2px] hover:border-solid hover:text-white"
-            >
-                {children}
-                {external && <FaExternalLinkAlt className="ml-1 inline-block w-3 align-baseline" />}
-            </Link>
-        );
+        return <TextLink href={href}>{children}</TextLink>;
     },
 
     ol({ children, start, type }) {
         return (
-            <ol className="my-4 list-decimal pl-10" start={start} type={type} dir="auto">
+            <ol className="normal-my list-decimal pl-10" start={start} type={type} dir="auto">
                 {children}
             </ol>
         );
     },
     ul({ children }) {
         return (
-            <ul className="my-4 list-disc pl-10" dir="auto">
+            <ul className="normal-my list-disc pl-10" dir="auto">
                 {children}
             </ul>
         );
     },
     li({ children }) {
-        return <li className="my-1">{children}</li>;
+        return <li className="my-2">{children}</li>;
     },
 
     h1: H1,
@@ -223,7 +219,12 @@ const components: Partial<Components> = {
                 id={id}
                 className="mb-4 mt-8 border-b-2 border-dashed border-b-neutral-500 text-xl text-white md:text-2xl"
             >
-                <Link href={"#" + id}>{children}</Link>
+                <Link
+                    href={"#" + id}
+                    className="relative before:absolute before:-left-7 before:opacity-25 hover:before:opacity-75 md:before:content-['#']"
+                >
+                    {children}
+                </Link>
             </h3>
         );
     },
@@ -234,8 +235,25 @@ const components: Partial<Components> = {
                 id={id}
                 className="mb-4 mt-6 border-b-2 border-dotted border-b-neutral-700 text-lg text-white md:text-xl"
             >
-                <Link href={"#" + id}>{children}</Link>
+                <Link
+                    href={"#" + id}
+                    className="relative before:absolute before:-left-6 before:opacity-25 hover:before:opacity-75 md:before:content-['#']"
+                >
+                    {children}
+                </Link>
             </h4>
+        );
+    },
+
+    strong({ children }) {
+        return <strong className="font-bold text-zinc-200">{children}</strong>;
+    },
+
+    blockquote({ children }) {
+        return (
+            <blockquote className="compact my-4 border-l-4 border-solid border-neutral-500 pl-4 text-zinc-400">
+                {children}
+            </blockquote>
         );
     },
 
@@ -243,11 +261,11 @@ const components: Partial<Components> = {
         if (props.className === "info" || props.className === "side-note") {
             const title = props.className === "side-note" ? "Side note" : "Info";
             return (
-                <div className="-mx-6 my-4 rounded-md bg-gray-800 py-px pl-10 pr-6 leading-6 md:mx-0 md:px-8">
-                    <div className="my-4">
+                <div className="-mx-6 my-3 rounded-md bg-gray-800 py-px pl-10 pr-6 md:mx-0 md:px-8">
+                    <div className="-mb-2 mt-4">
                         <strong>{title}:</strong>
                     </div>
-                    <div className="my-4">{props.children}</div>
+                    <div className="compact my-4">{props.children}</div>
                 </div>
             );
         }
