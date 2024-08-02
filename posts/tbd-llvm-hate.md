@@ -6,34 +6,104 @@ inlineCodeLanguage: rust
 
 # Optimizing rounded f32-to-int conversion
 
-I recently came across a problem where I needed to convert a 5-bit unorm to a 8-bit unorm. "Unorm" means **u**nsigned **norm**alized, and unorm numbers are n-bit unsigned integer that represent a (floating-point) number between 0 and 1.
+I recently came across a problem where I needed to convert a 5-bit unorm to a 8-bit unorm. "Unorm" means **u**nsigned **norm**alized integer. The idea is to represent a real number 0 to 1 as an integer 0 to $2^n-1$, where $n$ is the number of bits used to represent the integer.
 
-One of the most common application are unorms are colors in computer graphics:
+Maybe the most widespread application of unorms are colors in computer graphics. If you ever opened Photoshop, Gimp, or some other image editing program, you likely saw that the color picker in these programs shows RGB colors with values between 0 and 255. Those are 8-bit unorms. The same goes for colors on the web. E.g. the CSS color `rgb(255 128 0)` is the same color as `rgb(100% 50% 0%)` (ignoring a slight rounding error), and the hex color `#FF8800` (decimal: 255 136 0) is the same as `#F80` (decimal: 15 8 0).
 
--   most image editing programs use 8-bit unorms to represent RGB color channels,
--   the web uses hex-encoded 8-bit unorms (e.g. `#FF0000` for red) and 4-bit unorms (e.g. `#F00` is also red) for colors, and
--   some games store textures as `B5G5R5A1_UNORM`, which uses 5-bit unorms for the RGB channels and a 1-bit unorm for the alpha channel, to store an RGBA color in just 2 bytes.
-
-The value of an n-bit unorm $x$ is calculated as:
+The real-numbered value of an $n$-bit unorm $x_n \in\N, 0 \le x \le 2^n-1$ is calculated as $x_n / (2^n-1)$. It follows that converting an $n$-bit unorm to an $m$-bit unorm is:
 
 $$
-\frac{x}{2^n - 1}
+x_m = round(x_n \cdot \frac{2^m - 1}{2^n - 1})
 $$
 
-The formula for converting an n-bit unorm to an 8-bit unorm is similarly simple:
+(Rounding is necessary to get integer values.)
+
+<div class="side-note">
+
+An interesting special case arises when converting an $n$-bit unorm to a $2n$-bit unorm. Since $2^{2n}-1 = (2^n-1)(2^n+1)$, the formula simplifies to:
 
 $$
-round(\frac{x}{2^n - 1} \cdot 255)
+x_{2n} = x_n \cdot (2^n+1)
 $$
 
-Rounding is necessary to get the 8-bit unorm closest to the original n-bit value.
+Proving that similar special cases exist for converting any $n$-bit unorm to any $k n$-bit unorm for any $k\in\N, k\ge 1$ is left as a fun exercise to the reader. If you got it and want to check your result, reveal the solution below. (This has nothing to do with the article.)
 
-Simple enough, here's a naive Rust implementation of this formula for converting a 5-bit integer:
+<details>
+<summary>Solution:</summary>
+
+We just need to (1) show that $(2^{kn}-1)/(2^n-1)$ is always an integer and (optionally, 2) find a nice form for the quotient. Let's starts by solving $(2^{kn}-1)/(2^n-1)$ for a few values of $k$ and see if we can spot a pattern. I just used [Wolfram Alpha](https://www.wolframalpha.com/input?i=simplify+%282%5E%28kn%29-1%29%2F%282%5En-1%29%2C+k%3D4) for this:
+
+-   $k=1$: $2^n-1 = (2^n-1)(1)$
+-   $k=2$: $2^{2n}-1 = (2^n-1)(1 + 2^n)$
+-   $k=3$: $2^{3n}-1 = (2^n-1)(1 + 2^n + 2^{2n})$
+-   $k=4$: $2^{4n}-1 = (2^n-1)(1 + 2^n + 2^{2n} + 2^{3n})$
+-   $k=5$: $2^{5n}-1 = (2^n-1)(1 + 2^n + 2^{2n} + 2^{3n} + 2^{4n})$
+
+So the pattern seems to be:
+
+$$
+2^{kn}-1 = (2^n-1) \sum_{i=0}^{k-1} 2^{in}
+$$
+
+We'll note that this equation is trivially true for $k=1$ as the sum simply becomes $2^{0n} = 1$. The rest, so $k \ge 2$, can be shown via induction. Let's rearrange the equation for $2^{kn}$:
+
+$$
+2^{kn} = 1+ (2^n-1) \sum_{i=0}^{k-1} 2^{i n}
+$$
+
+Proof by induction:
+
+-   Base: $k=2$
+    $$
+    \begin{split}
+    2^{2n} &= 1+ (2^n-1) \sum_{i=0}^{1} 2^{i n} \\
+           &= 1+ (2^n-1)(1+2^n) \\
+           &= 1+ 2^{2n} - 1 \\
+           &= 2^{2n} \\
+    \end{split}
+    $$
+-   Step: Assuming the equation is valid for a value of $k$, then it is also valid for $k+1$:
+
+    $$
+    \begin{split}
+    2^{kn} &= 1+ (2^n-1) \sum_{i=0}^{k-1} 2^{i n} \\
+    2^n \cdot 2^{kn}  &= 2^n \cdot (1+ (2^n-1) \sum_{i=0}^{k-1} 2^{i n}) \\
+    2^{(k+1)n}  &= 2^n \cdot (1+ (2^n-1) (1 + 2^n +...+2^{(k-1)n}) ) \\
+           &= 2^n + 2^n (2^n-1) (1 + 2^n +...+2^{(k-1)n} ) \\
+           &= 2^n + (2^n-1) (2^n + 2^{2n} +...+2^{kn} ) \\
+           &= 1 + (2^n - 1) + (2^n-1) (2^n + 2^{2n} +...+2^{kn} ) \\
+           &= 1 + (2^n - 1) (1 + 2^n + 2^{2n}+...+2^{kn} ) \\
+           &= 1 + (2^n - 1) \sum_{i=0}^{(k+1)-1} 2^{i n}
+    \end{split}
+    $$
+
+    $\square$
+
+We can now use this result and plug it into the conversion formula:
+
+$$
+\begin{split}
+x_{k n} &= round(x_n \cdot \frac{2^{k n} - 1}{2^n - 1}) \\
+x_{k n} &= round(\underbrace{x_n \cdot \sum_{i=0}^{k-1} 2^{in}}_{\text{obviously an integer}}) \\
+x_{k n} &= x_n \cdot \sum_{i=0}^{k-1} 2^{in}
+\end{split}
+$$
+
+And that's the general $n$-bit unorm to $k n$-bit unorm conversion formula.
+
+Too bad this has nothing to do with the topic of the article. It's cool and all, but this article is about... erm... Come to think of it, I haven't even introduced the main topic yet, have I? Well, whatever it was, let's get back to it!
+
+</details>
+
+</div>
+
+Special cases aside, the general formula is quite straightforward to implement. Here's a naive Rust implementation for converting a 5-bit unorm to an 8-bit unorm:
 
 ```rust
 fn u5_to_u8_naive(x: u8) -> u8 {
     debug_assert!(x < 32);
-    (x as f32 / 31.0 * 255.0).round() as u8
+    let factor = 255.0 / 31.0;
+    (x as f32 * factor).round() as u8
 }
 ```
 
@@ -49,31 +119,71 @@ For those unfamiliar with Rust:
 -   `expr as T` is a cast between primitive types (`(T) expr` in C).
 -   `fn` is the keyword for [defining a function](https://doc.rust-lang.org/book/ch03-03-how-functions-work.html) and `-> T` annotates the return type.
 -   The last expression in a function body is the return value of the function.
--   `debug_assert!` checks a condition at runtime and crashes the program if it's false. The check is only included in debug/test build.
--   `expr.round()` rounds a floating point number the nearest integer. \
-    In Rust, `round` and other floating point operations are instance methods on the `f32` type.
+-   `let` is used to declare/define immutable variables. They can optionally be type annotated with `let name: T`.
+-   `debug_assert!` checks a condition at runtime and stops the program if it's false. The check is only performed in debug and test builds.
+-   `expr.round()` rounds a floating point number the nearest integer. In Rust, `round` and other floating point operations are instance methods on the `f32` type.
 
-I will explain more Rust-specific concepts as them come up. Otherwise, Rust generally has a C-like syntax and semantics, so if something looks like C, it will most likely behave like it too.
+I will explain more Rust-specific syntax/concepts/oddities as them come up. Otherwise, Rust generally has a C-like syntax and semantics, so if something looks like C, it will most likely behave like it too (minus any undefined behavior).
 
 </details>
 
 </div>
 
-This works correctly and gets the job done. There's only one problem: it's slow.
+This works correctly and gets the job done, but it's not so great performance-wise. In this article, we'll use this function as the basis for a series of optimizations to get the operation `f.round() as u8` as fast as possible.
 
-To decode a single 1024x1024 `B5G5R5A1_UNORM` texture, this function needs to be called **3.1 Million** times. So it better be fast.
+Note that goal of this article is **not** to get the fastest possible conversion from a 5-bit unorm to an 8-bit unorm. This will be the topic of a future article (stay tuned). This article is purely about optimizing the `f.round() as u8` operation.
 
 ## Contents
 
 ## Benchmarking
 
-Before we start optimizing, let's define a benchmark.
+Before we start optimizing, let's define a benchmark. I'm going to use a simplified version of my real-world use case: DDS B5G5R5A1_UNORM images. [DDS](https://en.wikipedia.org/wiki/DirectDraw_Surface) (DirectDraw Surface) is a container format for images used in DirectX, OpenGL, and other graphics APIs. It can store multiple versions of a texture (mipmaps) in a single file and supports a variatey of different formats to store the pixel data. B5G5R5A1_UNORM stores the RGB channels as 5 unorms each and the alpha as a 1-bit unorm (also called: "a bit"). The benchmark will be to convert a `[u16; 256]` to a `[[u8; 4]; 256]`. This is roughly equivalent to decoding a 16x16 B5G5R5A1_UNORM texture to 8-bit RGBA. Here's the code we'll benchmark:
 
-Since there are only 32 possible input value for our 5 bit to 8 bit conversion, we'll just fill a list with 1024 random values between 0 and 31 and convert all of them. Since we're calling the conversion function in a tight loop, we're benchmarking not only the function itself, but also how well the compiler can vectorize it.
+```rust
+fn convert<const N: usize>(
+    to_decode: &[u16; N],
+    u5_to_u8: impl Fn(u8) -> u8,
+) -> [[u8; 4]; N] {
+    to_decode.map(|&bgra| {
+        let b5 = bgra & 0x1F;
+        let g5 = (bgra >> 5) & 0x1F;
+        let r5 = (bgra >> 10) & 0x1F;
+        let a1 = (bgra >> 15) & 0x1;
 
-This setup is actually quite close to what an actual image decoder would do. The only difference is that the real-world use-case likely won't vectorize quite as well, so the benchmarks will be a bit optimistic.
+        [
+            u5_to_u8(r5 as u8),
+            u5_to_u8(g5 as u8),
+            u5_to_u8(b5 as u8),
+            u1_to_u8(a1 as u8),
+        ]
+    })
+}
 
-All benchmarks in this article were performed with [`criterion`](https://bheisler.github.io/criterion.rs/book/criterion_rs.html) and with the following environment:
+#[inline(always)]
+fn u1_to_u8(x: u8) -> u8 {
+    debug_assert!(x < 2);
+    x * 255
+}
+```
+
+<div class="info">
+
+<details>
+<summary>
+For those unfamiliar with Rust:
+</summary>
+
+-   `[u16; N]` is an array with exactly `N` elements of type `u16`.
+-   `&[u16; N]` is a reference to an array, called a slice.
+-   `u5_to_u8: impl Fn(u8) -> u8` means that the parameter `u5_to_u8` is a function that takes a `u8` and returns a `u8`. The `impl` keyword is just a quick way to define generics to allow the compiler to inline the function.
+
+</details>
+
+</div>
+
+Since the function is generic over different `u5_to_u8` functions, we can easily benchmark different implementations. The `u1_to_u8` function is included to show that the performance of the `u5_to_u8` function is the bottleneck.
+
+Link to full benchmark code (including all optimized variants of the unorm conversion) can be found on my GitHub. All benchmarks in this article were performed with [`criterion`](https://bheisler.github.io/criterion.rs/book/criterion_rs.html) and with the following environment:
 
 -   OS: Windows 10
 -   CPU: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz
@@ -94,34 +204,32 @@ u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
 
 </div>
 
-Scaling this up to 3.1 million calls, we get an optimistically estimated runtime of 34 ms to decode a single 1024x1024 texture. Considering that modern AAA games need to load around 1000 textures, that's not great. Nobody wants to wait half a minute for a game to load.
+The standard size for textures in modern games became 1024x1024 some years ago. Scaling up to this size, the naive implementation would take around ? ms to decode a single 1024x1024 texture. That's pretty bad considering that modern games need to load around 1000 textures before they can render a single frame. Nobody wants to wait half a minute for a game to load.
 
 TODO: Source code for the benchmarks
 
-## Simple optimizations
+## Rounding without `round`
 
-Let's start by taking a look at the assembly generated by the naive implementation. I'm using [compiler explorer](<https://godbolt.org/#g:!((g:!((g:!((h:codeEditor,i:(filename:'1',fontScale:14,fontUsePx:'0',j:1,lang:rust,selection:(endColumn:12,endLineNumber:7,positionColumn:12,positionLineNumber:7,selectionStartColumn:12,selectionStartLineNumber:7,startColumn:12,startLineNumber:7),source:'%23%5Bno_mangle%5D%0Apub+fn+u5_to_u8_naive(x:+u8)+-%3E+u8+%7B%0A++++debug_assert!!(x+%3C+32)%3B%0A++++(x+as+f32+/+31.0+*+255.0).round()+as+u8%0A%7D%0A%0Afn+main()+%7B%7D%0A'),l:'5',n:'1',o:'Rust+source+%231',t:'0')),k:46.58379142816912,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((g:!((h:compiler,i:(compiler:r1780,filters:(b:'0',binary:'1',binaryObject:'1',commentOnly:'1',debugCalls:'1',demangle:'0',directives:'0',execute:'1',intel:'0',libraryCode:'0',trim:'1',verboseDemangling:'0'),flagsViewOpen:'1',fontScale:14,fontUsePx:'0',j:1,lang:rust,libs:!(),options:'-C+opt-level%3D2',overrides:!((name:edition,value:'2021')),selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'+rustc+1.78.0+(Editor+%231)',t:'0')),k:53.41620857183087,l:'4',m:50,n:'0',o:'',s:0,t:'0'),(g:!((h:executor,i:(argsPanelShown:'1',compilationPanelShown:'0',compiler:r1780,compilerName:'',compilerOutShown:'0',execArgs:'',execStdin:'',fontScale:14,fontUsePx:'0',j:1,lang:rust,libs:!(),options:'',overrides:!((name:edition,value:'2021')),runtimeTools:!(),source:1,stdinPanelShown:'1',wrap:'1'),l:'5',n:'0',o:'Executor+rustc+1.78.0+(Rust,+Editor+%231)',t:'0')),header:(),l:'4',m:50,n:'0',o:'',s:0,t:'0')),k:53.41620857183087,l:'3',n:'0',o:'',t:'0')),l:'2',n:'0',o:'',t:'0')),version:4>) for this.
+Let's start by taking a look at the assembly generated by the naive implementation. I'm using [compiler explorer](<https://godbolt.org/#g:!((g:!((g:!((h:codeEditor,i:(filename:'1',fontScale:14,fontUsePx:'0',j:1,lang:rust,selection:(endColumn:1,endLineNumber:7,positionColumn:1,positionLineNumber:7,selectionStartColumn:1,selectionStartLineNumber:7,startColumn:1,startLineNumber:7),source:'%23%5Bno_mangle%5D%0Apub+fn+u5_to_u8_naive(x:+u8)+-%3E+u8+%7B%0A++++debug_assert!!(x+%3C+32)%3B%0A++++let+factor+%3D+255.0+/+31.0%3B%0A++++(x+as+f32+*+factor).round()+as+u8%0A%7D%0A%0Afn+main()+%7B%7D%0A'),l:'5',n:'1',o:'Rust+source+%231',t:'0')),k:46.58379142816912,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((g:!((h:compiler,i:(compiler:r1780,filters:(b:'0',binary:'1',binaryObject:'1',commentOnly:'1',debugCalls:'1',demangle:'0',directives:'0',execute:'1',intel:'0',libraryCode:'0',trim:'1',verboseDemangling:'0'),flagsViewOpen:'1',fontScale:14,fontUsePx:'0',j:1,lang:rust,libs:!(),options:'-C+opt-level%3D2',overrides:!((name:edition,value:'2021')),selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'+rustc+1.78.0+(Editor+%231)',t:'0')),k:53.41620857183087,l:'4',m:50,n:'0',o:'',s:0,t:'0'),(g:!((h:executor,i:(argsPanelShown:'1',compilationPanelShown:'0',compiler:r1780,compilerName:'',compilerOutShown:'0',execArgs:'',execStdin:'',fontScale:14,fontUsePx:'0',j:1,lang:rust,libs:!(),options:'',overrides:!((name:edition,value:'2021')),runtimeTools:!(),source:1,stdinPanelShown:'1',wrap:'1'),l:'5',n:'0',o:'Executor+rustc+1.78.0+(Rust,+Editor+%231)',t:'0')),header:(),l:'4',m:50,n:'0',o:'',s:0,t:'0')),k:53.41620857183087,l:'3',n:'0',o:'',t:'0')),l:'2',n:'0',o:'',t:'0')),version:4>) for this. (I added comments for all relevant instructions, so experience with assembly is not required to follow along.)
 
-I added comments for all relevant instructions, so knowing assembly is not required to follow along.
-
-```rust
+```rust link=run
 fn u5_to_u8_naive(x: u8) -> u8 {
     debug_assert!(x < 32);
-    (x as f32 / 31.0 * 255.0).round() as u8
+    let factor = 255.0 / 31.0;
+    (x as f32 * factor).round() as u8
 }
 ```
 
 ```asm
 .LCPI0_0:
-        .long   0x41f80000 ; 31.0 (f32)
+        .long   0x41039ce7 ; 8.22580624 (f32) (this is 255/31)
 .LCPI0_1:
         .long   0x437f0000 ; 255.0 (f32)
 u5_to_u8_naive:
         push    rax
         movzx   eax, dil
         cvtsi2ss        xmm0, eax                 ; xmm0 = x to f32
-        divss   xmm0, dword ptr [rip + .LCPI0_0]  ; xmm0 = xmm0 / 31.0
-        mulss   xmm0, dword ptr [rip + .LCPI0_1]  ; xmm0 = xmm0 * 255.0
+        mulss   xmm0, dword ptr [rip + .LCPI0_0]  ; xmm0 = xmm0 * 8.22580624 (= 255/31)
         call    qword ptr [rip + roundf@GOTPCREL] ; xmm0 = round(xmm0)
         xorps   xmm1, xmm1                        ; xmm1 = 0.0             \
         maxss   xmm1, xmm0                        ; xmm1 = max(xmm1, xmm0)  \
@@ -132,71 +240,25 @@ u5_to_u8_naive:
         ret
 ```
 
-Despite compiling in release mode with optimization enabled, the assembly is a fairly literal translation of our code (aside from the `debug_assert!`). One thing that sticks out are the `min`/`max` operations. Rust clamps floating-point values to the range 0-255 before converting them to an integer to avoid undefined behavior. Safety first.
+As we can see, the assembly is a fairly literal translation of our source code. The compiler just removed the `debug_assert!` and precomputed the factor `255.0 / 31.0`. There are two things that stick out however:
 
-Well, we can't expect the compiler to do all the work, so let's see what we can optimize.
+1. `round` is a function call. Apparently, there is no instruction for rounding, so it has to done in software.
+2. The `minss` and `maxss` instructions. These are used to clamp the floating-point value to the range 0-255 before converting it to an integer.
 
-One trivial optimization is to avoid the division. `/ 31.0 * 255.0` can be replaced with a multiplication by a constant to save a floating-point division. Instead of defining the constant as a variable or `const`ant, I'll use a little trick and write `* (255.0 / 31.0)`. This allows the compiler to compute the constant at compile time with only minimal changes to the code.
+We'll start with call to `round`.
 
-Another optimization is that we can remove the call to `round`. Rust guarantees that [`as u8` truncates](https://doc.rust-lang.org/reference/expressions/operator-expr.html#numeric-cast) the floating-point number, so we can use this identity:
-
-$$
-round(x) = trunc(x + 0.5), \space \forall x\ge 0
-$$
-
-Putting both optimizations into code:
-
-```rust
-fn u5_to_u8_v2(x: u8) -> u8 {
-    debug_assert!(x < 32);
-    (x as f32 * (255.0 / 31.0) + 0.5) as u8
-}
-```
-
-```asm
-.LCPI0_0:
-        .long   0x41039ce7 ; 8.22580624 (f32)
-.LCPI0_1:
-        .long   0x3f000000 ; 0.5 (f32)
-.LCPI0_2:
-        .long   0x437f0000 ; 255.0 (f32)
-u5_to_u8_v2:
-        movzx   eax, dil
-        cvtsi2ss        xmm0, eax                ; xmm0 = x to f32
-        mulss   xmm0, dword ptr [rip + .LCPI0_0] ; xmm0 = xmm0 * 8.22580624 (= 255/31)
-        addss   xmm0, dword ptr [rip + .LCPI0_1] ; xmm0 = xmm0 + 0.5
-        xorps   xmm1, xmm1                       ; xmm1 = 0.0              \
-        maxss   xmm1, xmm0                       ; xmm1 = max(xmm1, xmm0)   \
-        movss   xmm0, dword ptr [rip + .LCPI0_2] ; xmm0 = 255.0              | as u8
-        minss   xmm0, xmm1                       ; xmm0 = min(xmm0, xmm1)   /
-        cvttss2si       eax, xmm0                ; convert xmm0 to int     /
-        ret
-```
-
-That assembly looks much better. No division and no call to `round`. Let's see how fast it is:
-
-```
-                    low       expected       high
-u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
-u5_to_u8_v2        [1.3806 µs 1.3848 µs 1.3898 µs]
-```
-
-That's a generous 8x speedup.
-
-The improvement comes mostly from avoiding the call to `round`. While floating-point division is slow compared to other arithmetic, non-inlined function calls are quite expensive as well.
-
-<div class="side-note">
-
-Rounding (compared to floating-point arithmetic) is quite an expensive operation, because rounding is surprisingly non-trivial. The full definition for $round(x)$ is inherently brachy:
+Mathematically speaking, rounding a real number $r \in \R$ to the nearest integer is defined as:
 
 $$
-round(x) = \begin{cases}
-    \lfloor x + 0.5 \rfloor & \text{if } x \ge 0 \\
-    \lceil x - 0.5 \rceil & \text{otherwise}
+round(r) = \begin{cases}
+    \lfloor r + 0.5 \rfloor & \text{if } r \ge 0 \\
+    \lceil r - 0.5 \rceil & \text{otherwise}
 \end{cases}
 $$
 
-Implementing this formula might _seems_ straightforward, but floating-point numbers only have a finite precision, so adding/subtracting 0.5 will return a _rounded_ result. All assertions in the following code will pass:
+<div class="side-note">
+
+Implementing this formula in code might _seems_ straightforward, but floating-point numbers only have a finite precision, so adding/subtracting 0.5 will return a _rounded_ result. All assertions in the following code will pass:
 
 ```rust runnable
 fn simple_round(x: f32) -> f32 {
@@ -220,9 +282,21 @@ So always be careful when implementing mathematical formulas when floating-point
 
 </div>
 
-## Faster with `unsafe`
+Since `u5_to_u8_naive` only calls round for non-negative numbers, we can simplify the formula to remove the branch.
 
-Let's look at the assembly of the previous function again:
+$$
+round(r) = \lfloor r + 0.5 \rfloor, \space r\ge 0
+$$
+
+And now for the main trick: Rust guarantees that [`as u8` truncates](https://doc.rust-lang.org/reference/expressions/operator-expr.html#numeric-cast) the floating-point number. Since $trunc(r) = \lfloor r \rfloor$, we replace `r.round() as u8` with `(r + 0.5) as u8` in our code:
+
+```rust
+fn u5_to_u8_v2(x: u8) -> u8 {
+    debug_assert!(x < 32);
+    let factor = 255.0 / 31.0;
+    (x as f32 * factor + 0.5) as u8
+}
+```
 
 ```asm
 .LCPI0_0:
@@ -244,11 +318,39 @@ u5_to_u8_v2:
         ret
 ```
 
-As we can see, Rust clamps to the range 0-255 before converting the floating-point number to an integer. This is necessary to guarantee safety in the general case. So e.g. `300_f32 as u8` will return `255_u8`. This is unlike C/C++, where no clamping is performed and converting floating-point values that cannot be represented by the target integer type is undefined behavior. So e.g. `(uint8_t) 300.0f` in C is UB.
+```
+                    low       expected       high
+u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
+u5_to_u8_v2        [1.3806 µs 1.3848 µs 1.3898 µs]
+```
+
+That's a generous 8x speedup. `round` was pretty expensive.
+
+## Faster with `unsafe`
+
+Next, we'll get rid of the clamping.
+
+Rust clamps to the range 0-255 to guarantee safety in the general case. So e.g. `300_f32 as u8` will return `255_u8`. This is unlike C/C++, where no clamping is performed and converting floating-point values that cannot be represented by the target integer type is undefined behavior. So e.g. `(uint8_t) 300.0f` in C is UB.
 
 However, the clamping is entirely unnecessary in our case. Since we know that the input value `x` for the 5 bit to 8 bit conversion is between 0 and 31, we know that the floating-point value being converted will always be between 0.5 and 255.5. Since `as u8` truncates, the floating-point value will always be in-range for `u8`.
 
 Luckily, Rust has a way out. We can use [`f32::to_int_unchecked`](https://doc.rust-lang.org/std/primitive.f32.html#method.to_int_unchecked) to perform the integer conversion without clamping. This function also comes with the same undefined behavior as C, so we need to use `unsafe`.
+
+<div class="info">
+
+<details>
+<summary>
+For those unfamiliar with Rust:
+</summary>
+
+`unsafe` is a keyword with 2 functions:
+
+1. It allows the programmer to opt-in to use certain operations that the compiler cannot prove are safe.
+2. It marks functions as unsafe to call, meaning that the caller must ensure that the function is used correctly.
+
+</details>
+
+</div>
 
 ```rust
 /// ## Safety

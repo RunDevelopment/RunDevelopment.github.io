@@ -13,6 +13,7 @@ import { CustomComponent } from "./CustomComponents";
 import { Components, getAllHeadings, getHeadingId, getTextContent } from "../../lib/md-util";
 import "katex/dist/katex.min.css";
 import { TextLink } from "./TextLink";
+import { InlineColor } from "./InlineColor";
 
 interface MdContextProps {
     markdown: string;
@@ -26,14 +27,21 @@ const MdContext = createContext<MdContextProps>({ markdown: "" });
 const HighlightInlineCode = memo(
     ({ children, className }: { children: string; className?: string }) => {
         const { inlineCodeLanguage: lang } = useContext(MdContext);
+        const before = <InlineColor code={children} />;
         if (lang) {
             return (
                 <code className={className}>
+                    {before}
                     <SyntaxHighlight code={children} noCodeElement lang={lang} />
                 </code>
             );
         } else {
-            return <code className={className}>{children}</code>;
+            return (
+                <code className={className}>
+                    {before}
+                    {children}
+                </code>
+            );
         }
     },
 );
