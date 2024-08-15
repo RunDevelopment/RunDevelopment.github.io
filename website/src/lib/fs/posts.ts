@@ -22,7 +22,7 @@ export const getPostsWithInternals = timedCached(2000, async () => {
     let posts = await Promise.all(postIds.map(getPost));
 
     // drafts are only shown in dev mode
-    if (!IS_DEV || true) {
+    if (!IS_DEV) {
         posts = posts.filter((post) => !post.post.metadata.draft);
     }
 
