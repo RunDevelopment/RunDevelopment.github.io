@@ -8,10 +8,14 @@ export interface Post {
 
 export interface PostMetadata {
     title: string;
+    description: string;
     slug: string;
     datePublished: string;
     dateModified: string;
     draft: boolean;
     inlineCodeLanguage?: string;
+    tags: readonly string[];
+    color: string;
+    image?: string;
     minutesToRead: number;
 }

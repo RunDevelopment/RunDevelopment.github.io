@@ -45,12 +45,12 @@ export const CodeBlock = memo(({ lang, code, runnable }: CodeBlockProps) => {
     }
 
     return (
-        <div className="-mx-6 my-3 w-[calc(100%+3rem)] md:mx-0 md:w-auto md:max-w-full">
+        <div className="-mx-4 my-3 w-[calc(100%+2rem)] md:mx-0 md:w-auto md:max-w-full">
             {title}
             <pre
                 className={
                     sourceCodePro.className +
-                    " text-[15px] overflow-auto whitespace-pre rounded-md bg-neutral-950 px-6 py-3 leading-5 md:px-8"
+                    " text-[15px] overflow-auto whitespace-pre rounded-md bg-neutral-950 px-4 py-3 leading-5 md:px-8"
                 }
             >
                 <SyntaxHighlight code={code.replace(/\n$/, "")} lang={lang || "none"} />

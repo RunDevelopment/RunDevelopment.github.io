@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function timedCached<F extends (...args: any[]) => any>(ttl: number, fn: F): F {
     const cache = new Map<string, { value: ReturnType<F>; expiry: number }>();
 
@@ -22,4 +23,31 @@ export function lazy<T extends NonNullable<unknown> | null>(fn: () => T): () => 
         }
         return value;
     };
+}
+
+export function cachedWeak<T extends object, R>(fn: (item: T) => R): (item: T) => R {
+    const cache = new WeakMap<T, R>();
+
+    return (item) => {
+        if (cache.has(item)) {
+            return cache.get(item)!;
+        }
+        const value = fn(item);
+        cache.set(item, value);
+        return value;
+    };
+}
+
+export function formatDateString(date: string, year: boolean = true): string {
+    const parsedTime = Date.parse(date);
+    if (Number.isNaN(parsedTime)) {
+        return date;
+    }
+    const parsed = new Date(parsedTime);
+
+    const monthAndDay = `${parsed.toLocaleString("en-us", { month: "long" })} ${parsed.getUTCDate()}`;
+    if (year) {
+        return `${monthAndDay}, ${parsed.getUTCFullYear()}`;
+    }
+    return monthAndDay;
 }

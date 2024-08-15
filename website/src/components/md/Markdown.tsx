@@ -89,12 +89,12 @@ const TOC = memo(() => {
     }, []);
 
     return (
-        <div className="hover:opacity-100 md:fixed md:bottom-0 md:left-0 md:max-h-[calc(100vh-max(0px,200px-var(--scroll-y)))] md:max-w-[calc(max(200px,50vw-320px))] md:overflow-y-auto md:p-6 md:opacity-50 md:focus-within:opacity-100 md:hover:text-inherit">
-            <div className="md:hidden">
+        <div className="transition-opacity hover:opacity-100 xl:fixed xl:bottom-0 xl:left-[calc(max(0px,50vw-(800px+3rem)/2-320px))] xl:max-h-[calc(100vh-max(0px,100px-var(--scroll-y)))] xl:w-[calc(min(300px,50vw-(800px+3rem)/2-20px))] xl:overflow-y-auto xl:p-4 xl:pl-6 xl:opacity-50 xl:focus-within:opacity-100 xl:hover:text-inherit">
+            <div className="xl:hidden">
                 <H2>Contents</H2>
             </div>
-            <h2 className="mb-4 hidden text-xl text-white md:block">Contents</h2>
-            <div className="md:text-sm md:leading-5">
+            <h2 className="mb-4 hidden text-xl text-white xl:block">Contents</h2>
+            <div className="xl:text-sm xl:leading-5">
                 {headings.map((h) => {
                     return (
                         <p key={h.id} className={(h.level === 3 ? "pl-6" : "") + " my-2"}>
@@ -156,7 +156,7 @@ const P: Components["p"] = memo(({ children }) => {
     return <p>{children}</p>;
 });
 
-const H1: Components["h1"] = memo(({ children }) => {
+export const H1: Components["h1"] = memo(({ children }) => {
     const { afterHeader } = useContext(MdContext);
 
     return (
@@ -177,7 +177,7 @@ const H2: Components["h2"] = memo(({ children, node }) => {
         >
             <Link
                 href={"#" + id}
-                className="relative before:absolute before:-left-8 before:opacity-25 hover:before:opacity-75 md:before:content-['#']"
+                className="relative before:absolute before:-left-8 before:opacity-25 before:transition-opacity hover:before:opacity-75 md:before:content-['#']"
             >
                 {children}
             </Link>
@@ -229,7 +229,7 @@ const components: Partial<Components> = {
             >
                 <Link
                     href={"#" + id}
-                    className="relative before:absolute before:-left-7 before:opacity-25 hover:before:opacity-75 md:before:content-['#']"
+                    className="relative before:absolute before:-left-7 before:opacity-25 before:transition-opacity hover:before:opacity-75 md:before:content-['#']"
                 >
                     {children}
                 </Link>
@@ -245,7 +245,7 @@ const components: Partial<Components> = {
             >
                 <Link
                     href={"#" + id}
-                    className="relative before:absolute before:-left-6 before:opacity-25 hover:before:opacity-75 md:before:content-['#']"
+                    className="relative before:absolute before:-left-6 before:opacity-25 before:transition-opacity hover:before:opacity-75 md:before:content-['#']"
                 >
                     {children}
                 </Link>
@@ -257,10 +257,27 @@ const components: Partial<Components> = {
         return <strong className="font-bold text-zinc-200">{children}</strong>;
     },
 
-    blockquote({ children }) {
+    blockquote({ children, ...props }) {
+        const source =
+            "data-src" in props && typeof props["data-src"] === "string" ? props["data-src"] : "";
+        let sourceLine;
+        if (source) {
+            let domain;
+            try {
+                domain = new URL(source).hostname;
+            } catch {
+                domain = source.replace(/^https?:\/\//, "").replace(/[/?#][\s\S]*/, "");
+            }
+            sourceLine = (
+                <div className="text-right text-sm text-neutral-400">
+                    source: <TextLink href={source}>{domain}</TextLink>
+                </div>
+            );
+        }
         return (
-            <blockquote className="compact my-4 border-l-4 border-solid border-neutral-500 pl-4 text-zinc-400">
+            <blockquote className="compact my-4 border-l-4 border-solid border-neutral-500 pl-4 text-zinc-300">
                 {children}
+                {sourceLine}
             </blockquote>
         );
     },
@@ -269,7 +286,7 @@ const components: Partial<Components> = {
         if (props.className === "info" || props.className === "side-note") {
             const title = props.className === "side-note" ? "Side note" : "Info";
             return (
-                <div className="-mx-6 my-3 rounded-md bg-gray-800 py-px pl-10 pr-6 md:mx-0 md:px-8">
+                <div className="-mx-4 my-3 rounded-md bg-gray-800 py-px pl-8 pr-4 md:mx-0 md:px-8">
                     <div className="-mb-2 mt-4">
                         <strong>{title}:</strong>
                     </div>
@@ -284,7 +301,7 @@ const components: Partial<Components> = {
     span({ node, ...props }) {
         if (props.className === "katex-display") {
             return (
-                <div className="-mx-6 -my-2 overflow-x-auto px-6 py-px md:mx-0 md:px-0">
+                <div className="-mx-4 -my-2 overflow-x-auto px-6 py-px md:mx-0 md:px-0">
                     <span {...props} />
                 </div>
             );

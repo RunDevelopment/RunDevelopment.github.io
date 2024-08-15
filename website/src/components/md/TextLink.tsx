@@ -14,7 +14,7 @@ export function TextLink({ href, children }: PropsWithChildren<TextLinkProps>) {
     return (
         <Link
             href={href}
-            className="border-b border-dotted border-current pb-[2px] text-sky-500 visited:text-violet-500 hover:border-solid hover:text-sky-400 visited:hover:text-violet-400"
+            className="border-b border-dotted border-current pb-[2px] text-blue-400 transition-colors visited:text-violet-400 hover:border-solid hover:text-blue-300 visited:hover:text-violet-300"
             target={external ? "_blank" : undefined}
             rel={external ? "noopener noreferrer" : undefined}
             title={title}

@@ -5,11 +5,13 @@ import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import rust from "react-syntax-highlighter/dist/esm/languages/prism/rust";
 import c from "react-syntax-highlighter/dist/esm/languages/prism/c";
 import json from "react-syntax-highlighter/dist/esm/languages/prism/json";
+import yaml from "react-syntax-highlighter/dist/esm/languages/prism/yaml";
 import { coldarkDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 SyntaxHighlighter.registerLanguage("rust", rust);
 SyntaxHighlighter.registerLanguage("c", c);
 SyntaxHighlighter.registerLanguage("json", json);
+SyntaxHighlighter.registerLanguage("yaml", yaml);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function nasm(Prism: any) {

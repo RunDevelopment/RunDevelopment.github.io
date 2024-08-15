@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 
     return {
-        title: post.metadata.title + " - RD",
+        title: post.metadata.title + " - RunDev",
         authors: {
             name: "Michael Schmidt",
         },

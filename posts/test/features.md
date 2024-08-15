@@ -1,7 +1,10 @@
 ---
 datePublished: 2024-06-08
+dateModified: 2024-08-08
+description: A list of all features supported by articles on this website.
 draft: true
 inlineCodeLanguage: rust
+tags: internal
 ---
 
 # Features of all articles
@@ -10,11 +13,39 @@ This document shows and tests all features of the articles.
 
 ## Contents
 
+## Frontmatter
+
+Articles have YAML frontmatter to specify metadata. The following fields are supported:
+
+```yaml
+---
+# required
+
+# The date the article was published.
+datePublished: YYYY-MM-DD
+# A single sentence describing the article.
+description: string
+
+# optional
+
+# The date the article was last modified. Defaults to the published date.
+dateModified: YYYY-MM-DD | null = null
+# Whether the article is a draft. Defaults to false.
+draft: bool = false
+# The language of inline code, e.g. "rust" or "c". Defaults to null.
+inlineCodeLanguage: string | null = null
+# The URL slug of the article. Generated from the title by default.
+slug: string | null = null
+# A space-separated list of tags. E.g. "rust math".
+tags: string = ""
+---
+```
+
 ## Draft
 
 ```yaml
 ---
-draft: rust
+draft: true
 ---
 ```
 
@@ -82,17 +113,31 @@ Quotes can be added like this:
 >
 > There's not much to it.
 
-> ```rust
-> pub fn max(self, other: f32) -> f32
-> ```
->
-> Returns the maximum of the two numbers, ignoring NaN.
->
-> If one of the arguments is NaN, then the other argument is returned. This follows the IEEE 754-2008 semantics for maxNum, except for handling of signaling NaNs; this function handles all NaNs the same way and avoids maxNum’s problems with associativity. This also matches the behavior of libm’s fmax.
->
-> *Source:* [doc.rust-lang.org](https://doc.rust-lang.org/std/primitive.f32.html#method.max)
+Use the following to automatically have the source attached:
 
+```md
+<blockquote data-src="https://doc.rust-lang.org/std/primitive.f32.html#method.max">
 
+    pub fn max(self, other: f32) -> f32
+
+Returns the maximum of the two numbers, ignoring NaN.
+
+If one of the arguments is NaN, then the other argument is returned. This follows the IEEE 754-2008 semantics for maxNum, except for handling of signaling NaNs; this function handles all NaNs the same way and avoids maxNum’s problems with associativity. This also matches the behavior of libm’s fmax.
+
+</blockquote>
+```
+
+<blockquote data-src="https://doc.rust-lang.org/std/primitive.f32.html#method.max">
+
+```rust
+pub fn max(self, other: f32) -> f32
+```
+
+Returns the maximum of the two numbers, ignoring NaN.
+
+If one of the arguments is NaN, then the other argument is returned. This follows the IEEE 754-2008 semantics for maxNum, except for handling of signaling NaNs; this function handles all NaNs the same way and avoids maxNum’s problems with associativity. This also matches the behavior of libm’s fmax.
+
+</blockquote>
 
 ### Math
 

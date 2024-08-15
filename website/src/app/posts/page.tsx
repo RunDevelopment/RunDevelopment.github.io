@@ -1,18 +1,21 @@
-import { getPosts } from "../../lib/fs/posts";
-import Link from "next/link";
+import React from "react";
+import PostsPage from "./PostsPage";
+import { getPostsInfo } from "../../lib/posts-info";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Posts by RunDev",
+    authors: {
+        name: "Michael Schmidt",
+    },
+    openGraph: {
+        type: "article",
+        authors: ["Michael Schmidt"],
+    },
+};
 
 export default async function Page() {
-    const posts = await getPosts();
-    return (
-        <div>
-            Posts:
-            {posts.map((post) => (
-                <div key={post.id}>
-                    <Link href={`/posts/${post.metadata.slug}`}>
-                        <h2>{post.metadata.title}</h2>
-                    </Link>
-                </div>
-            ))}
-        </div>
-    );
+    const info = await getPostsInfo();
+
+    return <PostsPage info={info} />;
 }
