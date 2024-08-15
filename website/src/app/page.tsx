@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import BasicPage from "../components/BasicPage";
-import { H1 } from "../components/md/Markdown";
 import { getPostsInfo } from "../lib/posts-info";
 import { PostCard } from "../components/PostCard";
 import { TextLink } from "../components/md/TextLink";
@@ -27,12 +26,8 @@ export default async function Home() {
             <div className="py-8">
                 <p className="my-6">
                     Hi! I&apos;m Michael, also known as RunDev or RunDevelopment throughout the
-                    internet. I&apos;m a software engineer from Germany with an interest in
-                    theoretical computer science and mathematics.
-                </p>
-                <p className="my-6">
-                    Aside from computers, I also enjoy reading comics and books, and playing video
-                    games.
+                    internet. I&apos;m a software engineer from Germany with an interest in computer
+                    science and mathematics.
                 </p>
 
                 <h2 className="mb-8 mt-4 pt-8 text-2xl text-white md:text-3xl">

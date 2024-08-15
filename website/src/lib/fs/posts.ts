@@ -1,13 +1,15 @@
 import path from "path";
 import fs from "fs/promises";
 import YAML from "yaml";
-import { InternalPostId, Post, PostMetadata } from "../schema";
+import { InternalPostId, PostMetadata, PostWithInternals } from "../schema";
 import { timedCached } from "../util";
 import crypto from "crypto";
 
+const IS_DEV = typeof process !== "undefined" && process.env.NODE_ENV === "development";
+
 const POST_DIR = path.join(process.cwd(), "../posts");
 
-export const getPosts = timedCached(2000, async () => {
+export const getPostsWithInternals = timedCached(2000, async () => {
     const postFiles = await fs.readdir(POST_DIR, {
         encoding: "utf-8",
         recursive: true,
@@ -17,15 +19,17 @@ export const getPosts = timedCached(2000, async () => {
         .filter((file) => file.endsWith(".md"))
         .map((file) => file as InternalPostId);
 
-    return Promise.all(postIds.map(getPost));
+    let posts = await Promise.all(postIds.map(getPost));
+
+    // drafts are only shown in dev mode
+    if (!IS_DEV || true) {
+        posts = posts.filter((post) => !post.post.metadata.draft);
+    }
+
+    return posts;
 });
 
-export const getPostFromSlug = async (slug: string): Promise<Post | undefined> => {
-    const posts = await getPosts();
-    return posts.find((post) => post.metadata.slug === slug);
-};
-
-export const getPost = timedCached(2000, async (id: InternalPostId): Promise<Post> => {
+const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithInternals> => {
     const filePath = path.join(POST_DIR, id);
     const content = await fs.readFile(filePath, { encoding: "utf-8" });
 
@@ -38,8 +42,38 @@ export const getPost = timedCached(2000, async (id: InternalPostId): Promise<Pos
     }
 
     const metadata = getMetadata(frontMatter ?? {}, markdown);
-    console.log(metadata);
-    return { id, metadata, markdown };
+
+    // image URLs
+    const imageUrls = getImageUrls(markdown);
+    if (metadata.image) {
+        imageUrls.push(metadata.image);
+    }
+    if (metadata.imageSmall) {
+        imageUrls.push(metadata.imageSmall);
+    }
+
+    const imageUrlMapping: Record<string, string> = {};
+    const referencedImageFiles: Record<string, string> = {};
+    for (const url of imageUrls) {
+        const isRelative = /^(?:\.\.?\/|(?!http)\w)/.test(url);
+        if (isRelative) {
+            const imageFilePath = path.resolve(
+                path.join(path.dirname(filePath), decodeURIComponent(url)),
+            );
+            const imageFileName = path.basename(imageFilePath).replace(/[^\w\-.]/g, "-");
+            imageUrlMapping[url] = `/images/${imageFileName}`;
+            referencedImageFiles[imageFilePath] = imageFileName;
+        }
+    }
+
+    if (metadata.image) {
+        metadata.image = imageUrlMapping[metadata.image] || metadata.image;
+    }
+    if (metadata.imageSmall) {
+        metadata.imageSmall = imageUrlMapping[metadata.imageSmall] || metadata.imageSmall;
+    }
+
+    return { post: { metadata, markdown, imageUrlMapping }, id, referencedImageFiles };
 });
 
 interface FrontMatter {
@@ -76,6 +110,7 @@ function getMetadata(frontMatter: PartialNull<FrontMatter>, markdown: string): P
 
     const color = frontMatter.color ?? getPostColor(slug);
     const image = frontMatter.image ?? undefined;
+    const imageSmall = image?.replace(/\.(\w+)$/, "_small.$1");
 
     const tags = (frontMatter.tags ?? "")
         .split(/\s+/)
@@ -99,6 +134,7 @@ function getMetadata(frontMatter: PartialNull<FrontMatter>, markdown: string): P
         tags,
         color,
         image,
+        imageSmall,
         minutesToRead,
     };
 }
@@ -136,4 +172,20 @@ function hsv2rgb(h: number, s: number, v: number) {
     const f = (n: number, k = (n + h / 60) % 6) => v - v * s * Math.max(Math.min(k, 4 - k, 1), 0);
     const rgb = [f(5), f(3), f(1)] as const;
     return `rgb(${rgb.map((c) => Math.round(c * 255))})`;
+}
+
+function getImageUrls(md: string): string[] {
+    md = removeMdCodeBlocks(md);
+
+    const imageRegex = /!\[[^[\]\r\n]*\]\(([^\r\n()]*)\)/g;
+    const images: string[] = [];
+    let match;
+    while ((match = imageRegex.exec(md))) {
+        images.push(match[1]);
+    }
+    return images;
+}
+
+function removeMdCodeBlocks(md: string): string {
+    return md.replace(/^```.*\n[^]*?^```/gm, "");
 }

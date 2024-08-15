@@ -1,8 +1,8 @@
-import { getPostFromSlug, getPosts } from "../../../lib/fs/posts";
 import { Metadata } from "next";
 import React from "react";
 import { Footer } from "./Footer";
 import { Article } from "./Article";
+import { getPostFromSlug, getPosts } from "../../../lib/fs/uptodate";
 
 interface Props {
     params: { slug: string };

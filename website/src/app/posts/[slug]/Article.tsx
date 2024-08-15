@@ -24,7 +24,10 @@ function AfterHeader({ meta }: { meta: PostMetadata }) {
                     background: meta.color,
                 }}
             >
-                {meta.image && <img src={meta.image} className="w-full object-cover" />}
+                {
+                    // eslint-disable-next-line @next/next/no-img-element
+                    meta.image && <img src={meta.image} alt="Cover image" className="w-full" />
+                }
             </div>
         </div>
     );
@@ -41,6 +44,7 @@ export const Article = memo(({ post }: ArticleProps) => {
                 inlineCodeLanguage={post.metadata.inlineCodeLanguage}
                 draft={post.metadata.draft}
                 afterHeader={<AfterHeader meta={post.metadata} />}
+                getImageUrl={post.imageUrlMapping}
             />
         </article>
     );

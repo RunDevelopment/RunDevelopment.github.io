@@ -1,9 +1,15 @@
 export type InternalPostId = string & { __internalPostId: never };
 
 export interface Post {
-    id: InternalPostId;
     metadata: PostMetadata;
     markdown: string;
+    imageUrlMapping: Record<string, string>;
+}
+
+export interface PostWithInternals {
+    post: Post;
+    id: InternalPostId;
+    referencedImageFiles: Record<string, string>;
 }
 
 export interface PostMetadata {
@@ -17,5 +23,6 @@ export interface PostMetadata {
     tags: readonly string[];
     color: string;
     image?: string;
+    imageSmall?: string;
     minutesToRead: number;
 }

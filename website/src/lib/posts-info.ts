@@ -1,4 +1,4 @@
-import { getPosts } from "./fs/posts";
+import { getPosts } from "./fs/uptodate";
 import { Post } from "./schema";
 import { cachedWeak } from "./util";
 

@@ -1,9 +1,8 @@
 ---
 datePublished: 2024-08-04
-draft: true
 inlineCodeLanguage: rust
 tags: rust floating-point
-image: /ds3-m32-2024-08-06.jpg
+image: ./images/ds3-m32-2024-08-06.jpg
 color: "#c9a061"
 ---
 

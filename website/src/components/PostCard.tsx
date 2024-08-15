@@ -18,10 +18,11 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
                 tabIndex={-1}
                 style={{ background: meta.color }}
             >
-                {meta.image && (
+                {meta.imageSmall && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
-                        src={"/ds3-m32-2024-08-06_small.jpg"}
-                        alt=""
+                        src={meta.imageSmall}
+                        alt="cover image"
                         className="size-full object-cover contain-size"
                     />
                 )}

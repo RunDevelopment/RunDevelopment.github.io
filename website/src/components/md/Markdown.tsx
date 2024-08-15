@@ -21,6 +21,7 @@ interface MdContextProps {
     inlineCodeLanguage?: string;
     draft?: boolean;
     afterHeader?: ReactNode;
+    getImageUrl?: (url: string) => string;
 }
 const MdContext = createContext<MdContextProps>({ markdown: "" });
 
@@ -185,6 +186,20 @@ const H2: Components["h2"] = memo(({ children, node }) => {
     );
 });
 
+const MdImage: Components["img"] = memo(({ src, alt }) => {
+    const { getImageUrl } = useContext(MdContext);
+
+    return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+            src={getImageUrl && src ? getImageUrl(src) : src}
+            alt={alt || "image"}
+            className="-mx-4 my-4 max-w-[calc(100%+2rem)] md:mx-0 md:max-w-full"
+            loading="lazy"
+        />
+    );
+});
+
 const components: Partial<Components> = {
     pre({ children }) {
         return <>{children}</>;
@@ -282,6 +297,8 @@ const components: Partial<Components> = {
         );
     },
 
+    img: MdImage,
+
     div(props) {
         if (props.className === "info" || props.className === "side-note") {
             const title = props.className === "side-note" ? "Side note" : "Info";
@@ -317,13 +334,30 @@ interface MarkdownProps {
     inlineCodeLanguage?: string;
     draft?: boolean;
     afterHeader?: ReactNode;
+    getImageUrl?: Record<string, string> | ((url: string) => string);
 }
 
 export const Markdown = memo(
-    ({ code, inline, inlineCodeLanguage, draft, afterHeader }: MarkdownProps) => {
+    ({ code, inline, inlineCodeLanguage, draft, afterHeader, getImageUrl }: MarkdownProps) => {
+        const getImageUrlFn = useMemo(() => {
+            if (typeof getImageUrl === "function") {
+                return getImageUrl;
+            } else if (getImageUrl) {
+                return (url: string) => getImageUrl[url] || url;
+            } else {
+                return undefined;
+            }
+        }, [getImageUrl]);
         return (
             <MdContext.Provider
-                value={{ markdown: code, inline, inlineCodeLanguage, draft, afterHeader }}
+                value={{
+                    markdown: code,
+                    inline,
+                    inlineCodeLanguage,
+                    draft,
+                    afterHeader,
+                    getImageUrl: getImageUrlFn,
+                }}
             >
                 <ReactMarkdown
                     components={components as never}

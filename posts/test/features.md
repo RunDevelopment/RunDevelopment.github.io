@@ -38,18 +38,21 @@ inlineCodeLanguage: string | null = null
 slug: string | null = null
 # A space-separated list of tags. E.g. "rust math".
 tags: string = ""
+# The cover image of the article. E.g. "./images/cover.jpg".
+image: string | null = null
+# The cover color of the article. E.g. "#f0f0f0". If no color is given, a random color will be generated.
+color: string | null = null
 ---
 ```
 
-## Draft
+Additional notes:
 
-```yaml
----
-draft: true
----
-```
+-   `description` will be used both for post cards and for the meta description.
+-   `datePublished` and `dateModified` must be in the format `YYYY-MM-DD`.
+-   `image` must be either a file path relative to the article's `.md` file or a URL.
+-   `color` must be a valid CSS color and should ideally go together with `image`.
 
-When an article is marked as draft, it will not be deployed to the website. Draft-mode also enables TODOs, which are highlighted in the text.
+Also, when an article is marked as draft, it will not be deployed to the website. Draft-mode also enables TODOs, which are highlighted in the text.
 
 TODO: Show how TODOs work
 
@@ -102,6 +105,20 @@ The language of inline code can be declared in the front matter of the article:
 inlineCodeLanguage: rust
 ---
 ```
+
+### Images
+
+![](https://i.kym-cdn.com/photos/images/newsfeed/001/401/347/312.jpg)
+
+Images can be either relative paths to a file or URLs.
+
+```md
+![](https://i.kym-cdn.com/photos/images/newsfeed/001/401/347/312.jpg)
+
+![](./images/foo.png)
+```
+
+Relative paths are resolved from the article's `.md` file. This means that you can use regular Markdown editors to preview images.
 
 ### Quotes
 
