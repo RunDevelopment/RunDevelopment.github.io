@@ -4,6 +4,7 @@ import deepEqual from "fast-deep-equal";
 import { Post, PostWithInternals } from "../schema";
 import { getPostsWithInternals } from "./posts";
 import { timedCached } from "../util";
+import { IMAGES_DIR } from "./config";
 
 let lastImageMapping: unknown = null;
 
@@ -51,8 +52,6 @@ function getFilesMapping(posts: Iterable<PostWithInternals>, ignoreErrors: boole
 
     return byFile;
 }
-
-const IMAGES_DIR = path.join(process.cwd(), "public/images");
 
 export async function updateImageFiles(posts: readonly PostWithInternals[], ignoreErrors = false) {
     const fileMapping = getFilesMapping(posts, ignoreErrors);

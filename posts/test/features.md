@@ -62,6 +62,10 @@ Text can be **bold**, _italic_, or **_both_**. It can also be ~~strikethrough~~.
 
 Heading 1-4 are supported and automatically get links. Header links also work for:
 
+### H3
+
+#### H4
+
 ### Headers with `code` and _style_
 
 ### Headers with $ma\ne t(h)$
@@ -178,6 +182,34 @@ foo(x + y)
 = \lfloor x \cdot y + {1 \over 2} \rfloor
 \le x \cdot y + {1 \over 2} + \text{some long variable name}
 $$
+
+## Details
+
+Details work as expected:
+
+```md
+<details>
+<summary>
+For those unfamiliar with Rust:
+</summary>
+
+Rust explainer. Hehe.
+
+</details>
+```
+
+<details>
+<summary>
+Lorem Ipsum
+</summary>
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean convallis egestas felis. Ut rutrum, ex eu maximus pharetra, nulla est gravida elit, at consequat quam dui nec dui. Sed ipsum nulla, commodo ac varius id, vestibulum non arcu. Donec feugiat ut lectus sit amet cursus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Suspendisse facilisis interdum ultrices. Sed mollis nulla est. Morbi luctus justo nec ipsum consectetur suscipit. Donec a diam sit amet libero scelerisque aliquet fringilla in nibh. Curabitur vel rhoncus nisi. Sed cursus justo metus, id tempor diam sagittis eu. Maecenas vitae mattis velit. Ut efficitur enim nunc, a fringilla massa tempor at. Integer hendrerit ac magna eu faucibus.
+
+    Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Duis imperdiet ligula facilisis, eleifend orci id, efficitur massa. Phasellus ut nunc at ante facilisis consectetur sed tristique libero. Praesent vitae lacinia ligula, ac aliquet lorem. Cras risus ante, vulputate vitae massa vitae, placerat congue nisl. Sed vel risus et libero scelerisque bibendum sed a odio. Praesent vehicula condimentum erat in imperdiet. Duis vel libero in nisi aliquam bibendum.
+
+Sed nec leo mi. Duis sed justo mattis, posuere metus eget, porta diam. Integer vitae molestie metus. Praesent sed orci diam. Maecenas auctor, enim vel viverra blandit, ex sem gravida orci, id molestie lectus nisl vitae orci. Praesent quis elit et ipsum tincidunt volutpat vitae non nibh. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+
+</details>
 
 ## Notes
 

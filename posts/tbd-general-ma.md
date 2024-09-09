@@ -4,320 +4,68 @@ draft: true
 inlineCodeLanguage: rust
 ---
 
-# Rounding wip
+# Generalized multiply-add method
 
-I recently implemented a new DDS decoder for [the `image` crate](https://github.com/image-rs/image). DDS is a container format that supports a variety of image formats (compressed and uncompressed) with the purpose of storing textures, volumes, cubemaps and more for games and other 3D applications. Almost much every computer game released in the last 15 years uses it. What's interesting about DDS' image formats is that [the specification](https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#Chapter19Contents) is written in terms of floating point numbers, even though color data is typically stored as n-bit integers for those formats. This presents an interesting optimization problem for decoders that output images with 8 bit per channels (`u8`/`uint8`).
+In the last article, we went over different way to optimize the function $round(x \cdot 255 / 31)$ and the fastest solution was the multiply-add method. In this article, we will analyze the generalized multiply-add method (GMA) and develop and algorithm to quickly iterate all possible constants for a given GMA problem.
 
-One DDS image format is `B5G6R5_UNORM`, a 16-bit-per-pixel uncompressed (but quantized) RGB format. The R and B channels are 5 bits each, and the G channel is 6 bits. The most basic task of the decoder is to convert this to 8 bits per channel. The formula for converting a $n$-bit number $x$ to 8 bit is:
-
-$$
-round(\frac{x}{2^n - 1} \cdot 255)
-$$
-
-Simple enough, here's a naive Rust implementation of this formula for converting a 5-bit integer:
-
-```rust
-fn u5_to_u8_naive(x: u16) -> u8 {
-    (x as f32 / 31.0 * 255.0).round() as u8
-}
-```
+## Background
 
 <div class="info">
 
-<details>
-<summary>
-For those unfamiliar with Rust:
-</summary>
+A quick note on notation:
 
--   `u8` is an **8**-bit **u**nsigned integer.
--   `f32` is a **32**-bit **f**loating point number.
--   `expr as T` is a cast between primitive types (`(T) expr` in C).
--   `fn` is the keyword for [defining a function](https://doc.rust-lang.org/book/ch03-03-how-functions-work.html) and `-> T` annotates the return type.
--   The last expression in a function body is the return value of the function.
--   `expr.round()` rounds a floating point number the nearest integer. \
-    In Rust, `round` and other floating point operations are instance methods on the `f32` type.
-
-I will explain more Rust-specific concepts as them come up. Otherwise, Rust generally has a C-like syntax and semantics, so if something looks like C, it will most likely behave like it too.
-
-</details>
+- $\N = \set{0,1,2,3,...}$
+- $\N_1 = \N \setminus \set{0} = \set{1,2,3,...}$
+- $\R^+ = [0,\infin)$
 
 </div>
 
-While talking to the maintainer of the `image` crate, he pointed me towards the direction of [the `bcdec` C library](https://github.com/iOrange/bcdec). So I took a peak at their code and found that they used the follow snippet for converting a 5-bit integer to an 8-bit integer (here, translated to Rust):
+The multiply-add method is used by modern compilers to optimize division by a constant. Division is quite an expensive operation on modern CPUs, so compilers try to replace divisions with cheaper operations whenever possible. The multiply-add method is one way to achieve such an optimization. It works as follows:
 
-```rust
-fn u5_to_u8_bcdec(x: u16) -> u8 {
-    ((x * 527 + 23) >> 6) as u8
-}
-```
-
-Somehow, this random collection of operations produces the same results as the naive floating point version (for all `x` between 0 and 31). The only difference is that it's about **20x** faster.
-
-Surprised by this, I did what any ~~sane~~ person would do: I spend a few days analyzing both the naive and `bcdec` version, figured out how the `bcdec` version works, and then spend another few days generalizing what I found to solve a more difficult problem. Specifically, I ended up with a way to multiply an unsigned integer with an arbitrary fraction and round the result to an integer with an arbitrary rounding function. And that all is done using an expression of the form `(x * f + a) >> s`.
-
-In this article, we will:
-
-1. optimize the naive floating point 5-to-8-bit conversion,
-2. look at rounded integer division for unsigned integers,
-3. analyse the `bcdec` version of the 5-to-8-bit conversion,
-4. generalize the `bcdec` version, and finally
-5. beat LLVM at optimizing unsigned integer division by constant (sometimes).
-
-The latter half will involve a bit of math, so look out for that.
-
-## Contents
-
-## Benchmarking
-
-Before we start optimizing, let's define a benchmark.
-
-Since there are only 32 possible input value for our 5 bit to 8 bit conversion, we'll just fill a list with 1024 random values between 0 and 31 and convert all of them. Since we're calling the conversion function in a tight loop, we're benchmarking not only the function itself, but also how well the compiler can vectorize it. This is very close to what the DDS decoder I made does, so it decently represents my real-world use case.
-
-All benchmarks in this article were performed with `criterion` and with the following environment:
-
--   OS: Windows 10
--   CPU: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz
--   Rust: 1.78.0
-
-Here are the results for the naive and `bcdec` versions. Note the **different units**.
-
-```
-                    low       expected       high
-u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
-u5_to_u8_bcdec     [527.47 ns 531.42 ns 536.16 ns]
-```
-
-<div class="info">
-
-`criterion` reports a confidence interval instead of just the mean or median runtime per iteration. The center value is `criterion`'s best estimate of the actual runtime per iteration. **Use the center value** for a simple way to compare the performance of different implementations.
-
-The left and right values are the lower and upper bounds of the interval, respectively. `criterion` is 95% confident that the real runtime per iteration is inside this interval.
-
-See [`criterion`'s documentation](https://bheisler.github.io/criterion.rs/book/user_guide/command_line_output.html#time) for more information.
-
-</div>
-
-Yep, `u5_to_u8_bcdec` is 21.15x faster. That's our baseline, so let's try to catch up.
-
-TODO: Source code for the benchmarks
-
-## Optimizing the naive implementation
-
-Let's start by taking a look at the assembly generated by the naive implementation. I'm using [compiler explorer](<https://godbolt.org/#g:!((g:!((g:!((h:codeEditor,i:(filename:'1',fontScale:14,fontUsePx:'0',j:1,lang:rust,selection:(endColumn:1,endLineNumber:9,positionColumn:1,positionLineNumber:9,selectionStartColumn:1,selectionStartLineNumber:9,startColumn:1,startLineNumber:9),source:'%23%5Bno_mangle%5D%0Apub+fn+u5_to_u8_naive(x:+u16)+-%3E+u8+%7B%0A++++(x+as+f32+/+31.0+*+255.0).round()+as+u8%0A%7D%0A%0Afn+main()+%7B%0A++++println!!(%22%7B%7D%22,+u5_to_u8_naive(31))%3B%0A%7D%0A'),l:'5',n:'1',o:'Rust+source+%231',t:'0')),k:46.58379142816912,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((g:!((h:compiler,i:(compiler:r1780,filters:(b:'0',binary:'1',binaryObject:'1',commentOnly:'1',debugCalls:'1',demangle:'0',directives:'0',execute:'1',intel:'0',libraryCode:'0',trim:'1',verboseDemangling:'0'),flagsViewOpen:'1',fontScale:14,fontUsePx:'0',j:1,lang:rust,libs:!(),options:'-C+opt-level%3D2',overrides:!((name:edition,value:'2021')),selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'+rustc+1.78.0+(Editor+%231)',t:'0')),k:53.41620857183087,l:'4',m:50,n:'0',o:'',s:0,t:'0'),(g:!((h:executor,i:(argsPanelShown:'1',compilationPanelShown:'0',compiler:r1780,compilerName:'',compilerOutShown:'0',execArgs:'',execStdin:'',fontScale:14,fontUsePx:'0',j:1,lang:rust,libs:!(),options:'',overrides:!((name:edition,value:'2021')),runtimeTools:!(),source:1,stdinPanelShown:'1',wrap:'1'),l:'5',n:'0',o:'Executor+rustc+1.78.0+(Rust,+Editor+%231)',t:'0')),header:(),l:'4',m:50,n:'0',o:'',s:0,t:'0')),k:53.41620857183087,l:'3',n:'0',o:'',t:'0')),l:'2',n:'0',o:'',t:'0')),version:4>) for this, so the assembly might be slightly different from what you get on your machine.
-
-```rust
-fn u5_to_u8_naive(x: u16) -> u8 {
-    (x as f32 / 31.0 * 255.0).round() as u8
-}
-```
-
-```asm
-.LCPI0_0:
-        .long   0x41f80000
-.LCPI0_1:
-        .long   0x437f0000
-u5_to_u8_naive:
-        push    rax
-        movzx   eax, di
-        cvtsi2ss        xmm0, eax                 ; xmm0 = x to f32
-        divss   xmm0, dword ptr [rip + .LCPI0_0]  ; xmm0 = xmm0 / 31.0
-        mulss   xmm0, dword ptr [rip + .LCPI0_1]  ; xmm0 = xmm0 * 255.0
-        call    qword ptr [rip + roundf@GOTPCREL] ; xmm0 = round(xmm0)
-        xorps   xmm1, xmm1                        ; xmm1 = 0.0
-        maxss   xmm1, xmm0                        ; xmm1 = max(xmm1, xmm0)
-        movss   xmm0, dword ptr [rip + .LCPI0_1]  ; xmm0 = 255.0
-        minss   xmm0, xmm1                        ; xmm0 = min(xmm0, xmm1)
-        cvttss2si       eax, xmm0                 ; convert xmm0 to u8
-        pop     rcx
-        ret
-```
-
-Well, that's not good. A few things to note:
-
-1. The compiler did not optimize `/ 31.0 * 255.0` into a single multiplication.
-2. `round` compiles to a function call to `roundf`.
-3. `as u8` does a surprising amount of work. It first clamps the float to the range 0-255, then converts it to an integer by truncation. So `f as u8` essentially does `f.clamp(0.0, 255.0).trunc() as u8`.
-
-We can easily remove the division by multiplying with `(255.0 / 31.0)` instead. Using parentheses allows the compiler to compute the resulting constant at compile time.
-
-Next: the call to `round`. Mathematically speaking, rounding is defined as:
+Given $U,D\in\N_1$, find constants $f,a,s\in\N$ such that $\forall x\in\set{0,...,U}$:
 
 $$
-round(x) := \lfloor x + 0.5 \rfloor, \space x \in \R
+\lfloor \frac{x}{D} \rfloor = \lfloor \frac{xf + a}{2^s} \rfloor
 $$
 
-Let's apply this definition:
+A few notes:
 
-```rust
-fn u5_to_u8_naive_v2_wip(x: u16) -> u8 {
-    (x as f32 * (255.0 / 31.0) + 0.5).floor() as u8
-}
-```
+-   $U$ describes the input range. E.g. for 8-bit integers, $U=255$.
+-   Modern CPUs perform _truncating_ division, meaning that they will discard the fractional part of the result. For unsigned integers, this is equivalent to flooring the result, which is why I used $\lfloor x/D\rfloor$ to denote integer division.
+-   The floor division by $2^s$ is equivalent to a right bit-shift by $s$.
 
-We already know that `as u8` _truncates_ the floating point number, so we can remove the call to `floor`. This is correct, because we are only working with non-negative floating point numbers and $\forall x \in R, x \ge 0 : trunc(x) = \lfloor x \rfloor$.
+In programming terms, this means that we can replace `x / D` with `(x * f + a) >> s` and get the same result (with the right constants). Since the cost of multiplication + addition + bit-shift is lower than the cost of a single division, this can be a significant optimization.
 
-```rust
-fn u5_to_u8_naive_v2(x: u16) -> u8 {
-    (x as f32 * (255.0 / 31.0) + 0.5) as u8
-}
-```
+However, that's not all. As it turns out, it's possible for find constants with $a=0$, meaning that we don't even have to pay for addition.
 
-```asm
-.LCPI0_0:
-        .long   0x41039ce7
-.LCPI0_1:
-        .long   0x3f000000
-.LCPI0_2:
-        .long   0x437f0000
-u5_to_u8_naive_v2:
-        movzx   eax, di
-        cvtsi2ss        xmm0, eax                ; xmm0 = x to f32
-        mulss   xmm0, dword ptr [rip + .LCPI0_0] ; xmm0 = xmm0 * 8.22580624 (255 / 31)
-        addss   xmm0, dword ptr [rip + .LCPI0_1] ; xmm0 = xmm0 + 0.5
-        xorps   xmm1, xmm1                       ; xmm1 = 0.0
-        maxss   xmm1, xmm0                       ; xmm1 = max(xmm1, xmm0)
-        movss   xmm0, dword ptr [rip + .LCPI0_2] ; xmm0 = 255.0
-        minss   xmm0, xmm1                       ; xmm0 = min(xmm0, xmm1)
-        cvttss2si       eax, xmm0                ; convert xmm0 to u8
-        ret
-```
+## Generalizing
 
-```
-                    low       expected       high
-u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
-u5_to_u8_naive_v2  [1.3806 µs 1.3848 µs 1.3898 µs]
-u5_to_u8_bcdec     [527.47 ns 531.42 ns 536.16 ns]
-```
+While optimizing floor division is nice and all, the multiply-add method can be used for much more than that. We can generalize by:
 
-That's a lot better. Our optimizations made the naive implementation 8x faster, but the `bcdec` version is still 2.6x faster.
+1. Multiplying with a fraction. So instead of $x/D$, we'll do $x \cdot T / D$.
+2. Using a different rounding function. Instead of just flooring/truncating the result, we can use an arbitrary rounding function (e.g. `round` or `ceil`).
 
-The last optimization is to remove the unnecessary clamping. Since we know that the number passed to `as u8` is already between 0 and 255, there's no need to perform any clamping. We can use Rust's [`f32::to_int_unchecked`](https://doc.rust-lang.org/std/primitive.f32.html#method.to_int_unchecked) method to perform the integer conversion without clamping.
+With these 2 changes, here's the generalized problem:
 
-```rust
-/// ## Safety
-/// The caller must ensure that x < 32.
-unsafe fn u5_to_u8_naive_v3(x: u16) -> u8 {
-    debug_assert!(x < 32);
-    let f = x as f32 * (255.0 / 31.0) + 0.5;
-    unsafe { f.to_int_unchecked() }
-}
-```
-
-<div class="info">
-
-In Rust, `unsafe` allows us to call methods and perform actions that can cause undefined behavior (UB) if used incorrectly. While this enables powerful optimizations, it also requires the programmer to ensure that the code does not cause UB. It is generally recommended to avoid using `unsafe` whenever possible.
-
-In our case, `f32::to_int_unchecked` causes UB if the value is outside the range 0-255.999, so we need `unsafe`. In fact, since calling `u5_to_u8_naive_v3(32)` is also causing UB, the function `u5_to_u8_naive_v3` must also be marked as `unsafe`.
-
-```c
-uint8_t convert(int x) {
-    return (uint8_t) (float) x;
-}
-
-int foo(int x) {
-    uint8_t y = convert(x);
-    if (x < 0) {
-        return x;
-    } else {
-        return y;
-    }
-}
-```
-
-</div>
-
-```asm
-.LCPI0_0:
-        .long   0x41039ce7
-.LCPI0_1:
-        .long   0x3f000000
-u5_to_u8_naive_v3:
-        movzx   eax, di
-        cvtsi2ss        xmm0, eax                ; xmm0 = x to f32
-        mulss   xmm0, dword ptr [rip + .LCPI0_0] ; xmm0 = xmm0 * 8.22580624 (255 / 31)
-        addss   xmm0, dword ptr [rip + .LCPI0_1] ; xmm0 = xmm0 + 0.5
-        cvttss2si       eax, xmm0                ; convert xmm0 to u8
-        ret
-```
-
-```
-                    low       expected       high
-u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
-u5_to_u8_naive_v2  [1.3806 µs 1.3848 µs 1.3898 µs]
-u5_to_u8_naive_v3  [614.04 ns 615.98 ns 618.32 ns]
-u5_to_u8_bcdec     [527.47 ns 531.42 ns 536.16 ns]
-```
-
-We're almost caught up. The `bcdec` version is only 1.17x faster now.
-
-However, we did have to use `unsafe`, which is never nice. Since the floating-point-to-integer conversion is the reason we needed `unsafe` in the first place, let's avoid using floating point altogether.
-
-## Rounded division for unsigned integers
-
-Before we tackle the 5 bit to 8 bit conversion, let's focus on rounded integer division first. Specifically, this:
+Given $U,T,D\in\N_1$, and a rounding function $R:\R^+\to\N$ where $R$ is monotonically increasing and $\forall i \in \N : R(i) = i$, find constants $f,a,s\in\N$ such that $\forall x\in\set{0,...,U}$:
 
 $$
-round(\frac{a}{b}), \space a, b \in \N_0, \space b \neq 0
+R(x \cdot \frac{T}{D}) = \lfloor \frac{xf + a}{2^s} \rfloor
 $$
 
-Using $round(x) = \lfloor x + 0.5 \rfloor$, we get:
+This is the main equation of the **Generalized Multiply-Add method** (GMA). The definition is more complex that the original one, but not by much. We are mostly interested in common rounding functions (`round`, `floor`, `ceil`), so $R$ isn't all that different from the original definition.
 
-$$
-\begin{split}
-round(\frac{a}{b}) & = \lfloor \frac{a}{b} + 0.5 \rfloor \\
-                   & = \lfloor \frac{a}{b} + \frac{b/2}{b} \rfloor \\
-                   & = \lfloor \frac{a + b/2}{b} \rfloor \\
-                   & \overset{\text{A2}}= \lfloor \frac{a + \lfloor b/2 \rfloor}{b} \rfloor \\
-\end{split}
-$$
+Using brute force, it's already possible to find the constants for a given problem. However, the search space is quite large, so we need to be smart about how we search it. Let's start by analyzing the problem.
 
-Proof for A2 in the appendix.
+I'll quickly note that since $f$ and $a$ depend on $s$, the algorithm we'll develop will first pick an $s$ and then try to find values for $f$ and $a$. This means that in our analysis, we can assume that $s$ is fixed.
 
-Since we now have integers in the denominator and divisor, we can use the standard integer division (which performs truncation):
+## Analyzing GMA
 
-```rust
-fn div_rounded(a: u32, b: u32) -> u32 {
-    (a + (b / 2)) / b
-}
-```
+I'll quickly note that for practical reasons, we want $f$ to be as small as possible. CPUs use fixed-width registers, so the multiplication $x \cdot f$ might overflow. Since $f / 2^s$ has to be roughly equal to $1/D$, we want to find small values for $f$ and $s$.
 
-Using this as a basis, we can implement the 5 bit to 8 bit conversion using only integer arithmetic:
+---
 
-```rust
-fn u5_to_u8_int(x: u32) -> u8 {
-    ((x * 255 + (31 / 2)) / 31) as u8
-}
-```
-
-```asm
-u5_to_u8_int:
-        mov     eax, edi            ; eax = x
-        shl     eax, 8              ; eax = eax << 8 (= eax * 256)   | This is
-        sub     eax, edi            ; eax = eax - x                  | * 255
-        add     eax, 15             ; eax = eax + 15
-        imul    rcx, rax, 138547333 ; \
-        shr     rcx, 32             ;  \
-        sub     eax, ecx            ;   | All of this is division
-        shr     eax                 ;   | by 31 but faster
-        add     eax, ecx            ;  /
-        shr     eax, 4              ; /
-        ret
-```
-
-```
-                    low       expected       high
-u5_to_u8_naive     [11.108 µs 11.147 µs 11.195 µs]
-u5_to_u8_naive_v2  [1.3806 µs 1.3848 µs 1.3898 µs]
-u5_to_u8_naive_v3  [614.04 ns 615.98 ns 618.32 ns]
-u5_to_u8_int       [580.73 ns 582.60 ns 584.85 ns]
-u5_to_u8_bcdec     [527.47 ns 531.42 ns 536.16 ns]
-```
-
-LLVM loves optimizing integer operations, so we can see a lot of tricks in the assembly. All of those tricks gave us a nice speed boost, and we are now only 1.1x slower than the `bcdec` version.
-
-But is this fastest we can go with pure integer arithmetic?
-
-## Rounded division with magic constants
+## OLD
 
 We're finally ready to talk about the `bcdec` version.
 
@@ -604,9 +352,9 @@ We select $D=31, T=1, U=255$ and use $R(x) = \lfloor x \rfloor$ as the rounding 
 
 ## Appendix
 
-A list of formal proofs for theorems used throughout the article.
-
 ### General theorems
+
+A list of formal proofs for theorems used throughout the article.
 
 #### A1
 

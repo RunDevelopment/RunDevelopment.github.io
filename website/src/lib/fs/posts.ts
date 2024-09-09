@@ -4,10 +4,7 @@ import YAML from "yaml";
 import { InternalPostId, PostMetadata, PostWithInternals } from "../schema";
 import { timedCached } from "../util";
 import crypto from "crypto";
-
-const IS_DEV = typeof process !== "undefined" && process.env.NODE_ENV === "development";
-
-const POST_DIR = path.join(process.cwd(), "../posts");
+import { IS_DEV, POST_DIR } from "./config";
 
 export const getPostsWithInternals = timedCached(2000, async () => {
     const postFiles = await fs.readdir(POST_DIR, {

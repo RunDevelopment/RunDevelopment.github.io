@@ -45,7 +45,7 @@ export function formatDateString(date: string, year: boolean = true): string {
     }
     const parsed = new Date(parsedTime);
 
-    const monthAndDay = `${parsed.toLocaleString("en-us", { month: "long" })} ${parsed.getUTCDate()}`;
+    const monthAndDay = `${parsed.toLocaleString("en-us", { month: "short" })} ${parsed.getUTCDate()}`;
     if (year) {
         return `${monthAndDay}, ${parsed.getUTCFullYear()}`;
     }

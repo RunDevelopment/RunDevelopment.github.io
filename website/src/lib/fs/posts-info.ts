@@ -1,18 +1,18 @@
-import { getPosts } from "./fs/uptodate";
-import { Post } from "./schema";
-import { cachedWeak } from "./util";
+import { getPosts } from "./uptodate";
+import { PostMetadata } from "../schema";
+import { cachedWeak } from "../util";
 
 export interface PostsInfo {
-    byYear: [year: number, posts: Post[]][];
+    byYear: [year: number, posts: PostMetadata[]][];
     allTags: string[];
 }
 
 export async function getPostsInfo(): Promise<PostsInfo> {
-    const posts = await getPosts();
+    const posts = (await getPosts()).map((post) => post.metadata);
 
     const now = new Date();
-    const getPostDate = cachedWeak((post: Post) => {
-        const parsed = Date.parse(post.metadata.datePublished);
+    const getPostDate = cachedWeak((post: PostMetadata) => {
+        const parsed = Date.parse(post.datePublished);
         if (Number.isNaN(parsed)) {
             return now;
         }
@@ -21,16 +21,16 @@ export async function getPostsInfo(): Promise<PostsInfo> {
 
     posts.sort((a, b) => getPostDate(b).getTime() - getPostDate(a).getTime());
 
-    const byYearMap = new Map<number, Post[]>();
+    const byYearMap = new Map<number, PostMetadata[]>();
     for (const post of posts) {
-        const year = new Date(post.metadata.datePublished).getFullYear();
+        const year = new Date(post.datePublished).getFullYear();
         const posts = byYearMap.get(year) ?? [];
         posts.push(post);
         byYearMap.set(year, posts);
     }
     const byYear = Array.from(byYearMap.entries()).sort(([a], [b]) => b - a);
 
-    const allTags = [...new Set<string>(posts.flatMap((post) => post.metadata.tags))].sort();
+    const allTags = [...new Set<string>(posts.flatMap((post) => post.tags))].sort();
 
     return { byYear, allTags };
 }

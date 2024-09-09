@@ -1,0 +1,59 @@
+:root {
+    color-scheme: only dark;
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+
+    --page-width: 980px;
+    --page-narrow-width: 720px;
+}
+
+body {
+    /* line-height: 1.75rem; */
+    font-family: var(--font-sans);
+}
+
+article p,
+article .normal-my {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+@media print {
+    article p,
+    article .normal-my {
+        margin-top: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+}
+article .compact p,
+article .compact .normal-my {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+a.run-link:not(:hover):not(:focus) {
+    /*
+    * This is bg-blue-800. The gradient starts with the opaque color and then
+    * goes more transparent. The transparent color was carefully chosen such
+    * that the transparent color on top of a background color of rgb(10 10 10)
+    * (=neutral-950) will result in bg-blue-800 exactly.
+    *
+    * This trick allows the Run button on blocks to be *appear* opaque while
+    * being transparent to any code it potentially covers up.
+    */
+    background: linear-gradient(to bottom, rgb(30 58 138) 75%, rgb(50 106 266/50%) 50%);
+}
+
+.narrow-container > .narrow,
+.narrow-container > details > .narrow,
+.narrow-container > p,
+.narrow-container > details > p {
+    max-width: var(--page-narrow-width);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.katex-display {
+    font-size: 110%;
+    margin: 0.5rem 0 !important;
+}

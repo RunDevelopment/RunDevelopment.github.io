@@ -6,5 +6,5 @@ export default function Layout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    return <BasicPage>{children}</BasicPage>;
+    return <BasicPage selectedLink="blog">{children}</BasicPage>;
 }

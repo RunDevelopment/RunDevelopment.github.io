@@ -120,7 +120,7 @@ const Code: Components["code"] = memo(({ children, className }) => {
             <HighlightInlineCode
                 className={
                     (short ? "whitespace-pre" : "md:whitespace-pre") +
-                    " rounded-md bg-black px-2 py-0.5 text-[90%]"
+                    " rounded-md bg-zinc-950 px-2 py-0.5 text-[90%]"
                 }
             >
                 {code}
@@ -162,26 +162,35 @@ export const H1: Components["h1"] = memo(({ children }) => {
 
     return (
         <>
-            <h1 className="mb-4 text-3xl font-bold leading-10 text-white md:mb-8 md:text-4xl md:leading-[3rem]">
+            <h1
+                className={
+                    " mb-10 text-pretty text-center text-3xl leading-10 text-white md:mb-12 md:text-4xl md:leading-[3rem]"
+                }
+            >
                 {children}
             </h1>
             {afterHeader}
         </>
     );
 });
+function HeaderLink({ id, children }: { id: string; children: ReactNode }) {
+    return (
+        <Link
+            href={"#" + id}
+            className="relative after:absolute after:pl-[0.6em] after:opacity-0 after:transition-opacity after:content-['#'] hover:after:opacity-75"
+        >
+            {children}
+        </Link>
+    );
+}
 const H2: Components["h2"] = memo(({ children, node }) => {
     const id = getHeadingId(getTextContent(children, node));
     return (
         <h2
             id={id}
-            className="mb-8 mt-4 border-b-2 border-b-neutral-500 pt-8 text-2xl text-white md:text-3xl"
+            className="mb-8 mt-10 overflow-hidden border-b-2 border-b-neutral-500 pt-8 text-2xl text-white md:text-3xl"
         >
-            <Link
-                href={"#" + id}
-                className="relative before:absolute before:-left-8 before:opacity-25 before:transition-opacity hover:before:opacity-75 md:before:content-['#']"
-            >
-                {children}
-            </Link>
+            <HeaderLink id={id}>{children}</HeaderLink>
         </h2>
     );
 });
@@ -212,20 +221,22 @@ const components: Partial<Components> = {
 
     ol({ children, start, type }) {
         return (
-            <ol className="normal-my list-decimal pl-10" start={start} type={type} dir="auto">
+            <ol
+                className="narrow normal-my list-decimal pl-10"
+                start={start}
+                type={type}
+                dir="auto"
+            >
                 {children}
             </ol>
         );
     },
     ul({ children }) {
         return (
-            <ul className="normal-my list-disc pl-10" dir="auto">
+            <ul className="narrow normal-my list-disc pl-10" dir="auto">
                 {children}
             </ul>
         );
-    },
-    li({ children }) {
-        return <li className="my-2">{children}</li>;
     },
 
     h1: H1,
@@ -240,14 +251,9 @@ const components: Partial<Components> = {
         return (
             <h3
                 id={id}
-                className="mb-4 mt-8 border-b-2 border-dashed border-b-neutral-500 text-xl text-white md:text-2xl"
+                className="mb-4 mt-8 overflow-hidden border-b-2 border-dashed border-b-neutral-500 text-xl text-white md:text-2xl"
             >
-                <Link
-                    href={"#" + id}
-                    className="relative before:absolute before:-left-7 before:opacity-25 before:transition-opacity hover:before:opacity-75 md:before:content-['#']"
-                >
-                    {children}
-                </Link>
+                <HeaderLink id={id}>{children}</HeaderLink>
             </h3>
         );
     },
@@ -256,14 +262,9 @@ const components: Partial<Components> = {
         return (
             <h4
                 id={id}
-                className="mb-4 mt-6 border-b-2 border-dotted border-b-neutral-700 text-lg text-white md:text-xl"
+                className="mb-4 mt-6 overflow-hidden border-b-2 border-dotted border-b-neutral-700 text-lg text-white md:text-xl"
             >
-                <Link
-                    href={"#" + id}
-                    className="relative before:absolute before:-left-6 before:opacity-25 before:transition-opacity hover:before:opacity-75 md:before:content-['#']"
-                >
-                    {children}
-                </Link>
+                <HeaderLink id={id}>{children}</HeaderLink>
             </h4>
         );
     },
@@ -299,11 +300,39 @@ const components: Partial<Components> = {
 
     img: MdImage,
 
+    table({ children }) {
+        return (
+            <div className="overflow-x-auto">
+                <table className="table-auto">{children}</table>
+            </div>
+        );
+    },
+    th({ children, style }) {
+        return (
+            <th className="border-2 border-zinc-800 p-2 text-white" style={style}>
+                {children}
+            </th>
+        );
+    },
+    td({ children, style }) {
+        return (
+            <td className="border-2 border-zinc-800 p-2" style={style}>
+                {children}
+            </td>
+        );
+    },
+    tbody({ children }) {
+        return <tbody className="group">{children}</tbody>;
+    },
+    tr({ children }) {
+        return <tr className="group-[]:odd:bg-zinc-950">{children}</tr>;
+    },
+
     div(props) {
         if (props.className === "info" || props.className === "side-note") {
             const title = props.className === "side-note" ? "Side note" : "Info";
             return (
-                <div className="-mx-4 my-3 rounded-md bg-gray-800 py-px pl-8 pr-4 md:mx-0 md:px-8">
+                <div className="narrow -mx-4 my-4 rounded-md bg-gray-800 py-px pl-8 pr-4 md:mx-0 md:px-6">
                     <div className="-mb-2 mt-4">
                         <strong>{title}:</strong>
                     </div>
@@ -318,7 +347,7 @@ const components: Partial<Components> = {
     span({ node, ...props }) {
         if (props.className === "katex-display") {
             return (
-                <div className="-mx-4 -my-2 overflow-x-auto px-6 py-px md:mx-0 md:px-0">
+                <div className="-mx-4 -my-2 overflow-x-auto px-4 py-px md:-mx-6 md:px-6 lg:mx-0 lg:px-0">
                     <span {...props} />
                 </div>
             );

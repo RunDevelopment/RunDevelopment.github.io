@@ -7,7 +7,7 @@ import { formatDateString } from "../../../lib/util";
 function AfterHeader({ meta }: { meta: PostMetadata }) {
     return (
         <div className="-mt-4 mb-6 text-sm text-zinc-400">
-            <p className="mb-2 text-sm text-zinc-400">
+            <p className="mb-2 text-center text-sm text-zinc-400">
                 <span>{formatDateString(meta.datePublished)}</span>
                 {meta.dateModified !== meta.datePublished && (
                     <span className="italic"> (Updated {formatDateString(meta.dateModified)})</span>
@@ -16,10 +16,12 @@ function AfterHeader({ meta }: { meta: PostMetadata }) {
                 <span>{meta.minutesToRead} min read</span>
             </p>
 
-            <TagList tags={meta.tags} />
+            <div className="flex items-center justify-center">
+                <TagList tags={meta.tags} />
+            </div>
 
             <div
-                className="-mx-4 mb-8 mt-6 overflow-hidden pb-4 md:mx-0 md:rounded-xl"
+                className="-mx-4 mb-8 mt-6 overflow-hidden pb-4 md:-mx-6 lg:mx-0 lg:rounded-xl"
                 style={{
                     background: meta.color,
                 }}
@@ -38,7 +40,7 @@ interface ArticleProps {
 }
 export const Article = memo(({ post }: ArticleProps) => {
     return (
-        <article className="mt-8 text-[15px] leading-[1.75] md:text-base md:leading-[1.875]">
+        <article className="narrow-container mt-8 break-normal text-[17px] leading-normal md:leading-normal print:text-[14px] print:leading-5">
             <Markdown
                 code={post.markdown}
                 inlineCodeLanguage={post.metadata.inlineCodeLanguage}

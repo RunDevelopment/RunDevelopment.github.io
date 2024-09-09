@@ -8,7 +8,7 @@ export interface PostCardProps {
     showYear?: boolean;
 }
 export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
-    const href = `/posts/${meta.slug}`;
+    const href = `/blog/${meta.slug}`;
 
     return (
         <div className="my-4 flex flex-row gap-4 ">
@@ -34,6 +34,7 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
                         className="line-clamp-2 text-base text-blue-300 transition-colors hover:text-blue-400 md:line-clamp-1 md:text-lg"
                     >
                         {meta.title}
+                        {meta.draft && " [DRAFT]"}
                     </Link>
                 </h3>
                 <p className="mt-1 line-clamp-1 text-xs text-zinc-400 md:text-sm">
