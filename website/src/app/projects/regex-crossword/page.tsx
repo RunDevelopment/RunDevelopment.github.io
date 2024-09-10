@@ -2,16 +2,16 @@ import React from "react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Regex Crossword",
+    title: "Regex Crossword by RunDev",
+    description: "A hexagonal crossword puzzle game based on regular expressions.",
     authors: {
         name: "Michael Schmidt",
     },
     openGraph: {
-        type: "article",
-        authors: ["Michael Schmidt"],
+        type: "website",
     },
 };
 
 export default function Page() {
-    return <div>Regex crossword</div>;
+    return <div>Regex Crossword</div>;
 }

@@ -1,6 +1,8 @@
 ---
 datePublished: 2023-06-08
+description: An article from 2023, so I can test different dates.
 draft: true
+tags: internal
 ---
 
 # Old

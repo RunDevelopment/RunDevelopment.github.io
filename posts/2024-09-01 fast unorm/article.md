@@ -1,9 +1,9 @@
 ---
-datePublished: 2024-08-04
+datePublished: 2024-09-11
 description: Optimizing the conversion of 5-bit unorms to 8-bit unorms in Rust.
 inlineCodeLanguage: rust
 tags: rust optimization unorm
-image: ./images/ds3-m32-2024-08-06.jpg
+image: ./ds3-m32-2024-08-06.jpg
 color: "#c9a061"
 ---
 
