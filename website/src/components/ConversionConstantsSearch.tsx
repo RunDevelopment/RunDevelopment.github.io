@@ -1,3 +1,5 @@
+"use client";
+
 import { lazy } from "../lib/util";
 import { useEffect, useMemo, useState } from "react";
 import { CodeBlock } from "./md/CodeBlock";

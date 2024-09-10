@@ -3,6 +3,7 @@ import { Post, PostMetadata } from "../../../lib/schema";
 import { Markdown } from "../../../components/md/Markdown";
 import { TagList } from "../../../components/TagList";
 import { formatDateString } from "../../../lib/util";
+import { H1 } from "../../../components/md/Headings";
 
 function AfterHeader({ meta }: { meta: PostMetadata }) {
     return (
@@ -41,11 +42,13 @@ interface ArticleProps {
 export const Article = memo(({ post }: ArticleProps) => {
     return (
         <article className="narrow-container mt-8 break-normal text-[17px] leading-normal md:leading-normal print:text-[14px] print:leading-5">
+            <H1>{post.metadata.title}</H1>
+            <AfterHeader meta={post.metadata} />
             <Markdown
-                code={post.markdown}
+                markdown={post.markdown}
                 inlineCodeLanguage={post.metadata.inlineCodeLanguage}
                 draft={post.metadata.draft}
-                afterHeader={<AfterHeader meta={post.metadata} />}
+                noH1
                 getImageUrl={post.imageUrlMapping}
             />
         </article>

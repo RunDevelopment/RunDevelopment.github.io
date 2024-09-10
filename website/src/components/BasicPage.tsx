@@ -14,8 +14,8 @@ function HeaderLink({ href, children, selected, className = "" }: HeaderLinkProp
             href={href}
             className={
                 className +
-                (selected ? " bg-white/10" : "") +
-                " flex h-8 items-center text-neutral-400 transition-colors hover:text-white"
+                (selected ? " text-white" : " text-neutral-400") +
+                " flex h-8 items-center transition-colors hover:text-white"
             }
         >
             {children}
@@ -28,8 +28,8 @@ type HeaderLinks = "home" | "blog" | "projects";
 function Header({ selectedLink }: { selectedLink?: HeaderLinks }) {
     return (
         <header className="bg-black">
-            <nav className="z-10 mx-auto box-content flex max-w-[var(--page-narrow-width)] gap-8 p-4 align-middle">
-                <HeaderLink href="/" className="group" selected={selectedLink === "home"}>
+            <nav className="z-10 mx-auto box-content flex max-w-[var(--page-narrow-width)] gap-1 p-4 align-middle">
+                <HeaderLink href="/" className="group pr-3" selected={selectedLink === "home"}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src="/favicon.ico"
@@ -40,10 +40,14 @@ function Header({ selectedLink }: { selectedLink?: HeaderLinks }) {
                     />
                     <span>Home</span>
                 </HeaderLink>
-                <HeaderLink href="/blog" selected={selectedLink === "blog"}>
+                <HeaderLink href="/blog" className="px-3" selected={selectedLink === "blog"}>
                     Blog
                 </HeaderLink>
-                <HeaderLink href="/projects" selected={selectedLink === "projects"}>
+                <HeaderLink
+                    href="/projects"
+                    className="px-3"
+                    selected={selectedLink === "projects"}
+                >
                     Projects
                 </HeaderLink>
             </nav>

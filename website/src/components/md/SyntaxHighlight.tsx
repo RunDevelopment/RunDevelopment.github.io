@@ -7,6 +7,7 @@ import c from "react-syntax-highlighter/dist/esm/languages/prism/c";
 import json from "react-syntax-highlighter/dist/esm/languages/prism/json";
 import yaml from "react-syntax-highlighter/dist/esm/languages/prism/yaml";
 import { coldarkDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { ForwardChildren } from "../util";
 
 SyntaxHighlighter.registerLanguage("rust", rust);
 SyntaxHighlighter.registerLanguage("c", c);
@@ -62,15 +63,11 @@ interface SyntaxHighlightProps {
     noCodeElement?: boolean;
 }
 
-function IgnoreProps({ children }: Record<string, unknown>) {
-    return <>{children}</>;
-}
-
 export const SyntaxHighlight = memo(({ code, lang, noCodeElement }: SyntaxHighlightProps) => {
     return (
         <SyntaxHighlighter
-            PreTag={IgnoreProps}
-            CodeTag={noCodeElement ? IgnoreProps : undefined}
+            PreTag={ForwardChildren}
+            CodeTag={noCodeElement ? ForwardChildren : undefined}
             // eslint-disable-next-line react/no-children-prop
             children={code}
             language={lang}

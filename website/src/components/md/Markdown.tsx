@@ -1,7 +1,5 @@
-"use client";
-
 import Link from "next/link";
-import React, { ReactNode, createContext, memo, useContext, useEffect, useMemo } from "react";
+import React, { memo, ReactNode, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
@@ -10,107 +8,48 @@ import remarkMath from "remark-math";
 import { SyntaxHighlight } from "./SyntaxHighlight";
 import { CodeBlock } from "./CodeBlock";
 import { CustomComponent } from "./CustomComponents";
-import { Components, getAllHeadings, getHeadingId, getTextContent } from "../../lib/md-util";
+import { Components, getAllHeadings } from "../../lib/md-util";
 import "katex/dist/katex.min.css";
 import { TextLink } from "./TextLink";
-import { InlineColor } from "./InlineColor";
+import { Empty, ForwardChildren } from "../util";
+import { H1, H2, H3, H4 } from "./Headings";
 
-interface MdContextProps {
-    markdown: string;
-    inline?: boolean;
-    inlineCodeLanguage?: string;
-    draft?: boolean;
-    afterHeader?: ReactNode;
-    getImageUrl?: (url: string) => string;
+interface HighlightInlineCodeProps {
+    children: string;
+    className?: string;
+    lang: string | undefined;
 }
-const MdContext = createContext<MdContextProps>({ markdown: "" });
+const CSS_COLOR_RE = /^(?:#[a-f0-9]{3}|#[a-f0-9]{6}|(?:rgb|hsl|hsv)a?\([ ,0-9%deg]+\))$/i;
+const HighlightInlineCode = memo(({ children, className, lang }: HighlightInlineCodeProps) => {
+    if (CSS_COLOR_RE.test(children)) {
+        // show colors inline
+        return (
+            <code className={"language-css " + className}>
+                <span
+                    style={{ backgroundColor: children }}
+                    className="mb-0.5 mr-1 inline-block size-3 border border-white align-middle"
+                />
+                <SyntaxHighlight code={children} noCodeElement lang="css" />
+            </code>
+        );
+    }
 
-const HighlightInlineCode = memo(
-    ({ children, className }: { children: string; className?: string }) => {
-        const { inlineCodeLanguage: lang } = useContext(MdContext);
-        const before = <InlineColor code={children} />;
-        if (lang) {
-            return (
-                <code className={className}>
-                    {before}
-                    <SyntaxHighlight code={children} noCodeElement lang={lang} />
-                </code>
-            );
-        } else {
-            return (
-                <code className={className}>
-                    {before}
-                    {children}
-                </code>
-            );
-        }
-    },
-);
-
-const TOC = memo(() => {
-    const { markdown, ...rest } = useContext(MdContext);
-
-    const headings = useMemo(
-        () =>
-            getAllHeadings(markdown).filter(
-                (h) => h.level >= 2 && h.level <= 3 && h.text !== "Contents",
-            ),
-        [markdown],
-    );
-
-    useEffect(() => {
-        let lastValue = 0;
-        const threshold = 400;
-
-        const listener = () => {
-            if (lastValue > threshold && window.scrollY > threshold) {
-                // do nothing
-                return;
-            }
-            lastValue = window.scrollY;
-
-            // set CSS variable
-            document.documentElement.style.setProperty(
-                "--scroll-y",
-                window.scrollY.toString() + "px",
-            );
-        };
-
-        if (window.onscrollend) {
-            window.addEventListener("scrollend", listener);
-            return () => {
-                window.removeEventListener("scrollend", listener);
-            };
-        } else {
-            window.addEventListener("scroll", listener);
-            return () => {
-                window.removeEventListener("scroll", listener);
-            };
-        }
-    }, []);
-
-    return (
-        <div className="transition-opacity hover:opacity-100 xl:fixed xl:bottom-0 xl:left-[calc(max(0px,50vw-(800px+3rem)/2-320px))] xl:max-h-[calc(100vh-max(0px,100px-var(--scroll-y)))] xl:w-[calc(min(300px,50vw-(800px+3rem)/2-20px))] xl:overflow-y-auto xl:p-4 xl:pl-6 xl:opacity-50 xl:focus-within:opacity-100 xl:hover:text-inherit">
-            <div className="xl:hidden">
-                <H2>Contents</H2>
-            </div>
-            <h2 className="mb-4 hidden text-xl text-white xl:block">Contents</h2>
-            <div className="xl:text-sm xl:leading-5">
-                {headings.map((h) => {
-                    return (
-                        <p key={h.id} className={(h.level === 3 ? "pl-6" : "") + " my-2"}>
-                            <Link href={"#" + h.id} className="hover:text-white hover:underline">
-                                <Markdown {...rest} code={h.text} inline />
-                            </Link>
-                        </p>
-                    );
-                })}
-            </div>
-        </div>
-    );
+    if (lang) {
+        return (
+            <code className={className}>
+                <SyntaxHighlight code={children} noCodeElement lang={lang} />
+            </code>
+        );
+    } else {
+        return <code className={className}>{children}</code>;
+    }
 });
-
-const Code: Components["code"] = memo(({ children, className }) => {
+interface CodeProps {
+    children?: ReactNode;
+    className?: string;
+    inlineCodeLang?: string | undefined;
+}
+const Code = memo(({ children, className, inlineCodeLang }: CodeProps) => {
     const code = String(children);
     const inline = !code.includes("\n");
 
@@ -122,6 +61,7 @@ const Code: Components["code"] = memo(({ children, className }) => {
                     (short ? "whitespace-pre" : "md:whitespace-pre") +
                     " rounded-md bg-zinc-950 px-2 py-0.5 text-[90%]"
                 }
+                lang={inlineCodeLang}
             >
                 {code}
             </HighlightInlineCode>
@@ -135,69 +75,64 @@ const Code: Components["code"] = memo(({ children, className }) => {
         }
     }
 });
+
+interface TOCProps {
+    markdown: string;
+    inlineCodeLanguage?: string;
+}
+const TOC = memo(({ markdown, inlineCodeLanguage }: TOCProps) => {
+    const headings = getAllHeadings(markdown).filter(
+        (h) => h.level >= 2 && h.level <= 3 && h.text !== "Contents",
+    );
+
+    return (
+        <div className="transition-opacity hover:opacity-100 xl:fixed xl:bottom-0 xl:left-[calc(max(0px,50vw-(800px+3rem)/2-320px))] xl:max-h-[calc(100vh-max(0px,100px-var(--scroll-y)))] xl:w-[calc(min(300px,50vw-(800px+3rem)/2-20px))] xl:overflow-y-auto xl:p-4 xl:pl-6 xl:opacity-50 xl:focus-within:opacity-100 xl:hover:text-inherit">
+            <div className="xl:hidden">
+                <H2>Contents</H2>
+            </div>
+            <h2 className="mb-4 hidden text-xl text-white xl:block">Contents</h2>
+            <div className="xl:text-sm xl:leading-5">
+                {headings.map((h) => {
+                    return (
+                        <p key={h.id} className={(h.level === 3 ? "pl-6" : "") + " my-2"}>
+                            <Link href={"#" + h.id} className="hover:text-white hover:underline">
+                                <Markdown
+                                    inlineCodeLanguage={inlineCodeLanguage}
+                                    markdown={h.text}
+                                    inline
+                                />
+                            </Link>
+                        </p>
+                    );
+                })}
+            </div>
+        </div>
+    );
+});
+
 const P: Components["p"] = memo(({ children }) => {
-    const { draft, inline } = useContext(MdContext);
-
-    if (inline) {
-        return <>{children}</>;
-    }
-
-    if (draft) {
-        const check = (s: unknown) => typeof s === "string" && /TODO:/i.test(s);
-        const isTodo = check(children) || (Array.isArray(children) && children.some(check));
-        if (isTodo) {
-            return (
-                <p className="my-4 bg-red-900 py-2 text-xl font-bold text-white outline outline-offset-8 outline-red-600">
-                    {children}
-                </p>
-            );
-        }
+    return <p>{children}</p>;
+});
+const PWithDraft: Components["p"] = memo(({ children }) => {
+    const check = (s: unknown) => typeof s === "string" && /TODO:/i.test(s);
+    const isTodo = check(children) || (Array.isArray(children) && children.some(check));
+    if (isTodo) {
+        return (
+            <p className="my-4 bg-red-900 py-2 text-xl font-bold text-white outline outline-offset-8 outline-red-600">
+                {children}
+            </p>
+        );
     }
 
     return <p>{children}</p>;
 });
 
-export const H1: Components["h1"] = memo(({ children }) => {
-    const { afterHeader } = useContext(MdContext);
-
-    return (
-        <>
-            <h1
-                className={
-                    " mb-10 text-pretty text-center text-3xl leading-10 text-white md:mb-12 md:text-4xl md:leading-[3rem]"
-                }
-            >
-                {children}
-            </h1>
-            {afterHeader}
-        </>
-    );
-});
-function HeaderLink({ id, children }: { id: string; children: ReactNode }) {
-    return (
-        <Link
-            href={"#" + id}
-            className="relative after:absolute after:pl-[0.6em] after:opacity-0 after:transition-opacity after:content-['#'] hover:after:opacity-75"
-        >
-            {children}
-        </Link>
-    );
+interface MdImageProps {
+    src?: string;
+    alt?: string;
+    getImageUrl?: (url: string) => string;
 }
-const H2: Components["h2"] = memo(({ children, node }) => {
-    const id = getHeadingId(getTextContent(children, node));
-    return (
-        <h2
-            id={id}
-            className="mb-8 mt-10 overflow-hidden border-b-2 border-b-neutral-500 pt-8 text-2xl text-white md:text-3xl"
-        >
-            <HeaderLink id={id}>{children}</HeaderLink>
-        </h2>
-    );
-});
-
-const MdImage: Components["img"] = memo(({ src, alt }) => {
-    const { getImageUrl } = useContext(MdContext);
-
+const MdImage = memo(({ src, alt, getImageUrl }: MdImageProps) => {
     return (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -209,12 +144,10 @@ const MdImage: Components["img"] = memo(({ src, alt }) => {
     );
 });
 
-const components: Partial<Components> = {
-    pre({ children }) {
-        return <>{children}</>;
-    },
+const staticComponents = {
+    pre: ForwardChildren,
     code: Code,
-    p: P,
+
     a({ children, href = "#" }) {
         return <TextLink href={href}>{children}</TextLink>;
     },
@@ -241,33 +174,13 @@ const components: Partial<Components> = {
 
     h1: H1,
     h2(props) {
-        if (props.children === "Contents") {
-            return <TOC />;
-        }
+        // if (props.children === "Contents") {
+        //     return <TOC />;
+        // }
         return <H2 {...props} />;
     },
-    h3({ children, node }) {
-        const id = getHeadingId(getTextContent(children, node));
-        return (
-            <h3
-                id={id}
-                className="mb-4 mt-8 overflow-hidden border-b-2 border-dashed border-b-neutral-500 text-xl text-white md:text-2xl"
-            >
-                <HeaderLink id={id}>{children}</HeaderLink>
-            </h3>
-        );
-    },
-    h4({ children, node }) {
-        const id = getHeadingId(getTextContent(children, node));
-        return (
-            <h4
-                id={id}
-                className="mb-4 mt-6 overflow-hidden border-b-2 border-dotted border-b-neutral-700 text-lg text-white md:text-xl"
-            >
-                <HeaderLink id={id}>{children}</HeaderLink>
-            </h4>
-        );
-    },
+    h3: H3,
+    h4: H4,
 
     strong({ children }) {
         return <strong className="font-bold text-zinc-200">{children}</strong>;
@@ -297,8 +210,6 @@ const components: Partial<Components> = {
             </blockquote>
         );
     },
-
-    img: MdImage,
 
     table({ children }) {
         return (
@@ -344,7 +255,7 @@ const components: Partial<Components> = {
         return <div {...props} />;
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    span({ node, ...props }) {
+    span({ node: _node, ...props }) {
         if (props.className === "katex-display") {
             return (
                 <div className="-mx-4 -my-2 overflow-x-auto px-4 py-px md:-mx-6 md:px-6 lg:mx-0 lg:px-0">
@@ -355,19 +266,19 @@ const components: Partial<Components> = {
 
         return <span {...props} />;
     },
-};
+} satisfies Partial<Components>;
 
 interface MarkdownProps {
-    code: string;
+    markdown: string;
     inline?: boolean;
     inlineCodeLanguage?: string;
     draft?: boolean;
-    afterHeader?: ReactNode;
+    noH1?: boolean;
     getImageUrl?: Record<string, string> | ((url: string) => string);
 }
 
 export const Markdown = memo(
-    ({ code, inline, inlineCodeLanguage, draft, afterHeader, getImageUrl }: MarkdownProps) => {
+    ({ markdown, getImageUrl, noH1, inline, draft, inlineCodeLanguage }: MarkdownProps) => {
         const getImageUrlFn = useMemo(() => {
             if (typeof getImageUrl === "function") {
                 return getImageUrl;
@@ -377,25 +288,25 @@ export const Markdown = memo(
                 return undefined;
             }
         }, [getImageUrl]);
+
+        const components: Partial<Components> = {
+            ...staticComponents,
+            img: (props) => <MdImage {...props} getImageUrl={getImageUrlFn} />,
+            h1: noH1 ? Empty : staticComponents.h1,
+            p: inline ? ForwardChildren : draft ? PWithDraft : P,
+            code: inlineCodeLanguage
+                ? (props) => <Code {...props} inlineCodeLang={inlineCodeLanguage} />
+                : staticComponents.code,
+        };
+
         return (
-            <MdContext.Provider
-                value={{
-                    markdown: code,
-                    inline,
-                    inlineCodeLanguage,
-                    draft,
-                    afterHeader,
-                    getImageUrl: getImageUrlFn,
-                }}
+            <ReactMarkdown
+                components={components as never}
+                rehypePlugins={[rehypeRaw, rehypeKatex]}
+                remarkPlugins={[remarkGfm, remarkMath]}
             >
-                <ReactMarkdown
-                    components={components as never}
-                    rehypePlugins={[rehypeRaw, rehypeKatex]}
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                >
-                    {code}
-                </ReactMarkdown>
-            </MdContext.Provider>
+                {markdown}
+            </ReactMarkdown>
         );
     },
 );

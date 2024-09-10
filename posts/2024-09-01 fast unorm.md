@@ -1,7 +1,8 @@
 ---
 datePublished: 2024-08-04
+description: Optimizing the conversion of 5-bit unorms to 8-bit unorms in Rust.
 inlineCodeLanguage: rust
-tags: rust floating-point unorm
+tags: rust optimization unorm
 image: ./images/ds3-m32-2024-08-06.jpg
 color: "#c9a061"
 ---
@@ -521,7 +522,7 @@ fn u5_to_u8_ma(x: u8) -> u8 {
 }
 ```
 
-```
+```asm
 u5_to_u8_ma:
         movzx   eax, dil      ; eax = x
         imul    eax, eax, 527 ; eax = eax * 527
