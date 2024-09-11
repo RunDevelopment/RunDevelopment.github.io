@@ -21,16 +21,17 @@ function AfterHeader({ meta }: { meta: PostMetadata }) {
                 <TagList tags={meta.tags} />
             </div>
 
-            <div
-                className="-mx-4 mb-8 mt-6 overflow-hidden pb-4 md:-mx-6 lg:mx-0 lg:rounded-xl"
-                style={{
-                    background: meta.color,
-                }}
-            >
+            <div className="-mx-4 mb-8 mt-6 overflow-hidden md:-mx-6 lg:mx-0 lg:rounded-xl">
                 {
                     // eslint-disable-next-line @next/next/no-img-element
                     meta.image && <img src={meta.image} alt="Cover image" className="w-full" />
                 }
+                <div
+                    className="h-4"
+                    style={{
+                        background: meta.color,
+                    }}
+                />
             </div>
         </div>
     );

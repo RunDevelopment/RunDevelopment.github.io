@@ -80,6 +80,7 @@ interface TOCProps {
     markdown: string;
     inlineCodeLanguage?: string;
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TOC = memo(({ markdown, inlineCodeLanguage }: TOCProps) => {
     const headings = getAllHeadings(markdown).filter(
         (h) => h.level >= 2 && h.level <= 3 && h.text !== "Contents",

@@ -1,13 +1,13 @@
 ---
-datePublished: 2024-09-11
+datePublished: 2024-09-12
 description: Optimizing the conversion of 5-bit unorms to 8-bit unorms in Rust.
 inlineCodeLanguage: rust
 tags: rust optimization unorm
 image: ./ds3-m32-2024-08-06.jpg
-color: "#c9a061"
+color: "#e38c2d"
 ---
 
-# Fast Unorm Conversions
+# Fast Unorm Conversion
 
 I recently came across a problem where I had to convert a 5-bit unorm to an 8-bit unorm. "Unorm" means **u**nsigned **norm**alized integer. The idea is to represent a real number 0 to 1 as an integer 0 to $2^n-1$, where $n$ is the number of bits used to represent the integer.
 
@@ -356,8 +356,6 @@ fn u5_to_u8_lut(x: u8) -> u8 {
 }
 ```
 
-I used `x % 32` to allow the compiler to optimize away bounds checks. Just like before, `x % 32` will be optimized away in the benchmark, but we'll see a bitwise AND in the assembly of the function itself.
-
 ```asm
 u5_to_u8_lut:
         and     edi, 31                    ; x = x & 31 (= x % 32)
@@ -368,6 +366,8 @@ u5_to_u8_lut:
 .L__unnamed_1: ; this is the LUT encoded as a byte array
         .ascii  "\000\b\020\031!)1:BJRZcks{\204\214\224\234\245\255\265\275\305\316\326\336\346\357\367\377"
 ```
+
+I used `x % 32` to allow the compiler to optimize away bounds checks. Just like before, `x % 32` will be optimized away in the benchmark, but we'll see a bitwise AND in the assembly of the function itself. Speaking of the benchmark:
 
 ```
                     low       expected       high
@@ -416,7 +416,7 @@ fn div_round(a: u8, b: u8) -> u8 {
 
 (I'm ignoring problems with overflow and `b == 0` here.)
 
-With this trick in hand, we can rewrite our 5-to-8-bit conversion function using integer division instead of floating-point operations:
+With this trick in hand, we can rewrite our 5-to-8-bit conversion function using integer division instead of floating-point operations. We just need to be careful with the intermediate results to avoid overflow.
 
 ```rust
 fn u5_to_u8_int(x: u8) -> u8 {
@@ -424,8 +424,6 @@ fn u5_to_u8_int(x: u8) -> u8 {
     ((x as u16 * 255 + (31 / 2)) / 31) as u8
 }
 ```
-
-Since `31 * 255` obviously overflows `u8`, the intermediate result needs to be `u16`. The rest is just rounded division by 31.
 
 ```asm
 u5_to_u8_int:
@@ -511,9 +509,9 @@ You can think of the multiply-add method as a generalization of the old "replace
 
 As it turns out, the multiply-add method is not limited to floor division. We can also find contants for other rounding modes (e.g. `ceil` and `round`). Even the multiplication with arbitrary fractions and not just $1/d$ can be done.
 
-Since we want to compute $round(x*255/31)$, we can use the multiply-add method to perform the whole conversion. **IF** we can find the right constants that is. I'll soon write a whole article on this topic, so let's just assume the constants were brute-forced for now. For $x\in\set{0,...,31}$, we find that $f=527$, $a=23$, and $s=6$ are the smallest constants that work. Unfortunately, there exist no constants with $a=0$ for this case.
+Since we want to compute $round(x \cdot 255/31)$, we can use the multiply-add method to perform the whole conversion. **IF** we can find the right constants that is. I'll soon write a whole article on this topic, so let's just assume the constants were brute-forced for now. For $x\in\set{0,...,31}$, we find that $f=527$, $a=23$, and $s=6$ are the smallest constants that work. Unfortunately, there exist no constants with $a=0$ for this case.
 
-Putting this into code is very simple. The only pitfall is that $31*527=16337$ doesn't fit into `u8`, so we need `u16` for the intermediate result again.
+Putting this into code is very simple. The only pitfall is that $31 \cdot 527=16337$ doesn't fit into `u8`, so we need `u16` for the intermediate result again.
 
 ```rust
 fn u5_to_u8_ma(x: u8) -> u8 {
@@ -546,13 +544,13 @@ u5_to_u8_ma        [4.5759 µs 4.5909 µs 4.6094 µs]  22.4x
 
 And it's the fastest method.
 
-I suspect that we could push this method even further with some handwritten SIMD, but that's beyond the scope of this article.
+Since it is doing strictly less work than the integer rounding method, this result is to be expected. However, the generalized multiply-add method is only 10% faster, so that's still a little disappointing. I suspect that we could push it even further with some handwritten SIMD, but that's beyond the scope of this article.
 
 ## Conclusion
 
 The sky is the limit when it comes to optimizations. Hopefully some of the tricks I show-cased in this article will be useful to you in the future.
 
-However, I also want to stress correctness **always** comes before performance. The multiply-add method may be fast, but it's almost impossible for a human to verfiy that the constants are correct. This can of course be mitigated with tests (there are only 32 inputs, so we can just check all inputs against the naive implementation), but code that isn't obviously correct is a problem in itself.
+However, I also want to stress correctness **always** comes before performance. The multiply-add method may be fast, but it's almost impossible for a human to verfiy that the constants are correct. This can of course be [mitigated with tests](https://github.com/RunDevelopment/rounding-bench-rs/blob/b66b6baeaf06043346232f2ff24bdcbdf985be47/src/lib.rs#L67) (there are only 32 possible inputs after all), but code that isn't obviously correct is a problem in itself.
 
 Anyway, that's it for now. I'm currently working on a follow-up article that will explain how to find the constants for the multiply-add method. Please check it out when it's ready if you're interested.
 
