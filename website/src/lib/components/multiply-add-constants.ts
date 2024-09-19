@@ -248,6 +248,67 @@ export async function* bruteForceAllSolutions(
         };
     };
     const createCheck2 = () => {
+        let testInputs: number[] | undefined = undefined;
+        const safeJumpDist = Math.ceil(D / T - 1);
+        const expectedRelevantInputs = (inputRange / D) * T * 2;
+        if (safeJumpDist > 2 && expectedRelevantInputs < 10e6) {
+            // If getExpected(x0) == getExpected(x1) and x0 < x1,
+            // then we don't need to check all xi, x0 < xi < x1
+            const inputs = new Set<number>([0, inputRange]);
+
+            const findNextUp = (prev: number) => {
+                const e = getExpected(prev);
+                let l = prev + 1;
+                let h = Math.min(l + safeJumpDist + 1, inputRange);
+                if (getExpected(h) === e) {
+                    if (h !== inputRange) throw new Error("Unexpected");
+                    return inputRange;
+                }
+                h++; // exclusive
+                while (l < h) {
+                    const m = Math.floor((l + h) / 2);
+
+                    const e0 = getExpected(m - 1);
+                    const e1 = getExpected(m);
+                    if (e0 != e1) {
+                        return m;
+                    } else if (e0 === e) {
+                        l = m + 1;
+                    } else {
+                        h = m;
+                    }
+                }
+                throw new Error("Unexpected");
+            };
+            const findNextUpSkip = (prev: number) => {
+                const e = getExpected(prev);
+                for (let i = prev + safeJumpDist - 1; i < inputRange; i++) {
+                    if (getExpected(i) !== e) {
+                        return i;
+                    }
+                }
+                return inputRange;
+            };
+            /** 0 <= start < until <= inputRange */
+            const addInputs = (start: number, until: number) => {
+                inputs.add(start);
+                inputs.add(until);
+                inputs.add(until - 1);
+
+                for (let j = findNextUp(start); j < until; j = findNextUpSkip(j)) {
+                    inputs.add(j);
+                    inputs.add(j - 1);
+                }
+            };
+
+            addInputs(0, Math.min(inputRange, D));
+            if (inputRange > D) {
+                addInputs(Math.max(D, inputRange - D), inputRange);
+            }
+
+            testInputs = Array.from(inputs);
+        }
+
         return function* checkFactor(factor: number, shift: number): Iterable<ConversionRange> {
             const shiftAbs = 2 ** shift;
 
@@ -294,14 +355,27 @@ export async function* bruteForceAllSolutions(
             narrowFor(inputRange, outputRange);
 
             // narrow add range
-            const max = Math.round(Math.min(inputRange / 2, D));
-            for (let i = 1; i <= max; i++) {
-                narrowFor(i, getExpected(i));
-                narrowFor(inputRange - i, getExpected(inputRange - i));
+            if (testInputs) {
+                // use pre-computed inputs
+                for (const i of testInputs) {
+                    narrowFor(i, getExpected(i));
 
-                if (addMin > addMax) {
-                    // we ruled out all add values
-                    return;
+                    if (addMin > addMax) {
+                        // we ruled out all add values
+                        return;
+                    }
+                }
+            } else {
+                // iterate all inputs
+                const max = Math.round(Math.min(inputRange / 2, D));
+                for (let i = 1; i <= max; i++) {
+                    narrowFor(i, getExpected(i));
+                    narrowFor(inputRange - i, getExpected(inputRange - i));
+
+                    if (addMin > addMax) {
+                        // we ruled out all add values
+                        return;
+                    }
                 }
             }
 

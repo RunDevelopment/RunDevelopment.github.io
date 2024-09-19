@@ -14,7 +14,7 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
         <div className="my-4 flex flex-row gap-4 ">
             <Link
                 href={href}
-                className="block w-20 shrink-0 overflow-hidden rounded-xl pb-5 transition-all hover:brightness-75"
+                className="block w-20 shrink-0 overflow-hidden rounded-xl pb-2 transition-all hover:brightness-75"
                 tabIndex={-1}
                 style={{ background: meta.color }}
             >

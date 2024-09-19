@@ -4,9 +4,10 @@ import { FaExternalLinkAlt } from "react-icons/fa";
 
 interface TextLinkProps {
     href: string;
+    simple?: boolean;
 }
 
-export function TextLink({ href, children }: PropsWithChildren<TextLinkProps>) {
+export function TextLink({ href, simple, children }: PropsWithChildren<TextLinkProps>) {
     const external = href.startsWith("http");
 
     const title = external ? "Go to " + new URL(href).host : undefined;
@@ -14,7 +15,12 @@ export function TextLink({ href, children }: PropsWithChildren<TextLinkProps>) {
     return (
         <Link
             href={href}
-            className="border-b border-dotted border-current pb-[2px] text-blue-400 transition-colors visited:text-violet-400 hover:border-solid hover:text-blue-300 visited:hover:text-violet-300 print:border-none"
+            className={
+                (simple
+                    ? "hover:border-b"
+                    : "border-b border-dotted visited:text-violet-400 visited:hover:text-violet-300") +
+                " border-current pb-[2px] text-blue-400 transition-colors hover:border-solid hover:text-blue-300 print:border-none"
+            }
             target={external ? "_blank" : undefined}
             rel={external ? "noopener noreferrer" : undefined}
             title={title}

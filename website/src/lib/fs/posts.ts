@@ -1,10 +1,12 @@
 import path from "path";
 import fs from "fs/promises";
 import YAML from "yaml";
-import { InternalPostId, PostMetadata, PostWithInternals } from "../schema";
+import { ImageSize, InternalPostId, PostMetadata, PostWithInternals } from "../schema";
 import { timedCached } from "../util";
 import crypto from "crypto";
 import { IS_DEV, POST_DIR } from "./config";
+import sizeOf from "image-size";
+import { promisify } from "util";
 
 export const getPostsWithInternals = timedCached(2000, async () => {
     const postFiles = await fs.readdir(POST_DIR, {
@@ -51,6 +53,7 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
 
     const imageUrlMapping: Record<string, string> = {};
     const referencedImageFiles: Record<string, string> = {};
+    const imageSizes: Record<string, ImageSize> = {};
     for (const url of imageUrls) {
         const isRelative = /^(?:\.\.?\/|(?!http)\w)/.test(url);
         if (isRelative) {
@@ -60,6 +63,15 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
             const imageFileName = path.basename(imageFilePath).replace(/[^\w\-.]/g, "-");
             imageUrlMapping[url] = `/images/${imageFileName}`;
             referencedImageFiles[imageFilePath] = imageFileName;
+
+            try {
+                const size = await getImageSize(imageFilePath);
+                if (size?.width && size?.height) {
+                    imageSizes[url] = { width: size.width, height: size.height };
+                }
+            } catch (e) {
+                console.error(`Error getting image size for ${imageFilePath}: ${e}`);
+            }
         }
     }
 
@@ -70,7 +82,11 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
         metadata.imageSmall = imageUrlMapping[metadata.imageSmall] || metadata.imageSmall;
     }
 
-    return { post: { metadata, markdown, imageUrlMapping }, id, referencedImageFiles };
+    return { post: { metadata, markdown, imageUrlMapping, imageSizes }, id, referencedImageFiles };
+});
+
+const getImageSize = timedCached(2000, async (imagePath: string) => {
+    return await promisify(sizeOf)(imagePath);
 });
 
 interface FrontMatter {

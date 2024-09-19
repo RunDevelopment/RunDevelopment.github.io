@@ -5,7 +5,7 @@
         "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 
     --page-width: 980px;
-    --page-narrow-width: 720px;
+    --page-narrow-width: 660px;
 }
 
 body {
@@ -15,8 +15,8 @@ body {
 
 article p,
 article .normal-my {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
 }
 @media print {
     article p,

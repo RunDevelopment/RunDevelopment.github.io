@@ -16,8 +16,8 @@ export const projects: readonly ProjectInfo[] = [
         title: "Multiply-Add Constants Finder",
         description:
             "Find constants to perform a fast computation for an equation $R(x \\cdot T / D)$ for arbitrary $T,D \\in \\N$ and rounding function $R$.",
-        date: "2024-04-01",
-        url: "/projects/multiply-add-constants",
+        date: "2024-09-12",
+        url: "/projects/multiply-add-constants-finder",
     },
 ];
 

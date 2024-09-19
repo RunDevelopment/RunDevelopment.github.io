@@ -5,6 +5,7 @@ import { Markdown } from "../../components/md/Markdown";
 import { ProjectInfo, projectsByYear } from "./projects";
 import { formatDateString } from "../../lib/util";
 import Link from "next/link";
+import { H2 } from "../headings";
 
 export const metadata: Metadata = {
     title: "Projects by RunDev",
@@ -23,7 +24,7 @@ export default function Page() {
                 {projectsByYear.map(([year, projects]) => {
                     return (
                         <React.Fragment key={year}>
-                            <h2 className="mb-8 mt-12 text-2xl text-white md:text-3xl">{year}</h2>
+                            <H2>{year}</H2>
                             <div className="narrow">
                                 {projects.map((project) => (
                                     <ProjectCard key={project.url} project={project} />

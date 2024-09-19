@@ -100,6 +100,17 @@ fn main() {
 
 Note that `long inline code blocks won't cause problems on small displays`.
 
+Lines inside code blocks shouldn't be too long to avoid horizontal scrolling. Here's how much space there is:
+
+```
+                                                        60 |
+                                                                            80 |
+                                                                                               100 |
+                                                                                                                   120 |
+```
+
+**80 characters is recommended**. There isn't quite enough space for 120 characters, so try to keep it 100 or shorter.
+
 #### Inline code language
 
 The language of inline code can be declared in the front matter of the article:

@@ -3,19 +3,19 @@ datePublished: 2024-09-12
 description: Optimizing the conversion of 5-bit unorms to 8-bit unorms in Rust.
 inlineCodeLanguage: rust
 tags: rust optimization unorm
-image: ./ds3-m32-2024-08-06.jpg
-color: "#e38c2d"
+image: ./ds3-m32-2024-09-19.jpg
+color: "#55b0ed"
 ---
 
-# Fast Unorm Conversion
+# Fast Unorm Conversions
 
-I recently came across a problem where I had to convert a 5-bit unorm to an 8-bit unorm. "Unorm" means **u**nsigned **norm**alized integer. The idea is to represent a real number 0 to 1 as an integer 0 to $2^n-1$, where $n$ is the number of bits used to represent the integer.
+I recently came across a problem where I needed to convert a 5-bit unorm to an 8-bit unorm. "Unorm" means **u**nsigned **norm**alized integer. The idea is to represent a real number 0 to 1 as an integer 0 to $2^n-1$, where $n$ is the number of bits used to represent the integer.
 
-Maybe the most widespread application of unorms is color in computer graphics. Image editing programs like Photoshop and Gimp typically show RGB color channels as values between 0 and 255. Those are 8-bit unorms. The same goes for colors on the web. E.g. the CSS color `rgb(255 128 0)` is the same color as `rgb(100% 50% 0%)` (ignoring a slight rounding error), and the hex color `#0099EE` (decimal: 0 153 238) is the same as `#09E` (decimal: 0 9 14).
+Maybe the most widespread application of unorms is color in computer graphics. Image editing programs like Photoshop and Gimp typically show RGB color channels as values between 0 and 255. Those are 8-bit unorms. The same goes for colors on the web. E.g. the CSS color `rgb(255 128 0)` is the same color as `rgb(100% 50% 0%)`, and the hex color `#0099EE` (decimal: 0 153 238) is the same as `#09E` (decimal: 0 9 14).
 
-Color is also where my problem originated. I had to decode an image that stores pixel color as `B5G5R5A1`. This format encodes the RGB channels as 5-bit unorms each and the alpha channel as a 1-bit unorm (colloquially called a "bit"), for a total of 16 bits per pixel. My task was to convert all channels to 8-bit. While this is easy for the 1-bit alpha channel (just multiply by 255), the 5-bit RGB channels are a bit (or four) more tricky.
+Color is also where my problem originated. I wanted to decode images that store pixel color as `B5G5R5A1`. This is an RGBA format that encodes the RGB channels with 5 bits each and the alpha channel with 1 bit, for a total of 16 bits per pixel. I needed to convert all channels to 8-bit. This is easy for the 1-bit alpha channel (just multiply with 255), but the 5-bit unorms of the RGB channels are a bit (or four) more tricky.
 
-The real-numbered value of an $n$-bit unorm $x_n \in \set{0, ...,2^n-1}$ is calculated as $x_n / (2^n-1)$. It follows that converting an $n$-bit unorm to an $m$-bit unorm is:
+The value of an $n$-bit unorm $x_n \in \set{0, ...,2^n-1}$ is calculated as $x_n / (2^n-1)$. So converting an $n$-bit unorm to an $m$-bit unorm can be done with this formula:
 
 $$
 x_m = round(x_n \cdot \frac{2^m - 1}{2^n - 1})
@@ -29,7 +29,7 @@ $$
 x_8 = round(x_5 \cdot \frac{255}{31})
 $$
 
-And here's a direct/naive Rust implementation of this formula:
+Using floats, this translates very naturally into code. Here's a naive implementation of this formula in Rust:
 
 ```rust
 fn u5_to_u8_naive(x: u8) -> u8 {
@@ -45,13 +45,15 @@ Unfortunately, Rust doesn't have a `u5` type, so `x: u8` + `debug_assert!` will 
 
 </div>
 
-While this function works correctly and gets the job done, it's not so great performance-wise. My goal wasn't just to decode images correctly, but to do it quickly.
+While this function works correctly and gets the job done, it's not so great performance-wise. My goal wasn't just to decode images correctly, but to do it quickly. In my application, any millisecond spend decoding images is a millisecond not spend doing actual work. So I set out to optimize this function.
 
 This article will show various ways to optimize the problem of converting unorms. We'll start with some floating-point tricks to make the naive implementation faster and work our way up to a version that is **22x faster**.
 
+## Contents
+
 ## The Benchmark
 
-Before we start optimizing, let's define a benchmark. Since my problem is about decoding `B5G5R5A1` images, the benchmark will be to decode the pixel data of a 64x64px `B5G5R5A1` image to 8-bit RGBA (8 bits per channel, 32 bits per pixel).
+Before we start optimizing, let's define the benchmark. Since my problem is about decoding `B5G5R5A1` images, the benchmark will be to decode the pixel data of a 64x64px `B5G5R5A1` image to 8-bit RGBA (8 bits per channel, 32 bits per pixel).
 
 Here's the main function we'll benchmark. It takes a slice of 16-bit pixels, decodes each one, and writes them into the output buffer of 8-bit RGBA pixels. The 5-to-8-bit-unorm conversion function is passed in as a generic argument. Since decoding is done in a tight loop, we not only benchmark the `u5_to_u8` function, but also how well the compiler can vectorize it. All conversion functions are marked with `#[inline(always)]`, so the compiler can optimize across function boundaries.
 
@@ -102,9 +104,9 @@ u5_to_u8_naive     [102.22 µs 102.86 µs 103.63 µs]
 
 Since the goal is to micro-optimize a small function, let's take a look at the assembly generated by the compiler. This will show us what optimizations that compiler is and is not applying to our code and will give us some insight on what the CPU is actually doing.
 
-[Compiler Explorer](<https://godbolt.org/#g:!((g:!((g:!((h:codeEditor,i:(filename:'1',fontScale:14,fontUsePx:'0',j:1,lang:rust,selection:(endColumn:1,endLineNumber:9,positionColumn:1,positionLineNumber:9,selectionStartColumn:1,selectionStartLineNumber:9,startColumn:1,startLineNumber:9),source:'%23%5Bno_mangle%5D%0Apub+fn+u5_to_u8_naive(x:+u8)+-%3E+u8+%7B%0A++++debug_assert!!(x+%3C+32)%3B%0A++++let+factor+%3D+255.0+/+31.0%3B%0A++++(x+as+f32+*+factor).round()+as+u8%0A%7D%0A%0Afn+main()+%7B%7D%0A'),l:'5',n:'1',o:'Rust+source+%231',t:'0')),k:46.58379142816912,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((g:!((h:compiler,i:(compiler:r1800,filters:(b:'0',binary:'1',binaryObject:'1',commentOnly:'1',debugCalls:'1',demangle:'0',directives:'0',execute:'1',intel:'0',libraryCode:'0',trim:'1',verboseDemangling:'0'),flagsViewOpen:'1',fontScale:14,fontUsePx:'0',j:1,lang:rust,libs:!(),options:'-C+opt-level%3D3',overrides:!((name:edition,value:'2021')),selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'+rustc+1.80.0+(Editor+%231)',t:'0')),k:53.41620857183087,l:'4',m:50,n:'0',o:'',s:0,t:'0'),(g:!((h:executor,i:(argsPanelShown:'1',compilationPanelShown:'0',compiler:r1780,compilerName:'',compilerOutShown:'0',execArgs:'',execStdin:'',fontScale:14,fontUsePx:'0',j:1,lang:rust,libs:!(),options:'',overrides:!((name:edition,value:'2021')),runtimeTools:!(),source:1,stdinPanelShown:'1',wrap:'1'),l:'5',n:'0',o:'Executor+rustc+1.78.0+(Rust,+Editor+%231)',t:'0')),header:(),l:'4',m:50,n:'0',o:'',s:0,t:'0')),k:53.41620857183087,l:'3',n:'0',o:'',t:'0')),l:'2',n:'0',o:'',t:'0')),version:4>) is a quick and easy way to see the optimized assembly of a function. Copypaste some code and the website will show the assembly along with documentation for instructions, a mapping between your code and the generated assembly, and much more. Just remember to add `-C opt-level=3` to the Rust compiler flags to get optimized assembly.
+[Compiler Explorer](<https://godbolt.org/#g:!((g:!((g:!((h:codeEditor,i:(filename:'1',fontScale:14,fontUsePx:'0',j:1,lang:rust,selection:(endColumn:1,endLineNumber:9,positionColumn:1,positionLineNumber:9,selectionStartColumn:1,selectionStartLineNumber:9,startColumn:1,startLineNumber:9),source:'%23%5Bno_mangle%5D%0Apub+fn+u5_to_u8_naive(x:+u8)+-%3E+u8+%7B%0A++++debug_assert!!(x+%3C+32)%3B%0A++++let+factor+%3D+255.0+/+31.0%3B%0A++++(x+as+f32+*+factor).round()+as+u8%0A%7D%0A%0Afn+main()+%7B%7D%0A'),l:'5',n:'1',o:'Rust+source+%231',t:'0')),k:46.58379142816912,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((g:!((h:compiler,i:(compiler:r1800,filters:(b:'0',binary:'1',binaryObject:'1',commentOnly:'1',debugCalls:'1',demangle:'0',directives:'0',execute:'1',intel:'0',libraryCode:'0',trim:'1',verboseDemangling:'0'),flagsViewOpen:'1',fontScale:14,fontUsePx:'0',j:1,lang:rust,libs:!(),options:'-C+opt-level%3D3',overrides:!((name:edition,value:'2021')),selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'+rustc+1.80.0+(Editor+%231)',t:'0')),k:53.41620857183087,l:'4',m:50,n:'0',o:'',s:0,t:'0'),(g:!((h:executor,i:(argsPanelShown:'1',compilationPanelShown:'0',compiler:r1780,compilerName:'',compilerOutShown:'0',execArgs:'',execStdin:'',fontScale:14,fontUsePx:'0',j:1,lang:rust,libs:!(),options:'',overrides:!((name:edition,value:'2021')),runtimeTools:!(),source:1,stdinPanelShown:'1',wrap:'1'),l:'5',n:'0',o:'Executor+rustc+1.78.0+(Rust,+Editor+%231)',t:'0')),header:(),l:'4',m:50,n:'0',o:'',s:0,t:'0')),k:53.41620857183087,l:'3',n:'0',o:'',t:'0')),l:'2',n:'0',o:'',t:'0')),version:4>) is a quick and easy way to see the assembly of a function. Copypaste some code and the website will show the assembly along with documentation for instructions, a mapping between your code and the generated assembly, and much more. Just remember to add `-C opt-level=3` to the Rust compiler flags to get optimized assembly.
 
-All relevant assembly in this article is annotated with comments, so _no prior knowledge of assembly is required_ to follow along.
+All relevant assembly in this article is annotated with comments, so _no prior knowledge of assembly is required_. Anyone that knows that registers are like global variables and that instructions are kind of like functions with side effects can follow along.
 
 With that out of the way, here's the assembly generated by the naive implementation:
 
@@ -136,10 +138,10 @@ u5_to_u8_naive:
         ret
 ```
 
-As we can see, the assembly is a fairly literal translation of our Rust code. The compiler just removed the [`debug_assert!`](https://doc.rust-lang.org/std/macro.debug_assert.html) (as it should) and precomputed `255.0 / 31.0`. There are two things that stick out however:
+As we can see, the assembly is a fairly literal translation of our Rust code. The compiler just removed the `debug_assert!` ([as it should](https://doc.rust-lang.org/std/macro.debug_assert.html)) and precomputed `255.0 / 31.0`. There are two things that stick out however:
 
 1. `f32::round` is a function call. Apparently, there is no instruction for rounding, so it has to be done in software. Software implementations are typically a lot slower than hardware instructions, so this likely costs a lot.
-2. The `minss` and `maxss` instructions. These are used to clamp the floating-point value to the range 0-255 before converting it to an integer. We don't really need this, so it would be nice to get rid of it.
+2. The `minss` and `maxss` instructions for `as u8`. These are used to clamp the floating-point value to the range 0-255 before converting it to an integer. We don't really need this, so it would be nice to get rid of it.
 
 Since rounding results in a call to a function of unknown complexity, we'll start by optimizing the call to `f32::round`.
 
@@ -244,8 +246,8 @@ unsafe fn u5_to_u8_unsafe(x: u8) -> u8 {
     let factor = 255.0 / 31.0;
     let f = x as f32 * factor + 0.5;
     unsafe {
-        // SAFETY: If 0 <= x <= 31, then 0.5 <= f <= 255.5.
-        //         Since `to_int_unchecked`, the int value of f will be between in-range for u8.
+        // SAFETY: If 0 <= x <= 31, then 0.5 <= f <= 255.5. Since `to_int_unchecked` truncates,
+        //         the integer value of f will be between in-range for u8.
         f.to_int_unchecked()
     }
 }
@@ -280,7 +282,7 @@ Unfortunately, the function must be marked as `unsafe`, because it _will cause U
 
 If Rust had a 5-bit integer type, we could just say `x: u5` and the compiler would guarantee that `x < 32`. But since Rust doesn't have such a type, we need to find another way.
 
-Another cheap option is to compute `x % 32`. This will ensure that `x` is always in the range 0-31. The modulo operator is also very cheap for powers of 2, since it can be optimized to a single bitwise AND operation. In general, computer can calculate $x \bmod 2^k$ as $x \space \& \space (2^k - 1)$. So `x % 32` is the same as `x & 31`.
+Another cheap option is to compute `x % 32`. This will ensure that `x` is always in the range 0-31. The modulo operator is also very cheap for powers of 2, since it can be optimized to a single bitwise AND operation. E.g. `x % 32` is the same as `x & 31`. In general, computers can calculate $x \bmod 2^k$ quickly as $x \space \& \space (2^k - 1)$.
 
 The modulo operation also means that values `x >= 32` will return nonsense, but this is fine since we don't care about those input values anyway.
 
@@ -309,7 +311,7 @@ u5_to_u8_safer_int:
         ret
 ```
 
-Bitwise operations are cheap, but cheap isn't free, so let's see how it performs:
+The assembly is exactly the same except for one additional bitwise AND. Bitwise operations are cheap, but cheap isn't free, so let's see how it performs:
 
 ```
                     low       expected       high
@@ -337,13 +339,15 @@ let a1 = (bgra >> 15) & 0x1;
 ];
 ```
 
-See those `& 0x1F`? Hex `0x1F` is 31 in decimal. In other words, the benchmark code is already doing `x & 31` while unpacking the color channels. The compiler noticed this and optimized away the `x % 32` from `u5_to_u8_safer_int`, since it's redundant. This is why we pay no extra runtime cost in our benchmark.
+Aha! See those `& 0x1F`? Hex `0x1F` is 31 in decimal. In other words, the benchmark code is already doing `x & 31` while unpacking the color channels. The compiler noticed this and completely optimized away the redundant `x % 32` from `u5_to_u8_safer_int`. This is why we pay no extra runtime cost in our benchmark.
 
 Of course, if we had a different benchmark then we might have had to pay the extra `x % 32`. This is why choosing a benchmark that closely resembles the real-world use case is important.
 
 ## Lookup tables
 
-Enough with the floating-point operations. Let's take a look at a different approach: lookup tables (LUT). A LUT can be very fast, especially when the operation is expensive and the input domain is small. Since our input domain is only 32 values, we can easily create a LUT for the conversion.
+Enough with the floating-point operations. Let's take a look at a different approach: lookup tables (LUT). A LUT can be very fast, especially when the operation is expensive and the input domain is small. Our operation isn't exactly expensive, but let's see!
+
+Since our input domain is only 32 values, we can easily create a LUT for the conversion.
 
 ```rust
 fn u5_to_u8_lut(x: u8) -> u8 {
@@ -378,21 +382,21 @@ u5_to_u8_safer_int [7.2187 µs 7.2372 µs 7.2576 µs]  14.2x
 u5_to_u8_lut       [6.7951 µs 6.8097 µs 6.8261 µs]  15.1x
 ```
 
-And it's faster than our highly-optimized floating-point code.
+And it's faster than our highly-optimized floating-point code. Not but much, but still. Considering how simple the LUT is (to make and understand), this is a great result.
 
-Especially for small input domains, LUTs are cache-friendly and can be hard to beat. In our case, the LUT is just 32 bytes, so it even fits in a single cache line (assuming favorable alignment).
+Especially for small input domains, LUTs are cache-friendly and can be hard to beat in terms of simplicity and performance. In our case, the LUT is just 32 bytes, so it even fits in a single cache line (assuming favorable alignment).
 
 <div class="side-note">
 
 In a previous version of this article, I used Rust 1.78.0 for benchmarking. This version of Rust had a performance regression that caused the LUT version to be more than 2x slower (around 14µs). Essentially, the compiler thought it was a good idea to first copy the LUT onto the stack before using it. It even did that inside the tight loop of the benchmark, always writing the entire LUT to the stack before reading the data back.
 
-This article originally contained multiple versions of LUT to work around this bug. Rust 1.80.0 thankfully fixed the issue. The simple, straightforward and safe LUT version now performs optimally again.
+This article originally contained multiple versions of LUT to work around this compiler bug. Rust 1.80.0 thankfully fixed the issue. The simple, straightforward and safe LUT implementation now performs optimally again.
 
 </div>
 
 ## Integer rounding
 
-There is an old trick to get rounded integer division. It's based on the fact that integer division truncates the result. So e.g. `5 / 3 == 1` in Rust. Just like how we used the truncation of `as u8` before, we can use the truncation of integer division to get rounded division.
+There is an old trick to get rounded integer division. It's based on the fact that integer division truncates the result. So e.g. `5 / 3 == 1` in Rust. Just like how we used the truncation of `as u8` before, we can use the truncation of integer division to get rounded results.
 
 Let's look at the math. For $a \in \N$ and $b\in\N,b>0$:
 
@@ -404,7 +408,7 @@ round(\frac{a}{b}) &= \lfloor \frac{a}{b} + 0.5 \rfloor \\
 \end{split}
 $$
 
-(The last equality holds because $\lfloor (a+0.5)/b \rfloor = \lfloor a/b \rfloor$.)
+(The last equality holds because $\lfloor (c+0.5)/b \rfloor = \lfloor c/b \rfloor$ for any $c\in\N$.)
 
 Since we are only dealing with non-negative numbers, we can use truncating division instead of floor division everywhere. In Rust code, this is simply:
 
@@ -445,7 +449,7 @@ u5_to_u8_int:
 
 Alright, so the assembly is just a tiny bit cryptic.
 
-Integer division is rather slow on modern CPUs. Since the compiler knows the dividend, it used a trick to replace the integer division with other operations. Even though there are a lot of instructions, this is pretty fast:
+Integer division is rather slow on modern CPUs. Since the compiler statically knows we divide by 31, it used a trick to replace the integer division instruction with a faster sequence of operations to compute the division. Even though there are a lot of instructions, this is pretty fast:
 
 ```
                     low       expected       high
@@ -484,32 +488,32 @@ u5_to_u8_int:
         ret
 ```
 
-Now we can see the trick more clearly. The compiler replaced `i / 31` with `i * 16913 >> 19`. So it traded an expensive division for a multiplication and cheap bit-shift. This trick is called the _multiply-add method_ for constant integer division.
-
 <div class="side-note">
 
-Performance-wise, `x % 32` doesn't make it any faster. Just like with `u5_to_u8_safer_int`, the compiler already knows that `x` is between 0 and 31 because of the bit-wise AND in the benchmark. So the above version with `x % 32` simply shows the assembly that the compiler is generating in our benchmark (or rather, assembly very close to it).
+Performance-wise, `x % 32` doesn't make it any faster. Just like with `u5_to_u8_safer_int`, the compiler already knows that `x` is between 0 and 31 because of the bit-wise AND in the benchmark. So the above version with `x % 32` simply shows us the assembly that the compiler is generating in our benchmark (or rather, assembly very close to it).
 
 </div>
 
-Now, I hear you ask, "why is this called the multipl-**add** method when it's just doing a multiplcation and a shift?" That's because the added number just so happens to be 0!
+Now we can see the trick more clearly. The compiler replaced `i / 31` with `i * 16913 >> 19`, trading an expensive division for a multiplication and cheap bit-shift. This trick is called the _multiply-add method_ for constant integer division.
+
+Now, I hear you ask, _"why is this called the multipl-**add** method when it's just doing a multiplcation and a shift?"_ That's because the added number just so happens to be 0!
 
 The multiply-add method is based on the observation that any division $\lfloor x / d \rfloor, x \in\set{0,...,U},d\in\N_1$ (where $U$ is the maximum value of $x$, e.g. if $x$ is an 8-bit integer then $U=2^8-1=255$) can be expressed as:
 
 $$
 \lfloor \frac{x}{d} \rfloor
-= \lfloor \frac{f\cdot x+a}{2^s} \rfloor
+= \lfloor \frac{x\cdot f+a}{2^s} \rfloor
 $$
 
 for suitable values of $f,a,s\in\N$. Since floor division by a power of 2 is just a right bit-shift, this means that we can express `x / d` as `(x * f + a) >> s`. This is the multiply-add method. Not only is it always possible to find suitable $f,a,s$ for any $d$, and we can even find some with $a=0$.
 
-You can think of the multiply-add method as a generalization of the old "replace division by a power of 2 with a right bit-shift" trick. And indeed, if $d$ is a power of two, then $f=1$, $a=0$, and $s=\log_2 d$ are the optimal constants for the multiply-add method.
+You can think of the multiply-add method as a generalization of the old "replace division by a power of 2 with a right bit-shift" trick. And indeed, if $d$ is a power of two, then $f=1$, $a=0$, and $s=\log_2 d$ are the optimal constants for the multiply-add method. (Optimal in the sense that they result in the least amount of work for the computer.)
 
 ## Generalized multiply-add method
 
-As it turns out, the multiply-add method is not limited to floor division. We can also find contants for other rounding modes (e.g. `ceil` and `round`). Even the multiplication with arbitrary fractions and not just $1/d$ can be done.
+As it turns out, the multiply-add method is not limited to floor division. We can also find contants for other rounding functions (e.g. `ceil` and `round`). We aren't even limited to division. Multiplication with arbitrary fractions $t/d$ can be done.
 
-Since we want to compute $round(x \cdot 255/31)$, we can use the multiply-add method to perform the whole conversion. **IF** we can find the right constants that is. I'll soon write a whole article on this topic, so let's just assume the constants were brute-forced for now. For $x\in\set{0,...,31}$, we find that $f=527$, $a=23$, and $s=6$ are the smallest constants that work. Unfortunately, there exist no constants with $a=0$ for this case.
+Since our unorm conversion is just $round(x \cdot 255/31)$, we can use the multiply-add method to perform the whole conversion. **IF** we can find the right constants that is. I'll soon write a whole article on this topic, so let's just assume the constants were brute-forced for now. For $x\in\set{0,...,31}$, we find that $f=527$, $a=23$, and $s=6$ are the smallest constants that work. Unfortunately, there exist no constants with $a=0$ for this case.
 
 Putting this into code is very simple. The only pitfall is that $31 \cdot 527=16337$ doesn't fit into `u8`, so we need `u16` for the intermediate result again.
 
@@ -544,7 +548,29 @@ u5_to_u8_ma        [4.5759 µs 4.5909 µs 4.6094 µs]  22.4x
 
 And it's the fastest method.
 
-Since it is doing strictly less work than the integer rounding method, this result is to be expected. However, the generalized multiply-add method is only 10% faster, so that's still a little disappointing. I suspect that we could push it even further with some handwritten SIMD, but that's beyond the scope of this article.
+Since it is doing strictly less work than the integer rounding method, this result is not surprising. However, the generalized multiply-add method is only 10% faster, so that's still a little disappointing. I suspect that we could push it even further with some handwritten SIMD, but that's beyond the scope of this article.
+
+### Constants
+
+In case you need constants for other unorm conversions, here's a little tool. Given the _From_ and _To_ bits of the unorm conversion, it will return constants for the multiply-add method. The tool will also generate Rust and C code for the specified unorm conversion with those constants.
+
+```json:custom
+{
+    "component": "unorm-conversion"
+}
+```
+
+<div class="info">
+
+Limitations:
+
+-   This tool is limited to a maximum of 32 bits in either direction. (All constants were precomputed.)
+
+-   The generated C code may not be standard conforming, due to the lack of a standardized 128-bit integer type. If the code uses the `uint128_t` type, replace it with the appropriate 128-bit integer type for your compiler.
+
+    There are no such limitations for the generated Rust code.
+
+</div>
 
 ## Conclusion
 

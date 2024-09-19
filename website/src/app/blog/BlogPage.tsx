@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import type { PostsInfo } from "../../lib/fs/posts-info";
 import { TagView } from "../../components/TagList";
 import { PostCard } from "../../components/PostCard";
+import { H2 } from "../headings";
 
 export default function PostsPage({ info }: { info: PostsInfo }) {
     const { allTags, byYear } = info;
@@ -33,7 +34,7 @@ export default function PostsPage({ info }: { info: PostsInfo }) {
 
                 return (
                     <React.Fragment key={year}>
-                        <h2 className="mb-8 mt-4 pt-8 text-2xl text-white md:text-3xl">{year}</h2>
+                        <H2>{year}</H2>
                         <div className="narrow">
                             {posts.map((post) => (
                                 <PostCard key={post.slug} meta={post} />

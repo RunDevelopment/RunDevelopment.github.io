@@ -20,11 +20,11 @@ function getRustPlaygroundLink(code: string) {
 }
 
 interface CodeBlockProps {
-    lang?: string;
     code: string;
+    lang?: string;
     runnable?: boolean;
 }
-export const CodeBlock = memo(({ lang, code, runnable }: CodeBlockProps) => {
+export const CodeBlock = memo(({ code, lang, runnable }: CodeBlockProps) => {
     runnable ??= /\bassert(?:_eq|_ne)?!/.test(code);
 
     let title;
@@ -48,6 +48,7 @@ export const CodeBlock = memo(({ lang, code, runnable }: CodeBlockProps) => {
         <div className="-mx-4 my-2 w-[calc(100%+2rem)] md:-mx-6 md:w-[calc(100%+3rem)] lg:mx-0 lg:w-auto lg:max-w-full">
             {title}
             <pre
+                tabIndex={0}
                 className={
                     sourceCodePro.className +
                     " text-[15px] overflow-auto whitespace-pre rounded-md bg-black px-4 py-3 leading-5 md:px-6 lg:px-8 print:text-[13px]"

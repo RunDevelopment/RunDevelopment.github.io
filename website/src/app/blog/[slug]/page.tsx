@@ -30,6 +30,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     return {
         title: post.metadata.title + " - RunDev",
+        description: post.metadata.description,
+        keywords: post.metadata.tags.join(", "),
         authors: {
             name: "Michael Schmidt",
         },
@@ -39,6 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             publishedTime: post.metadata.datePublished,
             modifiedTime: post.metadata.dateModified,
             title: post.metadata.title,
+            description: post.metadata.description,
         },
     };
 }

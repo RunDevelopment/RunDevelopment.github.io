@@ -1,11 +1,9 @@
-import Link from "next/link";
 import React, { memo, ReactNode, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import { SyntaxHighlight } from "./SyntaxHighlight";
 import { CodeBlock } from "./CodeBlock";
 import { CustomComponent } from "./CustomComponents";
 import { Components, getAllHeadings } from "../../lib/md-util";
@@ -13,37 +11,10 @@ import "katex/dist/katex.min.css";
 import { TextLink } from "./TextLink";
 import { Empty, ForwardChildren } from "../util";
 import { H1, H2, H3, H4 } from "./Headings";
+import { InlineCode } from "./InlineCode";
+import { identity } from "../../lib/util";
+import { ImageSize } from "../../lib/schema";
 
-interface HighlightInlineCodeProps {
-    children: string;
-    className?: string;
-    lang: string | undefined;
-}
-const CSS_COLOR_RE = /^(?:#[a-f0-9]{3}|#[a-f0-9]{6}|(?:rgb|hsl|hsv)a?\([ ,0-9%deg]+\))$/i;
-const HighlightInlineCode = memo(({ children, className, lang }: HighlightInlineCodeProps) => {
-    if (CSS_COLOR_RE.test(children)) {
-        // show colors inline
-        return (
-            <code className={"language-css " + className}>
-                <span
-                    style={{ backgroundColor: children }}
-                    className="mb-0.5 mr-1 inline-block size-3 border border-white align-middle"
-                />
-                <SyntaxHighlight code={children} noCodeElement lang="css" />
-            </code>
-        );
-    }
-
-    if (lang) {
-        return (
-            <code className={className}>
-                <SyntaxHighlight code={children} noCodeElement lang={lang} />
-            </code>
-        );
-    } else {
-        return <code className={className}>{children}</code>;
-    }
-});
 interface CodeProps {
     children?: ReactNode;
     className?: string;
@@ -54,18 +25,7 @@ const Code = memo(({ children, className, inlineCodeLang }: CodeProps) => {
     const inline = !code.includes("\n");
 
     if (inline) {
-        const short = code.length < 20;
-        return (
-            <HighlightInlineCode
-                className={
-                    (short ? "whitespace-pre" : "md:whitespace-pre") +
-                    " rounded-md bg-zinc-950 px-2 py-0.5 text-[90%]"
-                }
-                lang={inlineCodeLang}
-            >
-                {code}
-            </HighlightInlineCode>
-        );
+        return <InlineCode lang={inlineCodeLang} code={code} smaller />;
     } else {
         const lang = /\blanguage-([-\w:]+)/.exec(className || "")?.[1];
         if (lang === "json:custom") {
@@ -78,43 +38,46 @@ const Code = memo(({ children, className, inlineCodeLang }: CodeProps) => {
 
 interface TOCProps {
     markdown: string;
-    inlineCodeLanguage?: string;
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const TOC = memo(({ markdown, inlineCodeLanguage }: TOCProps) => {
+const TOC = memo(({ markdown }: TOCProps) => {
     const headings = getAllHeadings(markdown).filter(
         (h) => h.level >= 2 && h.level <= 3 && h.text !== "Contents",
     );
 
     return (
-        <div className="transition-opacity hover:opacity-100 xl:fixed xl:bottom-0 xl:left-[calc(max(0px,50vw-(800px+3rem)/2-320px))] xl:max-h-[calc(100vh-max(0px,100px-var(--scroll-y)))] xl:w-[calc(min(300px,50vw-(800px+3rem)/2-20px))] xl:overflow-y-auto xl:p-4 xl:pl-6 xl:opacity-50 xl:focus-within:opacity-100 xl:hover:text-inherit">
-            <div className="xl:hidden">
-                <H2>Contents</H2>
-            </div>
-            <h2 className="mb-4 hidden text-xl text-white xl:block">Contents</h2>
-            <div className="xl:text-sm xl:leading-5">
+        <section className="narrow">
+            <h2 className="mb-2 mt-12 text-xl text-white" id="contents">
+                Contents
+            </h2>
+            <ul dir="auto">
                 {headings.map((h) => {
                     return (
-                        <p key={h.id} className={(h.level === 3 ? "pl-6" : "") + " my-2"}>
-                            <Link href={"#" + h.id} className="hover:text-white hover:underline">
-                                <Markdown
-                                    inlineCodeLanguage={inlineCodeLanguage}
-                                    markdown={h.text}
-                                    inline
-                                />
-                            </Link>
-                        </p>
+                        <li key={h.id} className={h.level === 3 ? "pl-6" : "pt-1"}>
+                            <TextLink href={"#" + h.id} simple>
+                                <Markdown markdown={h.text} inline />
+                            </TextLink>
+                        </li>
                     );
                 })}
-            </div>
-        </div>
+            </ul>
+        </section>
     );
 });
 
-const P: Components["p"] = memo(({ children }) => {
+const P: Components["p"] = memo(({ node, children }) => {
+    let containsImage = false;
+    if (node && node.children.length === 1) {
+        const child = node.children[0];
+        containsImage = child.type === "element" && child.tagName === "img";
+    }
+
+    if (containsImage) {
+        return <>{children}</>;
+    }
+
     return <p>{children}</p>;
 });
-const PWithDraft: Components["p"] = memo(({ children }) => {
+const PWithDraft: Components["p"] = memo(({ node, children }) => {
     const check = (s: unknown) => typeof s === "string" && /TODO:/i.test(s);
     const isTodo = check(children) || (Array.isArray(children) && children.some(check));
     if (isTodo) {
@@ -125,23 +88,29 @@ const PWithDraft: Components["p"] = memo(({ children }) => {
         );
     }
 
-    return <p>{children}</p>;
+    return <P node={node}>{children}</P>;
 });
 
 interface MdImageProps {
     src?: string;
     alt?: string;
-    getImageUrl?: (url: string) => string;
+    getImageUrl: (url: string) => string | undefined;
+    getImageSize: (url: string) => ImageSize | undefined;
 }
-const MdImage = memo(({ src, alt, getImageUrl }: MdImageProps) => {
+const MdImage = memo(({ src, alt, getImageUrl, getImageSize }: MdImageProps) => {
+    const size = src ? getImageSize(src) : undefined;
     return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-            src={getImageUrl && src ? getImageUrl(src) : src}
-            alt={alt || "image"}
-            className="-mx-4 my-4 max-w-[calc(100%+2rem)] md:mx-0 md:max-w-full"
-            loading="lazy"
-        />
+        <div className="-mx-4 my-4 w-[calc(100%+2rem)] text-center md:-mx-6 md:w-[calc(100%+3rem)] lg:mx-0 lg:w-auto lg:max-w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+                src={src && getImageUrl(src)}
+                alt={alt || "image"}
+                width={size?.width}
+                height={size?.height}
+                className="inline-block h-auto max-w-full lg:rounded-md"
+                loading="lazy"
+            />
+        </div>
     );
 });
 
@@ -244,7 +213,7 @@ const staticComponents = {
         if (props.className === "info" || props.className === "side-note") {
             const title = props.className === "side-note" ? "Side note" : "Info";
             return (
-                <div className="narrow -mx-4 my-4 rounded-md bg-gray-800 py-px pl-8 pr-4 md:mx-0 md:px-6">
+                <div className="narrow normal-my -mx-4 bg-gray-800 py-px pl-8 pr-4 leading-normal md:mx-0 md:px-6">
                     <div className="-mb-2 mt-4">
                         <strong>{title}:</strong>
                     </div>
@@ -276,24 +245,48 @@ interface MarkdownProps {
     draft?: boolean;
     noH1?: boolean;
     getImageUrl?: Record<string, string> | ((url: string) => string);
+    imageSizes?: Record<string, ImageSize>;
 }
 
 export const Markdown = memo(
-    ({ markdown, getImageUrl, noH1, inline, draft, inlineCodeLanguage }: MarkdownProps) => {
+    ({
+        markdown,
+        getImageUrl,
+        imageSizes,
+        noH1,
+        inline,
+        draft,
+        inlineCodeLanguage,
+    }: MarkdownProps) => {
         const getImageUrlFn = useMemo(() => {
             if (typeof getImageUrl === "function") {
                 return getImageUrl;
             } else if (getImageUrl) {
                 return (url: string) => getImageUrl[url] || url;
             } else {
-                return undefined;
+                return identity;
             }
         }, [getImageUrl]);
+        const getImageSize = useMemo(() => {
+            if (imageSizes) {
+                return (url: string) => imageSizes[url];
+            } else {
+                return () => undefined;
+            }
+        }, [imageSizes]);
 
         const components: Partial<Components> = {
             ...staticComponents,
-            img: (props) => <MdImage {...props} getImageUrl={getImageUrlFn} />,
+            img: (props) => (
+                <MdImage {...props} getImageUrl={getImageUrlFn} getImageSize={getImageSize} />
+            ),
             h1: noH1 ? Empty : staticComponents.h1,
+            h2: (props) =>
+                props.children === "Contents" ? (
+                    <TOC markdown={markdown} />
+                ) : (
+                    staticComponents.h2(props)
+                ),
             p: inline ? ForwardChildren : draft ? PWithDraft : P,
             code: inlineCodeLanguage
                 ? (props) => <Code {...props} inlineCodeLang={inlineCodeLanguage} />

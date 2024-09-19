@@ -4,6 +4,7 @@ export interface Post {
     metadata: PostMetadata;
     markdown: string;
     imageUrlMapping: Record<string, string>;
+    imageSizes: Record<string, ImageSize>;
 }
 
 export interface PostWithInternals {
@@ -25,4 +26,9 @@ export interface PostMetadata {
     image?: string;
     imageSmall?: string;
     minutesToRead: number;
+}
+
+export interface ImageSize {
+    width: number;
+    height: number;
 }

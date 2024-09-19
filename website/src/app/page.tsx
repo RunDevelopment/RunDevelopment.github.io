@@ -4,6 +4,7 @@ import { getPostsInfo } from "../lib/fs/posts-info";
 import { PostCard } from "../components/PostCard";
 import { TextLink } from "../components/md/TextLink";
 import Link from "next/link";
+import { H2 } from "./headings";
 
 export const metadata: Metadata = {
     title: "RunDev",
@@ -16,10 +17,6 @@ async function getRecentPosts(topK: number) {
     const { byYear } = await getPostsInfo();
     const posts = byYear.flatMap(([, posts]) => posts);
     return posts.slice(0, topK);
-}
-
-function H2({ children }: { children: React.ReactNode }) {
-    return <h2 className="mb-6 mt-12 text-2xl text-white first:mt-0 md:text-3xl">{children}</h2>;
 }
 
 export default async function Home() {
@@ -38,8 +35,8 @@ export default async function Home() {
                     some of my projects are only also listed on this website.
                 </p>
                 <p className="my-4">
-                    Sometimes I write about things I find interesting or useful. Checkout{" "}
-                    <TextLink href="/blog">my blog</TextLink> if you&apos;re interested.
+                    Sometimes <TextLink href="/blog">I write about things</TextLink> I find
+                    interesting.
                 </p>
 
                 <H2>Where you can find me</H2>
@@ -62,7 +59,7 @@ export default async function Home() {
                         <PostCard key={post.slug} meta={post} showYear />
                     ))}
                     <p className="my-6 text-center text-lg">
-                        <Link href="/posts" className="text-blue-300 hover:text-blue-400">
+                        <Link href="/blog" className="text-blue-300 hover:text-blue-400">
                             Show all posts...
                         </Link>
                     </p>

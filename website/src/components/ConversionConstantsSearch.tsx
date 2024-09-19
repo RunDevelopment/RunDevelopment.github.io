@@ -1,248 +1,12 @@
 "use client";
 
-import { lazy } from "../lib/util";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { CodeBlock } from "./md/CodeBlock";
-import {
-    Conversion,
-    ConversionRange,
-    Request,
-    RoundingFunction,
-    bruteForceAllSolutions,
-} from "../lib/components/multiply-add-constants";
-
-interface SolutionRequirements {
-    optimizeAdd: boolean;
-}
-
-async function bruteForceSolution(
-    request: Request,
-    requirements: SolutionRequirements,
-    signal: AbortSignal,
-): Promise<Conversion | null> {
-    const pickAny = (range: ConversionRange): Conversion => {
-        const {
-            factor,
-            add: [addMin, addMax],
-            shift,
-        } = range;
-        if (addMin === 0) {
-            return { factor, add: 0, shift };
-        }
-        if (addMin <= factor && factor <= addMax) {
-            return { factor, add: factor, shift };
-        }
-        if (addMax === 2 ** shift - 1) {
-            return { factor, add: addMax, shift };
-        }
-        return { factor, add: addMin, shift };
-    };
-
-    if (!requirements.optimizeAdd) {
-        // any solution will do
-        for await (const solution of bruteForceAllSolutions(request, {}, signal)) {
-            return pickAny(solution);
-        }
-        return null;
-    }
-
-    let any: Conversion | null = null;
-    let factorAdd: Conversion | null = null;
-    for await (const solution of bruteForceAllSolutions(
-        request,
-        { maxShiftAfterFirstSolution: 6 },
-        signal,
-    )) {
-        any ??= pickAny(solution);
-        if (solution.add[0] === 0) {
-            return pickAny(solution);
-        }
-        if (factorAdd === null) {
-            if (solution.add[0] <= solution.factor && solution.factor <= solution.add[1]) {
-                factorAdd = {
-                    factor: solution.factor,
-                    add: solution.factor,
-                    shift: solution.shift,
-                };
-            }
-        }
-    }
-
-    return factorAdd ?? any;
-}
-
-const webWorkerBruteForce = lazy(() => {
-    let lastAbort: AbortController | null = null;
-    let lastPromise: Promise<unknown> = Promise.resolve();
-    const onmessage = (e: MessageEvent) => {
-        const { id, request, requirements } = e.data;
-        const process = async () => {
-            try {
-                lastAbort?.abort("Took too long");
-                await lastPromise;
-                const abort = new AbortController();
-                lastAbort = abort;
-
-                const start = Date.now();
-                const promise = bruteForceSolution(request, requirements, abort.signal);
-                lastPromise = promise.catch(() => {});
-                const conversion = await promise;
-                const time = Date.now() - start;
-                postMessage({ id, conversion, request, time });
-            } catch (e) {
-                postMessage({ id, error: String(e) });
-            }
-        };
-        process().catch(console.error);
-    };
-
-    const worker = new Worker(
-        URL.createObjectURL(
-            new Blob(
-                [
-                    bruteForceAllSolutions.toString() +
-                        bruteForceSolution.toString() +
-                        "\nlet lastAbort = null;" +
-                        "\nlet lastPromise = Promise.resolve();" +
-                        "\nonmessage = " +
-                        onmessage.toString(),
-                ],
-                {
-                    type: "application/javascript",
-                },
-            ),
-        ),
-    );
-
-    let idCounter = 0;
-    const listeners = new Map<number, (result: unknown) => void>();
-
-    worker.onmessage = (e) => {
-        const { id } = e.data;
-        const listener = listeners.get(id);
-        if (listener) {
-            listener(e.data);
-            listeners.delete(id);
-        }
-    };
-
-    return (request: Request, requirements: SolutionRequirements) => {
-        const id = idCounter++;
-        worker.postMessage({ id, request, requirements });
-        return new Promise<BruteForceResult>((resolve, reject) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            listeners.set(id, (result: any) => {
-                if (result.error) {
-                    reject(new Error(result.error));
-                } else {
-                    resolve({
-                        conversion: result.conversion,
-                        time: result.time,
-                        request: request,
-                    });
-                }
-            });
-        });
-    };
-});
-
-interface BruteForceResult {
-    conversion: Conversion | null;
-    request: Request;
-    time: number;
-}
-
-async function bruteForce(
-    request: Request,
-    requirements: SolutionRequirements,
-): Promise<BruteForceResult> {
-    if (typeof Worker !== "undefined") {
-        return webWorkerBruteForce()(request, requirements);
-    }
-    const start = Date.now();
-    const abort = new AbortController();
-    const conversion = await bruteForceSolution(request, requirements, abort.signal);
-    const time = Date.now() - start;
-    return { conversion, time, request };
-}
-
-interface NumberInputProps {
-    value: number;
-    onChange: (value: number) => void;
-    min: number;
-    max: number;
-    readOnly?: boolean;
-    className?: string;
-}
-function NumberInput({ value, onChange, min, max, readOnly, className }: NumberInputProps) {
-    const [text, setText] = useState(value.toString());
-
-    useEffect(() => {
-        setText(value.toString());
-    }, [value]);
-
-    const commit = (): void => {
-        const newValue = parseInt(text, 10);
-        if (Number.isNaN(newValue)) {
-            // reset
-            setText(value.toString());
-        } else {
-            const clamped = Math.min(Math.max(newValue, min), max);
-            onChange(clamped);
-            setText(clamped.toString());
-        }
-    };
-
-    return (
-        <input
-            type="number"
-            className={"read-only:text-neutral-500 " + (className || "")}
-            min={min}
-            readOnly={readOnly}
-            max={max}
-            value={text}
-            onChange={(e) => {
-                setText(e.target.value);
-
-                const number = parseInt(e.target.value, 10);
-                if (String(number) === e.target.value && number >= min && number <= max) {
-                    onChange(number);
-                }
-            }}
-            onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                    commit();
-                }
-            }}
-            onBlur={commit}
-        />
-    );
-}
-
-interface DowndownProps<T extends string> {
-    value: T;
-    onChange: (value: T) => void;
-    options: readonly T[];
-    getLabel?: (value: T) => string;
-    className?: string;
-}
-function Downdown<T extends string>({
-    value,
-    onChange,
-    options,
-    getLabel,
-    className,
-}: DowndownProps<T>) {
-    return (
-        <select className={className} value={value} onChange={(e) => onChange(e.target.value as T)}>
-            {options.map((option) => (
-                <option key={option} value={option}>
-                    {getLabel?.(option) ?? option}
-                </option>
-            ))}
-        </select>
-    );
-}
+import { Conversion, Request, RoundingFunction } from "../lib/components/multiply-add-constants";
+import { NumberInput, DownDown } from "./FormInputs";
+import { findConversion, SearchResult } from "../lib/components/multiply-add-find";
+import { InlineCode } from "./md/InlineCode";
+import { getUnormConversion, MAX_KNOWN_CONVERSION } from "../lib/components/multiply-add-unorm";
 
 export function ConversionConstantsSearch() {
     const [inputRange, setInputRange] = useState(31);
@@ -251,6 +15,7 @@ export function ConversionConstantsSearch() {
     const [round, setRound] = useState<RoundingFunction>("round");
     const [linkedInputRange, setLinkedInputRange] = useState(true);
     const [optimizeAdd, setOptimizeAdd] = useState(false);
+    const [moreShifts, setMoreShifts] = useState(0);
 
     useEffect(() => {
         if (linkedInputRange) {
@@ -258,17 +23,18 @@ export function ConversionConstantsSearch() {
         }
     }, [linkedInputRange, inputRange]);
 
-    const [result, setResult] = useState<BruteForceResult>({
+    const [result, setResult] = useState<SearchResult>({
         conversion: { factor: 527, add: 23, shift: 6 },
+        solutions: [{ factor: 527, add: [23, 23], shift: 6 }],
         request: { inputRange, R: round, D: from, T: to },
         time: 0,
     });
     useEffect(() => {
-        bruteForce(
+        findConversion(
             { inputRange, R: round, D: from, T: to },
-            { optimizeAdd: optimizeAdd && round === "floor" },
+            { optimizeAdd: optimizeAdd && round === "floor", fullShifts: moreShifts + 1 },
         ).then(setResult, (e) => console.error(e));
-    }, [inputRange, from, to, round, optimizeAdd]);
+    }, [inputRange, from, to, round, optimizeAdd, moreShifts]);
 
     interface ResultContent {
         text: string;
@@ -282,104 +48,47 @@ export function ConversionConstantsSearch() {
 
         const { factor, add, shift } = result.conversion;
         const inputRange = result.request.inputRange;
-        const outputRange = Math.floor((factor * inputRange + add) / 2 ** shift);
 
-        const bitsToTypeSize = (bits: number) => {
-            if (bits <= 8) {
-                return 8;
-            } else if (bits <= 16) {
-                return 16;
-            } else if (bits <= 32) {
-                return 32;
-            } else if (bits <= 64) {
-                return 64;
-            } else {
-                return 128;
-            }
-        };
-
-        const fromType = bitsToTypeSize(Math.log2(inputRange + 1));
-        const toType = bitsToTypeSize(Math.log2(outputRange + 1));
-
-        let formula, rustExpr, cExpr;
+        let formula;
         if (add === 0 && shift === 0) {
             formula = `x * ${factor}`;
-
-            rustExpr = fromType < toType ? `x as u${toType}` : `x`;
-            rustExpr += factor === 1 ? `` : ` * ${factor}`;
-
-            cExpr = fromType < toType ? `(uint${toType}_t)x` : `x`;
-            cExpr += factor === 1 ? `` : ` * ${factor}`;
         } else {
             const maxIntermediate = inputRange * factor + add;
             const interBits = Math.ceil(Math.log2(maxIntermediate));
             formula = `(x * ${factor} + ${add}) >> ${shift}  (${interBits} bits required)`;
-
-            const interType = bitsToTypeSize(interBits);
-
-            rustExpr = fromType < interType ? `x as u${interType}` : `x`;
-            rustExpr += factor === 1 ? `` : ` * ${factor}`;
-            rustExpr += add === 0 ? `` : ` + ${add}`;
-            rustExpr = `(${rustExpr}) >> ${shift}`;
-            if (interType > toType) {
-                rustExpr = `(${rustExpr}) as u${toType}`;
-            }
-
-            cExpr = fromType < interType ? `(uint${interType}_t)x` : `x`;
-            cExpr += factor === 1 ? `` : ` * ${factor}`;
-            cExpr += add === 0 ? `` : ` + ${add}`;
-            cExpr = `(${cExpr}) >> ${shift}`;
         }
+
+        result.solutions.sort((a, b) => {
+            if (a.shift !== b.shift) return a.shift - b.shift;
+            return a.factor - b.factor;
+        });
 
         const text = [
             `Result: ${formula}`,
-            `        f: ${factor}, a: ${add}, s: ${shift}`,
+            `        f=${factor}, a=${add}, s=${shift}`,
             `        search took ${result.time}ms`,
+            ``,
+            `All found solutions:`,
+            ...result.solutions.map((s, i) => {
+                const differentShift = i > 0 && s.shift !== result.solutions[i - 1].shift;
+                const a = s.add[0] === s.add[1] ? s.add[0] : s.add.join("-");
+                return `${differentShift ? "\n" : ""}        s=${s.shift}, f=${s.factor}, a=${a}`;
+            }),
         ].join("\n");
 
-        const roundingComment: Record<RoundingFunction, string> = {
-            round: "rounding",
-            floor: "rounding down",
-            ceil: "rounding up",
-        };
-        const comment1 = `Converts a value 0..=${inputRange} to 0..=${outputRange}`;
-        const comment2 = `by multiplying with ${result.request.T}/${result.request.D} and then ${roundingComment[result.request.R]}.`;
-        const needsAssert = inputRange !== 2 ** fromType - 1;
-
-        const rustCode = [
-            `/// ${comment1}`,
-            `/// ${comment2}`,
-            `fn convert_range(x: u${fromType}) -> u${toType} {`,
-            needsAssert ? `    debug_assert!(x <= ${inputRange});` : "",
-            `    ${rustExpr}`,
-            `}`,
-        ]
-            .filter(Boolean)
-            .join("\n");
-
-        const cCode = [
-            `// ${comment1}`,
-            `// ${comment2}`,
-            `uint${toType}_t convert_range(uint${fromType}_t x) {`,
-            needsAssert ? `    assert(x <= ${inputRange});` : "",
-            `    return ${cExpr};`,
-            `}`,
-        ]
-            .filter(Boolean)
-            .join("\n");
-
-        return { text, rustCode, cCode };
+        return { text };
     }, [result]);
+
+    const MAX = 2 ** 32 - 1;
 
     return (
         <>
-            <pre className="whitespace-pre-wrap">
+            <pre className="narrow whitespace-pre-wrap">
                 <div>
                     {">>> (U) Input range:  0 - "}
                     <NumberInput
-                        className="bg-black"
                         min={1}
-                        max={4294967296}
+                        max={MAX}
                         value={inputRange}
                         onChange={(value) => {
                             setInputRange(value);
@@ -403,37 +112,28 @@ export function ConversionConstantsSearch() {
                     </label>
                 </div>
                 <div>
-                    {">>> (D) Divisor:      0 - "}
+                    {">>> (D) Divisor:          "}
                     <NumberInput
-                        className="bg-black"
                         min={1}
-                        max={4294967296}
+                        max={MAX}
                         value={from}
                         readOnly={linkedInputRange}
                         onChange={setFrom}
                     />
                 </div>
                 <div>
-                    {">>> (T) Denominator:  0 - "}
-                    <NumberInput
-                        className="bg-black"
-                        min={1}
-                        max={4294967296}
-                        value={to}
-                        onChange={setTo}
-                    />
+                    {">>> (T) Denominator:      "}
+                    <NumberInput min={1} max={MAX} value={to} onChange={setTo} />
                 </div>
                 <div>
-                    {">>> (R) Rounding Fn:  "}
-                    <Downdown
-                        className="bg-black"
+                    {">>> (R) Rounding Fn:      "}
+                    <DownDown
                         value={round}
                         onChange={setRound}
                         options={["round", "floor", "ceil"]}
-                        getLabel={(value) => value}
                     />
                 </div>
-                {round === "floor" && (
+                {round === "floor" && false && (
                     <div>
                         <label>
                             {">>> "}
@@ -450,10 +150,185 @@ export function ConversionConstantsSearch() {
                         </label>
                     </div>
                 )}
+                <div>
+                    {">>> Additional Shift:     "}
+                    <NumberInput min={0} max={8} value={moreShifts} onChange={setMoreShifts} />
+                </div>
                 {"\n" + resultContent.text}
             </pre>
-            {resultContent.rustCode && <CodeBlock code={resultContent.rustCode} lang="rust" />}
-            {resultContent.cCode && <CodeBlock code={resultContent.cCode} lang="c" />}
+            {result.conversion && (
+                <ConversionCode request={result.request} conversion={result.conversion} />
+            )}
         </>
     );
 }
+
+export function UnormConversion() {
+    const [from, setFrom] = useState(5);
+    const [to, setTo] = useState(8);
+
+    const inputRange = 2 ** from - 1;
+    const outputRange = 2 ** to - 1;
+
+    const request: Request = { inputRange, R: "round", D: inputRange, T: outputRange };
+    const conversion = getUnormConversion(from, to);
+
+    return (
+        <>
+            <div className="narrow">
+                <h6 className="mb-4 mt-10 text-lg font-bold">Unorm Conversion Tool:</h6>
+                <div className="my-2">
+                    <span className="mr-4 inline-block w-20 text-right">From</span>
+                    <NumberInput
+                        min={1}
+                        max={MAX_KNOWN_CONVERSION}
+                        value={from}
+                        onChange={setFrom}
+                    />
+                    <span className="ml-1">{from === 1 ? "bit" : "bits"}</span>
+                </div>
+                <div className="my-2">
+                    <span className="mr-4 inline-block w-20 text-right">To</span>
+                    <NumberInput min={1} max={MAX_KNOWN_CONVERSION} value={to} onChange={setTo} />
+                    <span className="ml-1">{to === 1 ? "bit" : "bits"}</span>
+                </div>
+                <div className="my-4">
+                    <span className="mr-4 inline-block w-20 text-right">Constants</span>
+                    <InlineCode
+                        lang="json"
+                        code={`f=${conversion.factor}, a=${conversion.add}, s=${conversion.shift}`}
+                    />
+                </div>
+            </div>
+            <ConversionCode
+                conversion={conversion}
+                request={request}
+                functionName={`unorm${from}_to_unorm${to}`}
+                comment={
+                    `Converts a ${from}-bit unorm to a ${to}-bit unorm.\n` +
+                    `This is equivalent to \`round(x * ${outputRange} / ${inputRange})\`.`
+                }
+            />
+        </>
+    );
+}
+
+interface Bits {
+    input: number;
+    output: number;
+    intermediate: number;
+}
+function getRequiredBits(conversion: Conversion, request: Request): Bits {
+    const { factor, add } = conversion;
+    const { inputRange, T, D, R } = request;
+
+    const outputRange = Math[R]((inputRange * T) / D);
+    const maxIntermediate = inputRange * factor + add;
+
+    return {
+        input: Math.ceil(Math.log2(inputRange + 1)),
+        output: Math.ceil(Math.log2(outputRange + 1)),
+        intermediate: Math.ceil(Math.log2(maxIntermediate + 1)),
+    };
+}
+interface CodeGenOptions {
+    comment?: string;
+    noComment?: boolean;
+    functionName?: string;
+}
+interface GeneratedCode {
+    rust: string;
+    c: string;
+}
+function generateCode(
+    conversion: Conversion,
+    request: Request,
+    options?: CodeGenOptions,
+): GeneratedCode {
+    const { factor, add, shift } = conversion;
+    const { inputRange, T, D, R } = request;
+    const outputRange = Math.floor((factor * inputRange + add) / 2 ** shift);
+
+    const roundingComment: Record<RoundingFunction, string> = {
+        round: "rounding",
+        floor: "rounding down",
+        ceil: "rounding up",
+    };
+    const bitsToTypeSize = (bits: number) => Math.max(8, 2 ** Math.ceil(Math.log2(bits)));
+    const bits = getRequiredBits(conversion, request);
+
+    const fromType = bitsToTypeSize(bits.input);
+    const toType = bitsToTypeSize(bits.output);
+
+    const {
+        noComment,
+        comment = `Converts a value 0..=${inputRange} to 0..=${outputRange}\nby multiplying with ${T}/${D} and then ${roundingComment[R]}.`,
+        functionName = "convert_range",
+    } = options || {};
+
+    let rustExpr, cExpr;
+    if (add === 0 && shift === 0) {
+        rustExpr = fromType < toType ? `x as u${toType}` : `x`;
+        rustExpr += factor === 1 ? `` : ` * ${factor}`;
+
+        cExpr = fromType < toType ? `(uint${toType}_t)x` : `x`;
+        cExpr += factor === 1 ? `` : ` * ${factor}`;
+    } else {
+        const interType = bitsToTypeSize(bits.intermediate);
+
+        rustExpr = fromType < interType ? `x as u${interType}` : `x`;
+        rustExpr += factor === 1 ? `` : ` * ${factor}`;
+        rustExpr += add === 0 ? `` : ` + ${add}`;
+        rustExpr = `${add === 0 ? rustExpr : `(${rustExpr})`} >> ${shift}`;
+        if (interType > toType) {
+            rustExpr = `(${rustExpr}) as u${toType}`;
+        }
+
+        cExpr = fromType < interType ? `(uint${interType}_t)x` : `x`;
+        cExpr += factor === 1 ? `` : ` * ${factor}`;
+        cExpr += add === 0 ? `` : ` + ${add}`;
+        cExpr = `${add === 0 ? cExpr : `(${cExpr})`} >> ${shift}`;
+    }
+
+    const commentLines = comment.split("\n");
+    const needsAssert = inputRange !== 2 ** fromType - 1;
+
+    const rustCode = [
+        ...(!noComment ? commentLines.map((l) => "/// " + l) : []),
+        `fn ${functionName}(x: u${fromType}) -> u${toType} {`,
+        needsAssert ? `    debug_assert!(x <= ${inputRange});` : "",
+        `    ${rustExpr}`,
+        `}`,
+    ]
+        .filter(Boolean)
+        .join("\n");
+
+    const cCode = [
+        ...(!noComment ? commentLines.map((l) => "// " + l) : []),
+        `uint${toType}_t ${functionName}(uint${fromType}_t x) {`,
+        needsAssert ? `    assert(x <= ${inputRange});` : "",
+        `    return ${cExpr};`,
+        `}`,
+    ]
+        .filter(Boolean)
+        .join("\n");
+
+    return { rust: rustCode, c: cCode };
+}
+
+const ConversionCode = memo(
+    ({
+        conversion,
+        request,
+        ...options
+    }: { conversion: Conversion; request: Request } & CodeGenOptions) => {
+        const { rust, c } = generateCode(conversion, request, options);
+
+        return (
+            <>
+                <CodeBlock code={rust} lang="rust" />
+                <CodeBlock code={c} lang="c" />
+            </>
+        );
+    },
+);
