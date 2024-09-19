@@ -31,7 +31,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - run: cd website
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -57,13 +56,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
       - name: Install dependencies
-        run: npm ci
+        run: cd website && npm ci
       - name: Build with Next.js
-        run: npm run build
+        run: cd website && npm run build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./out
+          path: ./website/out
 
   # Deployment job
   deploy:
