@@ -21,6 +21,12 @@ export default function Page() {
     return (
         <BasicPage selectedLink="projects">
             <div className="narrow-container py-8">
+                {projectsByYear.length === 0 && (
+                    <>
+                        <H2>Nothing to see here</H2>
+                        <p className="narrow">{"I haven't published any projects here yet."}</p>
+                    </>
+                )}
                 {projectsByYear.map(([year, projects]) => {
                     return (
                         <React.Fragment key={year}>
