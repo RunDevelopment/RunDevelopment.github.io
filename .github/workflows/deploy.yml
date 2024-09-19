@@ -31,12 +31,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - run: cd website
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
-      - run: cd website
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
