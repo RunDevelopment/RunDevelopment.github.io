@@ -51,7 +51,7 @@ export const CodeBlock = memo(({ code, lang, runnable }: CodeBlockProps) => {
                 tabIndex={0}
                 className={
                     sourceCodePro.className +
-                    " text-[15px] overflow-auto whitespace-pre rounded-md bg-black px-4 py-3 leading-5 md:px-6 lg:px-8 print:text-[13px]"
+                    " text-[14px] sm:text-[15px] overflow-auto whitespace-pre rounded-md bg-black px-4 py-3 leading-5 md:px-6 lg:px-8 print:text-[13px]"
                 }
             >
                 <SyntaxHighlight code={code.replace(/\n$/, "")} lang={lang || "none"} />
