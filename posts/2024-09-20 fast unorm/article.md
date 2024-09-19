@@ -566,9 +566,7 @@ Limitations:
 
 -   This tool is limited to a maximum of 32 bits in either direction. (All constants were precomputed.)
 
--   The generated C code may not be standard conforming, due to the lack of a standardized 128-bit integer type. If the code uses the `uint128_t` type, replace it with the appropriate 128-bit integer type for your compiler.
-
-    There are no such limitations for the generated Rust code.
+-   The generated C code may not be standard conforming, due to the lack of a standardized 128-bit integer type. If the code uses the `uint128_t` type, replace it with the appropriate 128-bit integer type for your compiler. See [this Stack Overflow answer](https://stackoverflow.com/a/54815033/7595472) for more details.
 
 </div>
 
