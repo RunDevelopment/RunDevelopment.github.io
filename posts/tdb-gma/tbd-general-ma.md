@@ -525,6 +525,56 @@ Last, we just need to make sure that this range is within the bounds of $a$. So 
 
 **Complexity:** Since the runtime of this algorithm on depends on the number of inputs we need to check, it runs in $O(\min \set{D,T,U})$ steps with $O(1)$ memory.
 
+## Finding solutions with $a=0$
+
+Since solutions with $a=0$ are the fastest for hardware to run, it would nice if we could find them quickly. Of course, we could just iterate over the smallest $K$ solutions and see if they have any with $a=0$, but that's (1) doing unnecessary work and (2) not guaranteed to find a solution if $a=0$ should one exist.
+
+So let's look for a smarter way to do this. Since we are looking for solutions $(f,a=0,s)$, the problem simplifies slightly. Here's the inequality definition for $a=0$:
+
+$$
+R(xT/D) \le xf/2^s < R(xT/D)+1
+$$
+
+Rearrange for $f$:
+
+$$
+\frac{2^s \cdot R(xT/D)}{x} \le f < \frac{2^s \cdot (R(xT/D)+1)}{x}
+$$
+
+Dividing by 0 isn't my favorite thing to do, so let's only consider $x>0$. The original inequality definition is trivially true for $x=0$ anyway, so we don't need to check it.
+
+Since $f$ needs to be an integer, we can also round the bounds to give us an exact range of values for $f$:
+
+$$
+\lceil \frac{2^s \cdot R(xT/D)}{x} \rceil \le f < \lfloor \frac{2^s \cdot (R(xT/D)+1)}{x} \rfloor
+$$
+
+Just like with the overlapping ranges approach to find $A$, the intersection of these ranges for $f$ at $x$ will give us the possible $f$ values for which $a=0$.
+
+Let's give the set of all possible $f$ for a given $s$ a name.
+
+$$
+F(s) = \set{ f \in N | \forall x\in\N,0<x\le U:  \lceil \frac{2^s \cdot R(xT/D)}{x} \rceil \le f < \lfloor \frac{2^s \cdot (R(xT/D)+1)}{x} \rfloor}
+$$
+
+So we just need to find the smallest $s$ value for which $F(s)$ is non-empty. Obviously, if $F(s)$ is non-empty, then $F(s+1)$ will be non-empty as well. In fact, $|F(s)|$ is a monotonically increasing function. This means that we can use binary search again to find the smallest $s$ for which $F(s)$ is non-empty. Of course, binary search needs a range of $s$ values, so we just define some upper limit $s_{max}$ and search in the range $[0,s_{max}]$.
+
+**Complexity:** This algorithm for finding the smallest solution for $a=0$ runs in $O(\min \set{D,T,U} \cdot \log s_{max})$ steps with $O(1)$ memory.
+
+### Make it faster
+
+Turns out, we don't even need binary search. We can directly calculate the smallest $s$ from $F(s_{max})$.
+
+**Theorem:** $F(s-1) = \N \cap \set{ f/2 | f \in F(s) }$.
+
+**Proof:** TODO:
+
+This means that we just have to pick the most even number from $F(s_{max})$. This number can be expressed as $f \cdot 2^k \in F(s_{max}), k\in\N$ where $k$ is maximal. Then the triple $(f,0,s_{max}-k)$ will be the smallest solution with $a=0$, assuming that a solution with $a=0$ and $s \le s_{max}$ exists.
+
+I think we can find the most even number in $F(s_{max})$ in $O(\log |F(s_{max})|)$ step. Not sure though.
+
+**Complexity:** This algorithm for finding the smallest solution for $a=0$ runs in $O(\min \set{D,T,U} + \log |F(s_{max})|)$ steps with $O(1)$ memory. If no such solution exists, the algorithm will run in $O(\min \set{D,T,U})$ steps.
+
 ---
 
 ## OLD
