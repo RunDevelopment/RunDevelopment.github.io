@@ -490,9 +490,9 @@ def find_A():
 
 #### Not checking all inputs
 
-As it turns out, we only need to check first and last $D$ inputs. This is because the function $R(xT/D) - xT/D$ is periodic with period $D$.
+As it turns out, we only need to check first and last $D+1$ inputs. This is because the function $R(xT/D) - xT/D$ is periodic with period $D$.
 
-TODO: full argument
+**Proof:** If $2D + 2 \ge U$, then the above statement is trivially true, because we check all inputs just like before. Otherwise, let $x_{\text{start}} \in \set{0,...,D}$ be the first input and the second input $x_{\text{end}} \in \set{U-D,...,U}$ such that $x_{\text{end}} = x_{\text{end}} + kD$ for some $k\in\N$. Then we can show that $R(x_{\text{start}}T/D) = R(x_{\text{end}}T/D)$. TODO:
 
 But that's not all. If $R(xT/D) = R((x+k)T/D), k\ge 2$, then all inputs $\set{x+1,...,x+k-1}$ do not need to be checked.
 
@@ -574,6 +574,32 @@ This means that we just have to pick the most even number from $F(s_{max})$. Thi
 I think we can find the most even number in $F(s_{max})$ in $O(\log |F(s_{max})|)$ step. Not sure though.
 
 **Complexity:** This algorithm for finding the smallest solution for $a=0$ runs in $O(\min \set{D,T,U} + \log |F(s_{max})|)$ steps with $O(1)$ memory. If no such solution exists, the algorithm will run in $O(\min \set{D,T,U})$ steps.
+
+### How to pick the most even number
+
+Let's say we have a set $F(s)$ and we want to find the most even number in it. Firstly, if the set is empty, then that's that. I won't consider this case here. Assuming that the set has at least one element, we can define the set by its bounds $a,b\in\N$ such that $F(s) = [a,b]$. The algorithm for picking is as follows:
+
+```rust
+fn pick_most_even(mut a: u64, mut b: u64) -> u64 {
+    assert!(a <= b);
+    if a == 0 {
+        return 0;
+    }
+
+    let mut scale = 1;
+    while a < b {
+        scale *= 2;
+        a = (a + 1) / 2;
+        b = b / 2;
+    }
+
+    return a * scale;
+}
+```
+
+0 is a special case, because the idea of "most even" doesn't apply to it.
+
+This algorithm is quick and finds the result after $O(\log(b-a))$ steps.
 
 ---
 
