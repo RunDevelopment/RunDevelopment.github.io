@@ -1,5 +1,6 @@
 ---
 datePublished: 2024-09-20
+dateModified: 2024-09-24
 description: Optimizing the conversion of 5-bit unorms to 8-bit unorms in Rust.
 inlineCodeLanguage: rust
 tags: rust optimization unorm
@@ -47,7 +48,13 @@ Unfortunately, Rust doesn't have a `u5` type, so `x: u8` + `debug_assert!` will 
 
 While this function works correctly and gets the job done, it's not so great performance-wise. My goal wasn't just to decode images correctly, but to do it quickly. In my application, any millisecond spend decoding images is a millisecond not spend doing actual work. So I set out to optimize this function.
 
-This article will show various ways to optimize the problem of converting unorms. We'll start with some floating-point tricks to make the naive implementation faster and work our way up to a version that is **22x faster**.
+This article will show various ways to optimize the problem of converting unorms. We'll start with some floating-point tricks to make the naive implementation faster and work our way up to a version that is **46x faster**.
+
+<div class="info">
+
+The benchmark previously had [a bug](https://github.com/RunDevelopment/rounding-bench-rs/issues/1) that affected the timing of `u5_to_u8_naive`. No other implementations were affected. The bug was fixed on 2024-09-24.
+
+</div>
 
 ## Contents
 
@@ -89,7 +96,7 @@ Here is the result for the naive implementation:
 
 ```
                     low       expected       high
-u5_to_u8_naive     [102.22 µs 102.86 µs 103.63 µs]
+u5_to_u8_naive     [196.99 µs 197.75 µs 198.71 µs]
 ```
 
 <div class="info">
@@ -220,11 +227,11 @@ u5_to_u8_v2:
 
 ```
                     low       expected       high
-u5_to_u8_naive     [102.22 µs 102.86 µs 103.63 µs]
-u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  5.8x
+u5_to_u8_naive     [196.99 µs 197.75 µs 198.71 µs]
+u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  11.1x
 ```
 
-Yep, almost 6x faster just by avoiding the call to `f32::round`.
+Yep, 11x faster just by avoiding the call to `f32::round`.
 
 However, the takeaway here is **not** to avoid `f32::round` or other `f32::*` functions at all costs. Some functions are efficiently implemented in hardware, while others are not. It's your responsibility to find out which ones are fast and to search for alternatives for the slow ones.
 
@@ -269,12 +276,12 @@ u5_to_u8_unsafe:
 
 ```
                     low       expected       high
-u5_to_u8_naive     [102.22 µs 102.86 µs 103.63 µs]
-u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  5.8x
-u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  14.2x
+u5_to_u8_naive     [196.99 µs 197.75 µs 198.71 µs]
+u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  11.1x
+u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  27.3x
 ```
 
-That's over 2x faster than the previous version, and 14.2x faster than the naive implementation.
+That's over 2x faster than the previous version, and 27.3x faster than the naive implementation.
 
 Unfortunately, the function must be marked as `unsafe`, because it _will cause UB_ if given a value `x >= 32`. This makes the function harder to use, since a small mistake can invalidate all of Rust's safety guarantees. So we need a way to guarantee that `x` is always is in the range 0-31, and ideally at no runtime cost.
 
@@ -315,10 +322,10 @@ The assembly is exactly the same except for one additional bitwise AND. Bitwise 
 
 ```
                     low       expected       high
-u5_to_u8_naive     [102.22 µs 102.86 µs 103.63 µs]
-u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  5.8x
-u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  14.2x
-u5_to_u8_safer_int [7.2187 µs 7.2372 µs 7.2576 µs]  14.2x
+u5_to_u8_naive     [196.99 µs 197.75 µs 198.71 µs]
+u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  11.1x
+u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  27.3x
+u5_to_u8_safer_int [7.2187 µs 7.2372 µs 7.2576 µs]  27.3x
 ```
 
 Huh.
@@ -375,11 +382,11 @@ I used `x % 32` to allow the compiler to optimize away bounds checks. Just like 
 
 ```
                     low       expected       high
-u5_to_u8_naive     [102.22 µs 102.86 µs 103.63 µs]
-u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  5.8x
-u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  14.2x
-u5_to_u8_safer_int [7.2187 µs 7.2372 µs 7.2576 µs]  14.2x
-u5_to_u8_lut       [6.7951 µs 6.8097 µs 6.8261 µs]  15.1x
+u5_to_u8_naive     [196.99 µs 197.75 µs 198.71 µs]
+u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  11.1x
+u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  27.3x
+u5_to_u8_safer_int [7.2187 µs 7.2372 µs 7.2576 µs]  27.3x
+u5_to_u8_lut       [6.7951 µs 6.8097 µs 6.8261 µs]  29.0x
 ```
 
 And it's faster than our highly-optimized floating-point code. Not but much, but still. Considering how simple the LUT is (to make and understand), this is a great result.
@@ -453,12 +460,12 @@ Integer division is rather slow on modern CPUs. Since the compiler statically kn
 
 ```
                     low       expected       high
-u5_to_u8_naive     [102.22 µs 102.86 µs 103.63 µs]
-u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  5.8x
-u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  14.2x
-u5_to_u8_safer_int [7.2187 µs 7.2372 µs 7.2576 µs]  14.2x
-u5_to_u8_lut       [6.7951 µs 6.8097 µs 6.8261 µs]  15.1x
-u5_to_u8_int       [5.0247 µs 5.0486 µs 5.0715 µs]  20.4x
+u5_to_u8_naive     [196.99 µs 197.75 µs 198.71 µs]
+u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  11.1x
+u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  27.3x
+u5_to_u8_safer_int [7.2187 µs 7.2372 µs 7.2576 µs]  27.3x
+u5_to_u8_lut       [6.7951 µs 6.8097 µs 6.8261 µs]  29.0x
+u5_to_u8_int       [5.0247 µs 5.0486 µs 5.0715 µs]  39.2x
 ```
 
 Yep. It easily beats the floating-point versions and even the LUT.
@@ -537,18 +544,18 @@ The assembly is a very literal translation of our code. Let's see how it perform
 
 ```
                     low       expected       high
-u5_to_u8_naive     [102.22 µs 102.86 µs 103.63 µs]
-u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  5.8x
-u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  14.2x
-u5_to_u8_safer_int [7.2187 µs 7.2372 µs 7.2576 µs]  14.2x
-u5_to_u8_lut       [6.7951 µs 6.8097 µs 6.8261 µs]  15.1x
-u5_to_u8_int       [5.0247 µs 5.0486 µs 5.0715 µs]  20.4x
-u5_to_u8_ma        [4.5759 µs 4.5909 µs 4.6094 µs]  22.4x
+u5_to_u8_naive     [196.99 µs 197.75 µs 198.71 µs]
+u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  11.1x
+u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  27.3x
+u5_to_u8_safer_int [7.2187 µs 7.2372 µs 7.2576 µs]  27.3x
+u5_to_u8_lut       [6.7951 µs 6.8097 µs 6.8261 µs]  29.0x
+u5_to_u8_int       [5.0247 µs 5.0486 µs 5.0715 µs]  39.2x
+u5_to_u8_ma        [4.5759 µs 4.5909 µs 4.6094 µs]  43.1x
 ```
 
 And it's the fastest method.
 
-Since it is doing strictly less work than the integer rounding method, this result is not surprising. However, the generalized multiply-add method is only 10% faster, so that's still a little disappointing. I suspect that we could push it even further with some handwritten SIMD, but that's beyond the scope of this article.
+Since it is doing strictly less work than the integer rounding method, this result is not surprising. However, the generalized multiply-add method is only 10% faster, so that's still a little disappointing.
 
 ### Constants
 
@@ -569,6 +576,54 @@ Limitations:
 -   The generated C code may not be standard conforming, due to the lack of a standardized 128-bit integer type. If the code uses the `uint128_t` type, replace it with the appropriate 128-bit integer type for your compiler. See [this Stack Overflow answer](https://stackoverflow.com/a/54815033/7595472) for more details.
 
 </div>
+
+### Vectorization-frienly constants
+
+This trick was suggested by [u/rofrol](https://www.reddit.com/r/rust/comments/1fl7uo4/comment/lo8s3ij/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button) on Reddit. The idea is to use constants that allow the compiler to skip the bitshift entirely. If $s$ is 8, 16, 32 or 64, the bitshift can be performed implicitely by just reading the upper byte(s) of the result. On its own, this doesn't actually perform any better than a bitshift, but it's very useful for SIMD! The compiler auto-vectorizes our benchmark code and can take advantage of this.
+
+So how do we get constants with favorable $s$ values? If the constants $(f,a,s)$ work, then $(2f,2a,s+1)$ also work, because:
+
+$$
+\lfloor \frac{x\cdot f+a}{2^s} \rfloor = \lfloor \frac{x\cdot 2f+2a}{2^{s+1}} \rfloor
+$$
+
+So we can make $s$ as large as we want, we just have to increase $f$ and $a$ accordingly.
+
+We previously used the constants $f=527,a=23,s=6$, so we know that the constants $f=2108,a=92,s=8$ will also work. Luckily, these constants don't overflow `u16`, so we plug them directly into our code:
+
+```rust
+fn u5_to_u8_ma8(x: u8) -> u8 {
+    debug_assert!(x < 32);
+    ((x as u16 * 2108 + 92) >> 8) as u8
+}
+```
+
+```asm
+u5_to_u8_ma8:
+        movzx   eax, dil       ; eax = x
+        imul    eax, eax, 2108 ; eax = eax * 2108
+        add     eax, 92        ; eax = eax + 92
+        shr     eax, 8         ; eax = eax >> 8
+        ret
+```
+
+Nothing interesting is going on in the assembly here, but this will change in the decoding loop of our benchmark:
+
+```
+                    low       expected       high
+u5_to_u8_naive     [196.99 µs 197.75 µs 198.71 µs]
+u5_to_u8_v2        [17.730 µs 17.771 µs 17.817 µs]  11.1x
+u5_to_u8_unsafe    [7.2110 µs 7.2304 µs 7.2551 µs]  27.3x
+u5_to_u8_safer_int [7.2187 µs 7.2372 µs 7.2576 µs]  27.3x
+u5_to_u8_lut       [6.7951 µs 6.8097 µs 6.8261 µs]  29.0x
+u5_to_u8_int       [5.0247 µs 5.0486 µs 5.0715 µs]  39.2x
+u5_to_u8_ma        [4.5759 µs 4.5909 µs 4.6094 µs]  43.1x
+u5_to_u8_ma8       [4.2081 µs 4.2210 µs 4.2356 µs]  46.8x
+```
+
+Yup, the compiler was able to take advantage of the shift by 8 and generated faster assembly for our benchmark.
+
+I suspect that we could push it even further with some handwritten SIMD, but that's beyond the scope of this article. For now, 46x faster is good enough for me.
 
 ## Conclusion
 
