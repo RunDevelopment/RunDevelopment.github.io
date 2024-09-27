@@ -1,8 +1,7 @@
 import { memo } from "react";
-import { ConversionConstantsSearch, UnormConversion } from "../ConversionConstantsSearch";
+import { UnormConversion } from "../multiply-add/UnormConversion";
 
 const knownComponents = {
-    "conversion-brute-force": ConversionConstantsSearch,
     "unorm-conversion": UnormConversion,
 };
 

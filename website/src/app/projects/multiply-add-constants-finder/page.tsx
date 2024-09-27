@@ -1,7 +1,7 @@
 import React from "react";
 import { Metadata } from "next";
 import BasicPage from "../../../components/BasicPage";
-import { ConversionConstantsSearch } from "../../../components/ConversionConstantsSearch";
+import { ConversionConstantsSearch } from "./ConversionConstantsSearch";
 
 export const metadata: Metadata = {
     title: "Multiply-Add Constants Finder by RunDev",

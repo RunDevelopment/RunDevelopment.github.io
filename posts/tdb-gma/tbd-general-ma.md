@@ -745,11 +745,7 @@ Note that none of these optimizations are sufficient to prove that a solution is
 
 I implemented everything we talked about in TypeScript. It's fairly fast and can find the magic constants for most values of $D+T+U<100'000$ in less than a second. Of course, this is just a proof of concept, and the code is not optimized for performance. An optimized implementation in a language like C/C++ or Rust would likely be at least an order of magnitude faster.
 
-```json:custom
-{
-    "component": "conversion-brute-force"
-}
-```
+
 
 ## Beating the compiler at its own game
 

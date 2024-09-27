@@ -34,7 +34,7 @@ export function NumberInput({ value, onChange, min, max, readOnly, className }: 
             type="number"
             className={
                 (className || "") +
-                " border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 focus:border-zinc-300 bg-black rounded-md px-2 py-1 [&:not(:read-only)]:hover:text-white [&:not(:read-only)]:focus:text-white read-only:text-neutral-500"
+                " transition-colors border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 focus:border-zinc-300 bg-black rounded-md px-2 py-1 [&:not(:read-only)]:hover:text-white [&:not(:read-only)]:focus:text-white read-only:text-neutral-500"
             }
             min={min}
             readOnly={readOnly}
@@ -76,7 +76,7 @@ export function DownDown<T extends string>({
         <select
             className={
                 (className || "") +
-                " cursor-pointer border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 focus:border-zinc-300 bg-black rounded-md px-2 py-1 [&:not(:read-only)]:hover:text-white [&:not(:read-only)]:focus:text-white"
+                " transition-colors cursor-pointer border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 focus:border-zinc-300 bg-black rounded-md px-2 py-1 [&:not(:read-only)]:hover:text-white [&:not(:read-only)]:focus:text-white"
             }
             value={value}
             onChange={(e) => onChange(e.target.value as T)}
@@ -87,5 +87,28 @@ export function DownDown<T extends string>({
                 </option>
             ))}
         </select>
+    );
+}
+
+interface SmallButtonProps {
+    onClick?: () => void;
+    className?: string;
+    children?: React.ReactNode;
+    selected?: boolean;
+}
+export function SmallButton({ onClick, className, children, selected }: SmallButtonProps) {
+    const bg = selected ? "bg-slate-800" : "bg-black";
+    return (
+        <button
+            className={
+                (className || "") +
+                " " +
+                bg +
+                " transition-colors cursor-pointer border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 rounded-md px-2 py-1 active:bg-slate-800 [&:not(:read-only)]:hover:text-white"
+            }
+            onClick={onClick}
+        >
+            {children}
+        </button>
     );
 }
