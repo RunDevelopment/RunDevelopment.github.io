@@ -6,7 +6,9 @@ inlineCodeLanguage: rust
 
 # Generalized multiply-add method
 
-In the last article, we went over different way to optimize the function $round(x \cdot 255 / 31)$ and the fastest solution was the multiply-add method. In this article, we will analyze the generalized multiply-add method (GMA) and develop and algorithm to quickly iterate all possible constants for a given GMA problem.
+In the last article, we went over different ways to optimize the function $round(x \cdot 255 / 31)$. The fastest solution was the generalized multiply-add method, which performed the computation as `(x * 527 + 23) >> 6`.
+
+In this article, I will analyze the generalized multiply-add method (GMA) and develop an algorithm to quickly iterate all possible constants for a given GMA problem. All properties of the GMA used in the algorithm will be proven in this article.
 
 ## Background
 
@@ -20,7 +22,9 @@ A quick note on notation:
 
 </div>
 
-The multiply-add method is used by modern compilers to optimize division by a constant. Division is quite an expensive operation on modern CPUs, so compilers try to replace divisions with cheaper operations whenever possible. The multiply-add method is one way to achieve such an optimization. It works as follows:
+Before we tackle the *generalized* multiply-add method, let's first talk about the *multiply-add* method and why it is useful.
+
+The multiply-add method is used by modern compilers to optimize division by a constant. Division is quite an expensive operation on modern CPUs, so compilers try to replace divisions with cheaper operations whenever possible. The multiply-add method is one way to achieve such an optimization. It works by solving the following problem:
 
 Given $U,D\in\N_1$, find constants $f,a,s\in\N$ such that $\forall x\in\set{0,...,U}$:
 
@@ -31,12 +35,10 @@ $$
 A few notes:
 
 -   $U$ describes the input range. E.g. for 8-bit integers, $U=255$.
--   Modern CPUs perform _truncating_ division, meaning that they will discard the fractional part of the result. For unsigned integers, this is equivalent to flooring the result, which is why I used $\lfloor x/D\rfloor$ to denote integer division.
+-   Modern CPUs perform _truncating_ division, meaning that they will discard the fractional part of the result (round towards zero). For unsigned integers, this is equivalent to `floor`ing the result (round towards negative infinity), which is why I used $\lfloor x/D\rfloor$ to denote integer division.
 -   The floor division by $2^s$ is equivalent to a right bit-shift by $s$.
 
-In programming terms, this means that we can replace `x / D` with `(x * f + a) >> s` and get the same result (with the right constants). Since the cost of multiplication + addition + bit-shift is lower than the cost of a single division, this can be a significant optimization.
-
-However, that's not all. As it turns out, it's possible for find constants with $a=0$, meaning that we don't even have to pay for addition.
+In programming terms, this means that we can replace `x / D` with `(x * f + a) >> s` and get the same result, with the right constants. Even better, we can always find constants with $a=0$, so we only need to perform a multiplication and a shift. Since the cost of multiplication + bit-shift is typically much lower than the cost of a single division, this is often a significant optimization.
 
 ## Generalizing
 
@@ -70,7 +72,7 @@ To quickly recap, all of the theorems will use the following variables and terms
     1. $\forall i \in \N : R(i) = i$,
     2. $R$ is monotonically increasing.
 -   $f, a, s \in \N$ are the constants that we want to find.
--   A triple $(f, a, s)$ is a _solution_ iff it satisfies the equation for all $x \in \N_0, 0 \le x \le U$:
+-   A triple $(f, a, s)$ is a _solution_ iff it satisfies the equation for all $x\in\set{0,...,U}$:
 
 The problem is to find triples that fulfill the following equation for all $x\in\set{0,...,U}$:
 
@@ -78,13 +80,13 @@ $$
 R(x \cdot \frac{T}{D}) = \lfloor \frac{xf + a}{2^s} \rfloor
 $$
 
-**Inequality definition:** We'll quickly note that by applying $z-1 < \lfloor z \rfloor \le z, \forall z\in \R$, it follows the above equation can be rewritten as:
+**Inequality definition:** We'll quickly note that by applying $z-1 < \lfloor z \rfloor \le z, \forall z\in \R$, it follows the above equation is true iff the following inequality is true:
 
 $$
 R(xT/D) \le \frac{xf + a}{2^s} < R(xT/D) + 1
 $$
 
-This alternative definition will be used later for geometric arguments.
+This alternative definition is often easier to work and will see a lot of use later.
 
 <div class="info">
 
@@ -118,7 +120,7 @@ $\square$
 
 1. It trivially follows that if one solution exists, then infinitely many solutions exist. So every problem either has no solutions or infinitely many.
 2. It follows that if $(f,a,s)$ is a solution with $f$ is even and $s > 0$, then $(f/2, \lfloor a/2\rfloor, s-1)$ is a solution.
-3. The process from note 2 can be repeated $k$ times. Let $k\in\N$ and $(f,a,s)$ be a solution such that $f$ is divisible by $2^k$ and $s>k$. Then $(f/2^k, \lfloor a/2^k\rfloor, s-k)$ is a solution.
+3. The process from note 2 can be repeated $k$ times. Let $k\in\N$ and $(f,a,s)$ be a solution such that $f$ is divisible by $2^k$ and $s\ge k$. Then $(f/2^k, \lfloor a/2^k\rfloor, s-k)$ is a solution.
 
 ### Definition: _minimal_ and _derived_ solutions
 
@@ -132,16 +134,16 @@ Solutions can be categorized into 2 groups: _minimal_ and _derived_. A solution 
 
 If $(f,a,s)$ is a solution, then $a < 2^s$.
 
-**Proof:** If $a \ge 2^s$, then substituting $x=0$ results in $\lfloor (xf+a)/2^s \rfloor = \lfloor a/2^s \rfloor \ge 1 \ne 0 = R(0)$, which contradicts with the requirement that $(f,a,s)$ is a solution. $\square$
+**Proof:** If $a \ge 2^s$, then substituting $x=0$ results in $\lfloor (xf+a)/2^s \rfloor = \lfloor a/2^s \rfloor \ge 1 \ne 0 = R(0)$, which means that $(f,a,s)$ is not a solution. $\square$
 
 **Notes:**
 
 1. It trivially follows that $s = 0 \implies a = 0$.
-1. Even if we allowed $a$ to be negative ($a\in\Z$), a similar argument could be made for why no solution can have an $a < 0$.
+1. Even if we defined $a\in\Z$, a similar argument could be made for why no solution can have an $a < 0$. So $a\in\N$ does not limit the generality of the problem.
 
 ### Theorem 3: there are no gaps between solutions in $a$
 
-Let $k\in\N, k\ge 2$. If $(f,a,s)$ and $(f,a+k,s)$ are solutions, then all triples $\set{(f,a+j,s) | j \in \N ,0\le j \le k}$ are solutions.
+Let $k\in\N$. If $(f,a,s)$ and $(f,a+k,s)$ are solutions, then all triples $\set{(f,a+j,s) | j \in \N ,0\le j \le k}$ are solutions.
 
 **Proof:** Since $(f,a,s)$ and $(f,a+k,s)$ are solutions, using the inequality definition, it follows that for all $j \in\N, 0 \le j \le k$:
 
@@ -179,7 +181,8 @@ $$
 Using $0 \le a < 2^s$, $a$ can be removed using $(V-1) \cdot 2^s = V \cdot 2^s - 2^s < V \cdot 2^s - a$ and $(V+1) \cdot 2^s - a \le (V+1) \cdot 2^s$. This leaves only:
 
 $$
-\frac{(V-1) \cdot 2^s}U < f < \frac{(V+1) \cdot 2^s}U \space \square
+\frac{(V-1) \cdot 2^s}U < f < \frac{(V+1) \cdot 2^s}U \space
+\square
 $$
 
 **Notes:**
@@ -190,7 +193,7 @@ $$
 
 ### Definition: _solution range_
 
-We know that solutions come in ranges of $a$ values. This is a useful way to think about solutions, so let's formalize it.
+Because of theorem 3, we know that solutions come in ranges of $a$ values. This is a useful way to think about solutions, so let's formalize it.
 
 A tuple $(f,A,s), A\subseteq\N$ is called a _solution range_ iff $A \ne \empty$, all $(f,a,s), a\in A$ are solutions, and there exists no $a \notin A$ such that $(f,a,s)$ is a solution.
 
@@ -198,7 +201,7 @@ In other words, a solution range is a non-empty set of all solutions for a given
 
 **Notes:**
 
-1. Because of Theorem 3, a solution range can be defined by its minimum and maximum $a$ values.
+1. Because of Theorem 3, a solution range can be defined by its minimum and maximum $a$ values. In other words, $A$ is an interval.
 2. The definitions for _minimal_ and _derived_ naturally extend to solution ranges, as a solution range can only contain one kind of solution.
 
 ### The geometric interpretation of solutions
@@ -209,7 +212,7 @@ $$
 R(xT/D) \le \frac{xf + a}{2^s} < R(xT/D) + 1
 $$
 
-We can think of this definition as the linear function $y = (xf + a)/2^s$ being in between 2 step functions.
+We can think of this definition as a linear function $y = (xf + a)/2^s$ between 2 step functions.
 
 Here's an example for $D=3, T=1, U=1, R(x) = round(x)$ with the solution $f=5,a=9,s=4$. The two step functions are in blue and $(xf + a)/2^s$ is in red:
 
@@ -237,7 +240,7 @@ As we can see, the derived solutions are always half a step above from the origi
 
 ### Theorem 5
 
-Let $k\in\N,k\ge 1$. If $(f,A_0,s)$ and $(f+k,A_k,s)$ are solution ranges, then:
+Let $k\in\N$. If $(f,A_0,s)$ and $(f+k,A_k,s)$ are solution ranges, then:
 
 1. $\min \space A_0 \ge \min \space A_k$, and
 2. $\max \space A_0 \ge \max \space A_k$.
@@ -255,7 +258,7 @@ $$
 From this, it follows that for any $j \in \N_1$:
 
 $$
-\frac{x_rf+a_k-j}{2^s} \le \frac{x_rf+a_k-1}{2^s} < \frac{x_r(f+k)+a_k-1}{2^s} < R(x_rT/D)
+\frac{x_rf+a_k-j}{2^s} \le \frac{x_rf+a_k-1}{2^s} \le \frac{x_r(f+k)+a_k-1}{2^s} < R(x_rT/D)
 $$
 
 By this inequality, it follows that no $(f,a_k-j,s)$ can be a solution, because they do not fulfill the inequality definition for $x_r$. It follows that $\min \space A_0 \ge \min \space A_k = a_k$.
@@ -271,7 +274,7 @@ $$
 From this, it follows that for any $j \in \N_1$:
 
 $$
-R(x_rT/D) + 1 \ge \frac{x_rf+a_0+1}{2^s} > \frac{x_r(f+k)+a_0+1}{2^s} \ge \frac{x_r(f+k)+a_0+j}{2^s}
+R(x_rT/D) + 1 \ge \frac{x_rf+a_0+1}{2^s} \ge \frac{x_r(f+k)+a_0+1}{2^s} \ge \frac{x_r(f+k)+a_0+j}{2^s}
 $$
 
 By this inequality, it follows that no $(f+k,a_0+j,s)$ can be a solution, because they do not fulfill the inequality definition for $x_r$. It follows that $a_0 = \max \space A_0 \ge \max \space A_k$.
@@ -298,7 +301,7 @@ Let $a_0\in A_0, a_k \in A_k$. The geometric interpretation of the solution $(f,
 
 ![](./intersect-1.png)
 
-(Note that $x_{\text{inter}}$ may not be an integer or even be greater than $U$. This doesn't matter for the proof.)
+(Note that $x_{\text{inter}}$ may not be an integer or even be greater than $U$. This doesn't matter for the proof. $x_{\text{inter}} \in (0,\infin)$ suffices.)
 
 This means that we just have to choose $a_j$ such that the line for $(f+j,a_j,s)$ intersects the lines for $(f,a_0,s)$ and $(f+k,a_k,s)$ at the same $x_{\text{inter}}$. Of course, there is exactly one such line that fulfills this requirement.
 
@@ -328,7 +331,7 @@ $$
 \frac{x(f+j)+q}{2^s}
 $$
 
-will will always be between the two step functions, because it will always be inside the area enclosed by the linear functions for $(f,a_0,s)$, $(f+k,a_k,s)$, and their derived solutions.
+will always be between the two step functions, because it will always be inside the area enclosed by the linear functions for $(f,a_0,s)$, $(f+k,a_k,s)$, and their derived solutions.
 
 If we expand the function with $2^{s+1}$, we get:
 
@@ -336,7 +339,7 @@ $$
 \frac{2^{s+1}x(f+j)+2^{s+1}q}{2^{2s-1}}
 $$
 
-Since $q$ is in the range $[p, p+\frac{1}{2^{s+1}}]$, $2^{s+1}q$ is in the range $[2^{s+1}p, 2^{s+1}p+1]$. This interval contains at least one integer, so pick any integer $o \in \N \cap [p, p+\frac{1}{2^{s+1}}]$. Then we know that $(2^{s+1}(f+j),o,2s+1)$ is a solution. Using theorem 1 note 3, we find that $(f+j,\lfloor o/2^{s-1} \rfloor,s)$ is a solution. $\square$
+$q\in [p, p+\frac{1}{2^{s+1}}] \implies 2^{s+1}q\in[2^{s+1}p, 2^{s+1}p+1]$. This interval contains at least one integer, so pick any integer $o \in \N \cap [2^{s+1}p, 2^{s+1}p+1]$. Then we know that $(2^{s+1}(f+j),o,2s+1)$ is a solution. Using theorem 1 note 3, we find that $(f+j,\lfloor o/2^{s-1} \rfloor,s)$ is a solution. $\square$
 
 TODO: more rigorous proof. Show that $o$ is in range to be a valid solution.
 
@@ -426,12 +429,125 @@ If $(f,A,s),s>0$ is the smallest solution range, then $f$ will be the odd intege
 **Indications for correctness:**
 
 -   Since the smallest solution range is minimal and $s>0$, $f$ must be odd.
--   $f$ must also generally be close to $T \cdot 2^s / D$ to match the slope of $R(xT/D)$. In fact, $f=T \cdot 2^s / D$ is the limit for the bounds of $f$ as $U \to \infin$. Given those 2 facts, it seems reasonable that the above statement is true.
--   I was also unable to find a single counter-example through computer search.
+-   $f$ must generally be close to $T \cdot 2^s / D$ to match the slope of $R(xT/D)$. In fact, $f=T \cdot 2^s / D$ is the limit for the bounds of $f$ as $U \to \infin$.
+-   I was unable to find a single counter-example through computer search.
 
 Going forward, I will assume that this conjecture is true. This massively speeds up the search algorithm, because the number of factors it needs to check went from $O(2^s)$ to $O(1)$.
 
-TODO: the actual algorthm
+### Theorem 9
+
+Let $k\in\N$. If $(f,a,s)$ is a solution, then $(f+k\cdot 2^s,a,s)$ is a solution for the problem $D'=D, T'=T+kD, U'=U,R'=R$.
+
+**Proof:**
+
+$$
+\begin{split}
+R'(xT'/D') &= \lfloor \frac{x(f+k\cdot 2^s) + a}{2^s} \rfloor \\
+R((xT+xkD)/D) &= \lfloor \frac{xf+xk\cdot 2^s + a}{2^s} \rfloor \\
+R(xT/D + xk) &= \lfloor \frac{xf + a}{2^s}+xk \rfloor \\
+R(xT/D) + xk &= \lfloor \frac{xf + a}{2^s} \rfloor+xk \\
+R(xT/D) &= \lfloor \frac{xf + a}{2^s} \rfloor \\
+\square
+\end{split}
+$$
+
+**Notes:**
+
+1. This means that we can always reduce a problem with $T>D$ to a problem with $T'< D$ using $k=\lfloor T/D \rfloor$ and $T'=T\bmod D$.
+2. $T'$ and $D$ are coprime, because $T$ and $D$ are coprime.
+
+### Theorem 10
+
+Let $k\in\N$, and $(f,s,a)$ be the constants of a _potential_ solution. Let $x\in\N$ be an input. If $R(xT/D) = \lfloor (xf+a)/2^s \rfloor$ and $R((x+kD)T/D) = \lfloor ((x+kD)f+a)/2^s \rfloor$, then $\forall j\in\N,0\le j\le k: R((x+jD)T/D) = \lfloor ((x+jD)f+a)/2^s \rfloor$.
+
+**Proof:** Let $j\in\N,0\le j \le k$.
+
+Using the inequality definition, we know that:
+
+$$
+\begin{split}
+R((x+jD)T/D) &\le \frac{(x+jD)f + a}{2^s} < R((x+jD)T/D) + 1 \\
+R(xT/D) + jT &\le \frac{xf + a}{2^s} + jTf/2^s < R(xT/D) + jT + 1 \\
+R(xT/D) &\le \frac{xf + a}{2^s} + jTf/2^s - jT < R(xT/D) + 1 \\
+R(xT/D) &\le \frac{xf + a}{2^s} + jT(f/2^s - 1) < R(xT/D) + 1 \\
+\end{split}
+$$
+
+Let $q=T(f/2^s-1)$:
+
+$$
+R(xT/D) \le \frac{xf + a}{2^s} + jq < R(xT/D) + 1
+$$
+
+So we just need to proof that this inequality is true. Since $R(xT/D) = \lfloor (xf+a)/2^s \rfloor$ and $R((x+kD)T/D) = \lfloor ((x+kD)f+a)/2^s \rfloor$, we know by their inequality definition that:
+
+$$
+\begin{equation}
+R(xT/D) \le \frac{xf + a}{2^s} < R(xT/D) + 1
+\end{equation}
+$$
+
+$$
+\begin{equation}
+R(xT/D) \le \frac{xf + a}{2^s} +kq < R(xT/D) + 1
+\end{equation}
+$$
+
+This gives us 2 cases: $q\ge 0$ and $q<0$. If $q\ge 0$, then:
+
+$$
+R(xT/D) \le \frac{xf + a}{2^s} \le \frac{xf + a}{2^s} +jq\le \frac{xf + a}{2^s} +kq < R(xT/D) + 1
+$$
+
+If $q < 0$, then:
+
+$$
+R(xT/D) \le \frac{xf + a}{2^s}+kq \le \frac{xf + a}{2^s} +jq\le \frac{xf + a}{2^s} < R(xT/D) + 1
+$$
+
+In both cases, the inequality definition for $R((x+jD)T/D) = \lfloor ((x+jD)f+a)/2^s \rfloor$ is fulfilled. $\square$
+
+**Notes:**
+
+1. This means that a search or verification algorithm for a solution only has to consider to first and last $D$ inputs in the range $[0,U]$.
+
+### Theorem 11
+
+Let $k\in\N$, and $(f,s,a)$ be the constants of a _potential_ solution. Let $x\in\N$ be an input. If $R(xT/D) = \lfloor (xf+a)/2^s \rfloor = R((x+k)T/D) = \lfloor ((x+k)f+a)/2^s \rfloor$, then $\forall j\in\N,0\le j\le k: R((x+j)T/D) = \lfloor ((x+j)f+a)/2^s \rfloor$.
+
+**Proof:** Let $j\in\N,0\le j \le k$. Since $R(xT/D)$ is a monotonic function over $x$:
+
+$$
+R(xT/D) \le R((x+j)T/D) \le R((x+k)T/D)
+$$
+
+Since $R(xT/D) = R((x+k)T/D)$, it follows that $R(xT/D) = R((x+j)T/D)$.
+
+Similarly, since $\lfloor (xf+a)/2^s \rfloor$ is a monotonic function over $x$:
+
+$$
+\lfloor (xf+a)/2^s \rfloor \le \lfloor ((x+j)f+a)/2^s \rfloor \le \lfloor ((x+k)f+a)/2^s \rfloor
+$$
+
+Since $\lfloor (xf+a)/2^s \rfloor = \lfloor ((x+k)f+a)/2^s \rfloor$, it follows that $\lfloor (xf+a)/2^s \rfloor = \lfloor ((x+j)f+a)/2^s \rfloor$. From this, we know that:
+
+$$
+R(xT/D) = \lfloor (xf+a)/2^s \rfloor = \lfloor ((x+j)f+a)/2^s \rfloor = R((x+j)T/D)
+$$
+
+$\square$
+
+**Notes:**
+
+1. This means that a search or verification algorithm for a solution only has to consider to inputs where the output value changes.
+
+### Theorem 12
+
+$$
+R(xT/D) = \lfloor \frac{xT+r_D}{D} \rfloor
+= \lfloor \frac{x(T-j+j)+r_D}{D}
+= \lfloor \frac{x(T-j)+xj+r_D}{D} \rfloor
+$$
 
 ## Efficiently finding $A$
 
