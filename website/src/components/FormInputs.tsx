@@ -9,8 +9,17 @@ interface NumberInputProps {
     max: number;
     readOnly?: boolean;
     className?: string;
+    name?: string;
 }
-export function NumberInput({ value, onChange, min, max, readOnly, className }: NumberInputProps) {
+export function NumberInput({
+    value,
+    onChange,
+    min,
+    max,
+    readOnly,
+    className,
+    name,
+}: NumberInputProps) {
     const [text, setText] = useState(value.toString());
 
     useEffect(() => {
@@ -31,6 +40,7 @@ export function NumberInput({ value, onChange, min, max, readOnly, className }: 
 
     return (
         <input
+            name={name}
             type="number"
             className={
                 (className || "") +
@@ -64,6 +74,7 @@ interface DownDownProps<T extends string> {
     options: readonly T[];
     getLabel?: (value: T) => string;
     className?: string;
+    name?: string;
 }
 export function DownDown<T extends string>({
     value,
@@ -71,9 +82,11 @@ export function DownDown<T extends string>({
     options,
     getLabel = String,
     className,
+    name,
 }: DownDownProps<T>) {
     return (
         <select
+            name={name}
             className={
                 (className || "") +
                 " transition-colors cursor-pointer border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 focus:border-zinc-300 bg-black rounded-md px-2 py-1 [&:not(:read-only)]:hover:text-white [&:not(:read-only)]:focus:text-white"
@@ -95,8 +108,9 @@ interface SmallButtonProps {
     className?: string;
     children?: React.ReactNode;
     selected?: boolean;
+    title?: string;
 }
-export function SmallButton({ onClick, className, children, selected }: SmallButtonProps) {
+export function SmallButton({ onClick, className, children, selected, title }: SmallButtonProps) {
     const bg = selected ? "bg-slate-800" : "bg-black";
     return (
         <button
@@ -107,6 +121,7 @@ export function SmallButton({ onClick, className, children, selected }: SmallBut
                 " transition-colors cursor-pointer border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 rounded-md px-2 py-1 active:bg-slate-800 [&:not(:read-only)]:hover:text-white"
             }
             onClick={onClick}
+            title={title}
         >
             {children}
         </button>

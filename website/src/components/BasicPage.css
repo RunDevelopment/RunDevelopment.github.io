@@ -15,8 +15,8 @@ body {
 
 article p,
 article .normal-my {
-    margin-top: 1.25rem;
-    margin-bottom: 1.25rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
 }
 @media print {
     article p,

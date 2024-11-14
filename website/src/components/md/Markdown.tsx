@@ -14,6 +14,7 @@ import { H1, H2, H3, H4 } from "./Headings";
 import { InlineCode } from "./InlineCode";
 import { identity } from "../../lib/util";
 import { ImageSize } from "../../lib/schema";
+import { TodoMarker } from "./TodoMarker";
 
 interface CodeProps {
     children?: ReactNode;
@@ -83,6 +84,7 @@ const PWithDraft: Components["p"] = memo(({ node, children }) => {
     if (isTodo) {
         return (
             <p className="my-4 bg-red-900 py-2 text-xl font-bold text-white outline outline-offset-8 outline-red-600">
+                <TodoMarker />
                 {children}
             </p>
         );
@@ -213,8 +215,8 @@ const staticComponents = {
         if (props.className === "info" || props.className === "side-note") {
             const title = props.className === "side-note" ? "Side note" : "Info";
             return (
-                <div className="narrow normal-my -mx-4 bg-gray-800 py-px pl-8 pr-4 leading-normal md:mx-0 md:px-6">
-                    <div className="-mb-2 mt-4">
+                <div className="narrow normal-my -mx-4 bg-gray-800 py-px pl-8 pr-4 leading-snug md:mx-0 md:px-6">
+                    <div className="-mb-2 mt-3">
                         <strong>{title}:</strong>
                     </div>
                     <div className="compact my-4">{props.children}</div>

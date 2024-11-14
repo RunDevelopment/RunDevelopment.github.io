@@ -2,6 +2,14 @@ import { memo } from "react";
 import { ProblemLike, SolutionLike } from "./interfaces";
 import { CodeBlock } from "../md/CodeBlock";
 
+/**
+ * Given the number of bits required to represent a number, returns the smallest
+ * bit-width of a fixed-size unsigned integer that can hold that number.
+ *
+ * Example: `bitsToTypeSize(3) === 8` and `bitsToTypeSize(9) === 16`
+ */
+export const bitsToTypeSize = (bits: number) => Math.max(8, 2 ** Math.ceil(Math.log2(bits)));
+
 interface Bits {
     input: number;
     output: number;
@@ -40,7 +48,6 @@ function generateCode(
         floor: "rounding down",
         ceil: "rounding up",
     };
-    const bitsToTypeSize = (bits: number) => Math.max(8, 2 ** Math.ceil(Math.log2(bits)));
     const bits = getRequiredBits(solution, problem.inputRange);
 
     const fromType = bitsToTypeSize(bits.input);
