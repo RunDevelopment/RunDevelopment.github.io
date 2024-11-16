@@ -42,7 +42,7 @@ interface ArticleProps {
 }
 export const Article = memo(({ post }: ArticleProps) => {
     return (
-        <article className="narrow-container mt-8 break-normal text-[16px] leading-relaxed print:text-[14px] print:leading-5 print:text-black">
+        <article className="narrow-container mt-8 break-normal text-[16px] leading-normal print:text-[14px] print:leading-snug print:text-black">
             <H1>{post.metadata.title}</H1>
             <AfterHeader meta={post.metadata} />
             <Markdown
