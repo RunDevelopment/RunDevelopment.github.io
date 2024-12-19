@@ -6,9 +6,13 @@ inlineCodeLanguage: rust
 
 # Generalized multiply-add method
 
-In the last article, we went over different way to optimize the function $round(x \cdot 255 / 31)$ and the fastest solution was the multiply-add method. In this article, we will analyze the generalized multiply-add method (GMA) and develop and algorithm to quickly iterate all possible constants for a given GMA problem.
+In the last article, I went over different way to optimize the function $round(x \cdot 255 / 31)$ and the fastest solution was the multiply-add method. In this article, I will analyze the generalized multiply-add method (GMA) and develop and algorithm to quickly iterate all possible constants for a given GMA problem.
 
-## Background
+This article serves as both explanation and proof for the generalized multiply-add problem and the algorithms to solve it. As such, it is quite dense and not intended for a general audience.
+
+## Generalizing the multiply-add method
+
+### Background
 
 <div class="info">
 
@@ -17,80 +21,92 @@ A quick note on notation:
 -   $\N = \set{0,1,2,3,...}$
 -   $\N_1 = \N \setminus \set{0} = \set{1,2,3,...}$
 -   $\R^+ = [0,\infin)$
+-   $ℚ^+ = \set{ q | q \in ℚ \land q\ge 0 }$
 
 </div>
 
+TODO: References to previous papers and maybe LLVM discussion/source code.
+
 The multiply-add method is used by modern compilers to optimize division by a constant. Division is quite an expensive operation on modern CPUs, so compilers try to replace divisions with cheaper operations whenever possible. The multiply-add method is one way to achieve such an optimization. It works as follows:
 
-Given $U,D\in\N_1$, find constants $f,a,s\in\N$ such that $\forall x\in\set{0,...,U}$:
+Given $u,d\in\N_1$, find constants $f,a,s\in\N$ such that $\forall x\in\set{0,...,u}$:
 
 $$
-\lfloor \frac{x}{D} \rfloor = \lfloor \frac{xf + a}{2^s} \rfloor
+\lfloor \frac{x}{d} \rfloor = \lfloor \frac{xf + a}{2^s} \rfloor
 $$
 
 A few notes:
 
--   $U$ describes the input range. E.g. for 8-bit integers, $U=255$.
--   Modern CPUs perform _truncating_ division, meaning that they will discard the fractional part of the result. For unsigned integers, this is equivalent to flooring the result, which is why I used $\lfloor x/D\rfloor$ to denote integer division.
+-   $u$ describes the input range. E.g. for 8-bit integers, $u=255$.
+-   Modern CPUs perform _truncating_ division, meaning that they will discard the fractional part of the result. For unsigned integers, this is equivalent to flooring the result, which is why I used $\lfloor x/d\rfloor$ to denote integer division.
 -   The floor division by $2^s$ is equivalent to a right bit-shift by $s$.
 
-In programming terms, this means that we can replace `x / D` with `(x * f + a) >> s` and get the same result (with the right constants). Since the cost of multiplication + addition + bit-shift is lower than the cost of a single division, this can be a significant optimization.
+In programming terms, this means that `x / d` can be replaced with `(x * f + a) >> s` while still getting the same result (with the right constants). Since the cost of multiplication + addition + bit-shift is typically lower than the cost of a single division, this can be a significant optimization.
 
-However, that's not all. As it turns out, it's possible for find constants with $a=0$, meaning that we don't even have to pay for addition.
+It's also possible for find constants with $a=0$, meaning the cost for addition can be avoided, making the optimization even more efficient.
 
-## Generalizing
+### Generalizing
 
-The multiply-add method can handle more than just floor division. We can generalize by:
+The multiply-add method, while useful on its own, can handle more than just floor division. The problem statement can be generalized by:
 
-1. Multiplying with a fraction. So instead of $x/D$, we'll do $x \cdot T / D$.
-2. Using a different rounding function. Instead of just flooring/truncating the result, we can use an arbitrary rounding function (e.g. `round` or `ceil`).
+1. Multiplying with a fraction. Instead of $x/d$, $x \cdot t / d$ is used instead.
+2. Using different rounding functions. `floor` (or truncation) is the default rounding most programming languages use for unsigned integer division, but other rounding modes (e.g. `round` or `ceil`) also have their use cases.
 
-With these 2 changes, here's the generalized problem:
+TODO: ^ link to prev article for a use case
 
-Given $D,T,U\in\N_1$, and a rounding function $R:\R^+\to\N$ where $R$ is monotonically increasing and $\forall i \in \N : R(i) = i$, find constants $f,a,s\in\N$ such that $\forall x\in\set{0,...,U}$:
+### Floor-like rounding functions
 
-$$
-R(x \cdot \frac{T}{D}) = \lfloor \frac{xf + a}{2^s} \rfloor
-$$
+Unfortunately, there are a lot of possible rounding functions, with potentially vastly different properties, even though `floor`, `round`, and `ceil` are the most commonly-used ones in practice. To make the following analysis easier, only a certain class of rounding functions, I call _floor-like rounding functions_ (FRF), will be considered.
 
-This is the main equation of the **Generalized Multiply-Add method** (GMA). The definition is more complex that the original one, but not by much. We are mostly interested in common rounding functions (`round`, `floor`, `ceil`), so $R$ isn't all that different from the original definition.
+**Definition 1.1:** A function $R:ℚ^+ \to \N$ is a _floor-like rounding functions_ (FRF) iff for every $b\in\N_1$ there exists an $r_b\in\N,r_b<b$ such that $\forall a\in\N:R(a/b) = \lfloor (a + r_b)/b \rfloor$.
 
-Using brute force, it's already possible to find the constants for a given problem. However, the search space is quite large, so we need to be smart about how we search it. Let's start by analyzing the problem.
+**Notes:**
 
-I'll quickly note that since $f$ and $a$ depend on $s$, the algorithm we'll develop will first pick an $s$ and then try to find values for $f$ and $a$. This means that in our analysis, we can assume that $s$ is fixed.
+1. While $r_b$ is defined as an integer for simplicity, any value $r_b + \epsilon$ with $\epsilon \in [0,1)$ will work.
+2. FRFs have a few nice properties:
+    1. They are monotonically increasing.
+    2. Let $i\in\N$, then $R(i) = i$.
+    3. Let $q\in ℚ^+, i\in\N$, then $R(q+i)=R(q)+i$.
 
-## Analyzing GMA
+While this restricts the possible rounding functions substantially, it's enough to cover `floor`, `round`, and `ceil`. Values for $r_b$ are as follows:
 
-To quickly recap, all of the theorems will use the following variables and terms:
+-   `floor`: $r_b = 0$
+-   `round`: $r_b = \lfloor b/2 \rfloor$
+-   `ceil`: $r_b = b-1$
 
--   $D \in \N_1$ is the divisor of the fraction.
--   $T \in \N_1$ is the denominator of the fraction.
--   $U \in \N_1$ is the maximum value of $x$ that we want to check.
--   $R$ is a function that satisfies the following properties:
-    1. $\forall i \in \N : R(i) = i$,
-    2. $R$ is monotonically increasing.
--   $f, a, s \in \N$ are the constants that we want to find.
--   A triple $(f, a, s)$ is a _solution_ iff it satisfies the equation for all $x \in \N_0, 0 \le x \le U$:
+Proving that these $r_b$ values are correct and that the above functions are RFRs is left as an exercise to the reader.
 
-The problem is to find triples that fulfill the following equation for all $x\in\set{0,...,U}$:
+### The GMA problem statement
 
-$$
-R(x \cdot \frac{T}{D}) = \lfloor \frac{xf + a}{2^s} \rfloor
-$$
+A GMA problem verb an expression of the form $R(xt/d)$ and will have the following parameters:
 
-**Inequality definition:** We'll quickly note that by applying $z-1 < \lfloor z \rfloor \le z, \forall z\in \R$, it follows the above equation can be rewritten as:
+-   $R:ℚ^+ \to \N$ is a floor-like rounding function.
+-   $t \in \N$ is the denominator of the fraction.
+-   $d \in \N_1$ is the divisor of the fraction.
+-   $u \in \N_1$ is the maximum value of $x$ that we want to check.
 
-$$
-R(xT/D) \le \frac{xf + a}{2^s} < R(xT/D) + 1
-$$
+For convenience, let $U=\set{0,...,u}$ be the set of all input values, and assume $x\in U$ for the rest of the article unless stated otherwise.
 
-This alternative definition will be used later for geometric arguments.
+**Problem statement:** Given $R,t,d,u$ as defined above, find constants $f,a,s\in\N$ such that: $\forall x\in U: R(x t/d) = \lfloor (xf + a)/2^s \rfloor$.
 
-<div class="info">
+Solving this problem will be the subject of this article. Of course, brute force is one way to solve this, however the sheer size of the solution space is too large for brute force to be viable in practice. In the following section, I will analyse the GMA problem and use my findings to develop an efficient algorithm for finding solutions.
 
-Theorems will reference each other as "T1", "T2", and so on. Theorems "A1" and so on can be found in the appendix.
+## Analysis
 
-</div>
+This analysis will focus on both how GMA problems and solutions to these problems relate to each other.
+
+### Solutions
+
+**Definition 2.1:** A triple $(f,a,s)\in\N^3$ is a _solution_ iff $\forall x\in U: R(x t/d) = \lfloor (xf + a)/2^s \rfloor$.
+
+**Notes:**
+
+1. The equation from the definition will be used all throughout the analysis. I will refer to it as the _main equation_.
+2. Using that $z-1 < \lfloor z \rfloor \le z, \forall z\in \R$ and a bit of trivial number theory, we can rewrite the main equation to get an alternate definition for solutions:
+
+    A triple $(f,a,s)\in\N^3$ is a _solution_ iff $\forall x\in U: R(xt/d) \le (xf + a)/{2^s} < R(xt/d) + 1$.
+
+    We will call this the **inequality definition** of a solution. This form is often easier to work with and will be used a lot.
 
 ### Theorem 1
 
@@ -103,12 +119,12 @@ $$
 \lfloor \frac{2 x f + 2a}{2^{s+1}} \rfloor
 = \lfloor \frac{2 \cdot (x f + a)}{2 \cdot 2^s} \rfloor
 &= \lfloor \frac{x f + a}{2^s} \rfloor
-= R(xT/D) \\
+= R(xt/d) \\
 
 \lfloor \frac{2x f + 2a + 1}{2^{s+1}} \rfloor
 = \lfloor \frac{x f + a + 0.5}{2^s} \rfloor
 &\overset{\text{A1}}= \lfloor \frac{x f + a}{2^s} \rfloor
-= R(xT/D)
+= R(xt/d)
 \end{split}
 $$
 
@@ -118,17 +134,19 @@ $\square$
 
 1. It trivially follows that if one solution exists, then infinitely many solutions exist. So every problem either has no solutions or infinitely many.
 2. It follows that if $(f,a,s)$ is a solution with $f$ is even and $s > 0$, then $(f/2, \lfloor a/2\rfloor, s-1)$ is a solution.
-3. The process from note 2 can be repeated $k$ times. Let $k\in\N$ and $(f,a,s)$ be a solution such that $f$ is divisible by $2^k$ and $s>k$. Then $(f/2^k, \lfloor a/2^k\rfloor, s-k)$ is a solution.
+3. The process from note 2 can be repeated $k$ times. Let $k\in\N$ and $(f,a,s)$ be a solution such that $f$ is divisible by $2^k$ and $s\ge k$. Then $(f/2^k, \lfloor a/2^k\rfloor, s-k)$ is a solution.
 
-### Definition: _minimal_ and _derived_ solutions
+### _Minimal_ and _derived_ solutions
 
-Solutions can be categorized into 2 groups: _minimal_ and _derived_. A solution $(f,a,s)$ is called _derived_ iff there exists a solution $(f',a',s')$ such that $f=2f'$, $a\in\set{2a',2a'+1}$, and $s=s'+1$. Otherwise, the solution is called _minimal_.
+Solutions can be categorized into 2 groups: _minimal_ and _derived_.
+
+**Definition 2.2:** A solution $(f,a,s)$ is called _derived_ iff there exists a solution $(f',a',s')$ such that $f=2f'$, $a\in\set{2a',2a'+1}$, and $s=s'+1$. Otherwise, the solution is called _minimal_.
 
 **Notes:**
 
 1. It's obvious that a solution is minimal iff $f$ is odd or $s=0$.
 
-### Theorem 2: upper bound for $a$
+### Theorem 2: bounds for $a$
 
 If $(f,a,s)$ is a solution, then $a < 2^s$.
 
@@ -146,7 +164,7 @@ Let $k\in\N, k\ge 2$. If $(f,a,s)$ and $(f,a+k,s)$ are solutions, then all tripl
 **Proof:** Since $(f,a,s)$ and $(f,a+k,s)$ are solutions, using the inequality definition, it follows that for all $j \in\N, 0 \le j \le k$:
 
 $$
-R(xT/D) \le \frac{x f + a}{2^s} \le \frac{x f + a+j}{2^s} \le \frac{x f + a+k}{2^s} < R(xT/D) + 1
+R(xt/d) \le \frac{x f + a}{2^s} \le \frac{x f + a+j}{2^s} \le \frac{x f + a+k}{2^s} < R(xt/d) + 1
 $$
 
 Since all triples $(f,a+j,s)$ fulfill the inequality definition for a solution, they must be solutions. $\square$
@@ -156,43 +174,39 @@ Since all triples $(f,a+j,s)$ fulfill the inequality definition for a solution, 
 1. This basically means that there are no gaps between solutions with the same $f$ and $s$.
 2. This is very interesting to us, because it means that an algorithm to solve the problem can find a whole range of solutions at once. This enables tricks like binary search to find $a$ values, which is very important, because the search space for $a$ grows exponentially with $s$.
 
-### Theorem 4
+### Theorem 4: bounds for $f$
 
-Let $V = R(U\cdot T/D)$. If $(f,a,s)$ is a solution, then:
+Let $v = R(u \cdot t/d)$. If $(f,a,s)$ is a solution, then $(v-1)\cdot 2^s/u < f < (v+1)\cdot 2^s/u$.
 
-$$
-\frac{(V-1)\cdot 2^s}U < f < \frac{(V+1)\cdot 2^s}U.
-$$
-
-**Proof:** Substituting $x=U$ and using the inequality definition for a solution results in:
+**Proof:** Substituting $x=u$ in the inequality definition results in:
 
 $$
-V \le \frac{U \cdot f + a}{2^s} < V + 1
+v \le \frac{u f + a}{2^s} < v + 1
 $$
 
 Rearranging for $f$:
 
 $$
-\frac{V \cdot 2^s - a}U \le f < \frac{(V+1) \cdot 2^s - a}U
+\frac{v \cdot 2^s - a}u \le f < \frac{(v+1) \cdot 2^s - a}u
 $$
 
-Using $0 \le a < 2^s$, $a$ can be removed using $(V-1) \cdot 2^s = V \cdot 2^s - 2^s < V \cdot 2^s - a$ and $(V+1) \cdot 2^s - a \le (V+1) \cdot 2^s$. This leaves only:
+Using $0 \le a < 2^s$, $a$ can be removed using $(v-1) \cdot 2^s = v \cdot 2^s - 2^s < v \cdot 2^s - a$ and $(v+1) \cdot 2^s - a \le (v+1) \cdot 2^s$. This leaves only:
 
 $$
-\frac{(V-1) \cdot 2^s}U < f < \frac{(V+1) \cdot 2^s}U \space \square
+\frac{(v-1) \cdot 2^s}u < f < \frac{(v+1) \cdot 2^s}u \space \square
 $$
 
 **Notes:**
 
-1. For $s=0$, since $f$ needs to be an integer, the bounds can only satisfied for $f = V/U$, which only work when $V \bmod U =0$.
-2. From the lower bound, it follows that $V > 0 \implies f > 0$. This means that if $R(xT/D)$ is **not** a constant zero function, then $f \ne 0$.
+1. For $s=0$, since $f$ needs to be an integer, the bounds can only satisfied for $f = v/u$, which only work when $v \bmod u =0$.
+2. From the lower bound, it follows that $v > 0 \implies f > 0$. This means that if $R(xt/d)$ is **not** a constant zero function, then $f \ne 0$.
 3. Unfortunately, these bounds are not very tight as they grow exponentially with $s$.
 
-### Definition: _solution range_
+### Solution ranges
 
 We know that solutions come in ranges of $a$ values. This is a useful way to think about solutions, so let's formalize it.
 
-A tuple $(f,A,s), A\subseteq\N$ is called a _solution range_ iff $A \ne \empty$, all $(f,a,s), a\in A$ are solutions, and there exists no $a \notin A$ such that $(f,a,s)$ is a solution.
+**Definition 2.3:** A tuple $(f,A,s) \in \N \times P(\N) \times \N$ is called a _solution range_ iff $A \ne \empty$, all $(f,a,s), a\in A$ are solutions, and there exists no $a \notin A$ such that $(f,a,s)$ is a solution.
 
 In other words, a solution range is a non-empty set of all solutions for a given $f$ and $s$.
 
@@ -525,6 +539,92 @@ Last, we just need to make sure that this range is within the bounds of $a$. So 
 
 **Complexity:** Since the runtime of this algorithm on depends on the number of inputs we need to check, it runs in $O(\min \set{D,T,U})$ steps with $O(1)$ memory.
 
+## A different perspective
+
+Thus far, we were solving for triples $(f, a, s)$ that fulfill the main equation. This forms a 3-dimensional solution space. However, thanks to the geometric interpretation, we know that solutions map to linear functions. Obviously, linear function are parameterized by their slope and offset, so 2 parameters. This means that the solution space can be represented as a 2-dimensional space.
+
+**Definition 1:** A pair $(m,n)\in \R^2$ is called a _linear solution_ iff $\forall x\in U:R(xt/d) = \lfloor xm + n \rfloor$ or $\forall x\in U:R(xt/d) \le xm + n < R(xt/d) + 1$.
+
+**Notes:**
+
+1. By choosing $m=f/2^s, n=a/2^s$, any _solution_ can be translated to a _linear solution_.
+2. Theorem 2 trivially translates to linear solution, so we know that $n \in [0,1)$.
+3. Theorems 3, and 6 also trivially translate to linear solutions. This means that:
+    1. If $(m,n)$ and $(m,n+r),r\in \R^+$ are linear solutions, then all $(m,n+j),j\in[0,r]$ are also linear solutions.
+    2. If $(m,n_1)$ and $(m+r,n_2),r\in \R^+$ are linear solutions, then there exist linear solutions $(m+j,n_j)$ for all $j\in[0,r]$.
+4. Theorem 4 also trivially translates, meaning that $(v-1)/u < m < (v+1)/u$ for $v=R(ut/d)$.
+
+**Definition 2:** A pair $(m,N)\in \R \times P(\R)$ is called a _linear solution range_ iff:
+
+1. $N \ne \empty$,
+2. all $(m,n), n\in N$ are linear solutions, and
+3. there exists no $n \notin N$ such that $(m,n)$ is a linear solution.
+
+**Notes:**
+
+1. We know that $N$ is an interval (see definition 1, note 3.1).
+2. Theorem 5 translates to linear solution ranges. So for two linear solution ranges $(m,N_1)$ and $(m+r,N_2),r>0$, we know that:
+    1. $\min \space N_1 \ge \min \space N_2$, and
+    2. $\max \space N_1 \ge \max \space N_2$.
+
+### Theorem 101
+
+Let $(m,n)$ be a linear solution, then $n \in [0,1)$.
+
+**Proof:** For $x=0$, the inequality definition simplifies to:
+
+$$
+\begin{split}
+R(xt/d) \le xm + n &< R(xt/d) + 1 \\
+R(0) \le 0 + n &< R(0) + 1 \\
+0 \le n &< 1
+\end{split}
+$$
+
+Therefor, $n \in [0,1)$ is a necessary condition for $(m,n)$ to be a linear solution. $\square$
+
+### Theorem 102
+
+Let $(m,n)$ be a linear solution and $\epsilon\ge 0$.
+
+1. If $(m,n+\epsilon)$ is a linear solution, then all $(m,n+j), 0 \le j \le \epsilon$ are linear solutions.
+2. If $(m+\epsilon,n)$ is a linear solution, then all $(m+j,n), 0 \le j \le \epsilon$ are linear solution.
+
+**Proof:**
+
+1. $R(xt/d) \le xm + n \le xm + n+j \le xm + n+\epsilon < R(xt/d) + 1$.
+2. The same ideas as in Theorem 5 apply.
+
+$\square$
+
+### Theorem 103
+
+Let $(m_1,n_1)$ and $(m_2,n_2)$ be a linear solutions and $\alpha \in [0,1]$. All paris $(m,n)$ with $m=m_1 + \alpha(m_2-m_1)$ and $n=n_1 + \alpha(n_2-n_1)$ are linear solutions.
+
+**Proof:** Firstly, it's obvious that $m$ and $n$ are between $m_1$ and $m_2$, and $n_1$ and $n_2$ respectively. Secondly, if $m_1=m_2$ or $n_1=n_2$, then the theorem is true because of Theorem 102. So let's assume that $m_1 \ne m_2$ and $n_1 \ne n_2$.
+
+Let $x\in U$. Since $(m,n)$ is a linear interpolation, we know that for $e_1 = xm_1 + n_1$, $e_2 = xm_2 + n_2$, and $e = xm + n$, that $\min\set{e_1,e_2} \le e \le \max\set{e_1,e_2}$. This means that the inequality definition is always fulfilled. $\square$
+
+TODO: more rigorous proof
+
+**Notes:**
+
+1. Since any two points in the solution space can be connected by a line, this means that the solution space forms a convex set.
+
+### Trivial linear solutions
+
+Let $m=t/d$, $N=[r/d, (r+1)/d)$ is a linear solution range.
+
+**Proof sketch:** This is pretty easy to show using that $R$ is a FRF and A1.
+
+
+
+### The shape of the solution space
+
+It's useful to have an actual image for the shape of the solution, so here is an interactive visualization for all $(m,n)$ that are linear solutions. The area is what is the solution space. The area is dark green shows all solutions for $U=\set{0,u}$. This is useful to see how increasing $u$ changes the shape of the solution space.
+
+TODO: Vis
+
 ---
 
 ## OLD
@@ -744,8 +844,6 @@ Note that none of these optimizations are sufficient to prove that a solution is
 ### Playground
 
 I implemented everything we talked about in TypeScript. It's fairly fast and can find the magic constants for most values of $D+T+U<100'000$ in less than a second. Of course, this is just a proof of concept, and the code is not optimized for performance. An optimized implementation in a language like C/C++ or Rust would likely be at least an order of magnitude faster.
-
-
 
 ## Beating the compiler at its own game
 
