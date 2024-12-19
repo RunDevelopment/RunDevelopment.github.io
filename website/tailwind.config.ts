@@ -16,6 +16,8 @@ const config: Config = {
             screens: {
                 xs: "480px",
                 print: { raw: "print" },
+                portrait: { raw: "(orientation: portrait)" },
+                landscape: { raw: "(orientation: landscape)" },
             },
         },
     },

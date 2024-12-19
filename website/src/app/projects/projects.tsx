@@ -24,6 +24,13 @@ const projects: readonly ProjectInfo[] = [
         url: "/projects/multiply-add-constants-finder",
         hidden: true,
     },
+    {
+        title: "Connect Four",
+        description: "Play Connect Four against AI or other players.",
+        date: "2024-09-12",
+        url: "/projects/connect-4444",
+        hidden: true,
+    },
 ];
 
 export const projectsByYear = projects
