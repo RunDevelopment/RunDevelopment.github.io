@@ -548,11 +548,6 @@ Thus far, we were solving for triples $(f, a, s)$ that fulfill the main equation
 **Notes:**
 
 1. By choosing $m=f/2^s, n=a/2^s$, any _solution_ can be translated to a _linear solution_.
-2. Theorem 2 trivially translates to linear solution, so we know that $n \in [0,1)$.
-3. Theorems 3, and 6 also trivially translate to linear solutions. This means that:
-    1. If $(m,n)$ and $(m,n+r),r\in \R^+$ are linear solutions, then all $(m,n+j),j\in[0,r]$ are also linear solutions.
-    2. If $(m,n_1)$ and $(m+r,n_2),r\in \R^+$ are linear solutions, then there exist linear solutions $(m+j,n_j)$ for all $j\in[0,r]$.
-4. Theorem 4 also trivially translates, meaning that $(v-1)/u < m < (v+1)/u$ for $v=R(ut/d)$.
 
 **Definition 2:** A pair $(m,N)\in \R \times P(\R)$ is called a _linear solution range_ iff:
 
@@ -567,7 +562,7 @@ Thus far, we were solving for triples $(f, a, s)$ that fulfill the main equation
     1. $\min \space N_1 \ge \min \space N_2$, and
     2. $\max \space N_1 \ge \max \space N_2$.
 
-### Theorem 101
+### Theorem 101: bounds for $n$
 
 Let $(m,n)$ be a linear solution, then $n \in [0,1)$.
 
@@ -583,47 +578,203 @@ $$
 
 Therefor, $n \in [0,1)$ is a necessary condition for $(m,n)$ to be a linear solution. $\square$
 
-### Theorem 102
+### Theorem 102: bounds for $m$
 
-Let $(m,n)$ be a linear solution and $\epsilon\ge 0$.
+Let $(m,n)$ be a linear solution and $v=R(ut/d)$.
 
-1. If $(m,n+\epsilon)$ is a linear solution, then all $(m,n+j), 0 \le j \le \epsilon$ are linear solutions.
-2. If $(m+\epsilon,n)$ is a linear solution, then all $(m+j,n), 0 \le j \le \epsilon$ are linear solution.
+1. $(v-1)/u < m < (v + 1)/u$
+2. $t/d-2 < m < t/d+2$
+3. $-1 < m$
 
-**Proof:**
+**Proof:** Let $v=R(ut/d)$. For $x=u$, the inequality definition simplifies to:
 
-1. $R(xt/d) \le xm + n \le xm + n+j \le xm + n+\epsilon < R(xt/d) + 1$.
-2. The same ideas as in Theorem 5 apply.
+$$
+\begin{split}
+R(xt/d) &\le xm + n < R(xt/d) + 1 \\
+v &\le um + n < v + 1 \\
+(v-n)/u &\le m < (v + 1-n)/u \\
+\end{split}
+$$
+
+$n$ can be removed from the inequality using the bounds from theorem 101:
+
+$$
+\begin{split}
+(v-n)/u &\le m < (v + 1-n)/u \\
+(v-1)/u &< m < (v + 1)/u \\
+\end{split}
+$$
+
+$u$, $v$, and $R$ can be removed from the lower bound using $0 \le r$, $u \ge 1$, and $z-1 < \lfloor z \rfloor$:
+
+$$
+t/d -2 \le t/d -2/u = (ut/d -2)/u < (\lfloor (ut+r)/d \rfloor-1)/u = (v-1)/u < m
+$$
+
+and from the upper bound using $u \ge 1$, $r < d$, and $\lfloor z \rfloor \le z$:
+
+$$
+m < (v + 1-n)/u = (\lfloor (ut+r)/d \rfloor + 1)/u < ((ut+d)/d + 1)/u = t/d + 2/u \le t/d+2
+$$
+
+Therefor:
+
+$$
+t/d-2 < m < t/d+2
+$$
+
+The lower bound can be narrowed to a constant using $u \ge 1$ and $v \ge 0$:
+
+$$
+-1 = (0-1)/1 \le (v-1)/u < m
+$$
 
 $\square$
 
-### Theorem 103
+**Notes:**
 
-Let $(m_1,n_1)$ and $(m_2,n_2)$ be a linear solutions and $\alpha \in [0,1]$. All paris $(m,n)$ with $m=m_1 + \alpha(m_2-m_1)$ and $n=n_1 + \alpha(n_2-n_1)$ are linear solutions.
+1. These bounds have different use cases. The first bound is the most precise, but the others depend of fewer parameters.
+2. From bound 1, it follows that the range of possible $m$ values is less than $2/u$ wide.
 
-**Proof:** Firstly, it's obvious that $m$ and $n$ are between $m_1$ and $m_2$, and $n_1$ and $n_2$ respectively. Secondly, if $m_1=m_2$ or $n_1=n_2$, then the theorem is true because of Theorem 102. So let's assume that $m_1 \ne m_2$ and $n_1 \ne n_2$.
+### Theorem 103: convex
 
-Let $x\in U$. Since $(m,n)$ is a linear interpolation, we know that for $e_1 = xm_1 + n_1$, $e_2 = xm_2 + n_2$, and $e = xm + n$, that $\min\set{e_1,e_2} \le e \le \max\set{e_1,e_2}$. This means that the inequality definition is always fulfilled. $\square$
+Let $(m_0,n_0)$ and $(m_1,n_1)$ be a linear solutions and $\alpha \in [0,1]$ be the blend factor. All paris $(m,n)$ with $m=m_0 + \alpha(m_1-m_0)$ and $n=n_0 + \alpha(n_1-n_0)$ are linear solutions.
 
-TODO: more rigorous proof
+**Proof:** Let $l(\alpha, a_0, a_1) : [0,1] \times \R \times \R \to \R$ be a linear interpolation function (lerp) defined as $l(\alpha, a_0, a_1) = a_0 + \alpha(a_1 - a_0)$. This function has the properties:
+
+1. $a_0 \le a_1 \implies a_0 \le l(\alpha, a_0, a_1) \le a_1$
+1. $a_1 \le a_0 \implies a_1 \le l(\alpha, a_0, a_1) \le a_0$
+
+lerp is a fairly well-known function and these properties are fairly trivial, so I won't prove them here.
+
+Let $g_0(x) = xm_0 + n_0$, $g_1(x) = xm_1 + n_1$, and $g(x) = xm+n$ be the linear functions of the two solutions and the interpolated solution respectively. Using $l$, $g$ can be defined in terms of $g_0$ nad $g_1$:
+
+$$
+\begin{split}
+g(x) &= xm+n \\
+&= x(m_0 + \alpha(m_1-m_0))+n_0 + \alpha(n_1-n_0) \\
+&=xm_0 + n_0 + \alpha(xm_1 + n_1 - (xm_0 + n_0)) \\
+&= g_0(x) + \alpha(g_1(x) - g_0(x)) \\
+&= l(\alpha, g_0(x),g_1(x)) \\
+\end{split}
+$$
+
+It follows that $\forall x \in\R: g_0(x) \le g(x) \le g_1(x) \lor g_1(x) \le g(x) \le g_0(x)$. Since both $g_0$ and $g_1$ fulfill the inequality definition for $x\in U$, it follows that $g$ must also fulfill the inequality definition for $x\in U$. Therefor, all pairs $(m,n)$ are linear solutions. $\square$
 
 **Notes:**
 
 1. Since any two points in the solution space can be connected by a line, this means that the solution space forms a convex set.
 
-### Trivial linear solutions
+### Theorem 104: trivial linear solutions
 
-Let $m=t/d$, $N=[r/d, (r+1)/d)$ is a linear solution range.
+#### Critical line
 
-**Proof sketch:** This is pretty easy to show using that $R$ is a FRF and A1.
+All pairs $(m,n)$ with $m=t/d, n\in[r/d, (r+1)/d)$ are linear solution.
 
+**Proof:** Let $\epsilon \in [0,1)$.
 
+$$
+R(xt/d)
+= \lfloor (xt+r)/d \rfloor
+\overset{\text{A1}}{=} \lfloor (xt+r+\epsilon)/d \rfloor
+= \lfloor x(t/d) + (r+\epsilon)/d \rfloor
+$$
+
+$\square$
+
+#### Constant zero
+
+If $\forall x\in U: R(xt/d) = 0$, then all pairs $(m,n)$ with $m\in[-n/u,(1-n)/u)$ and $n\in[0,1)$ are linear solutions.
+
+**Proof:** For $R(xt/d) = 0$, the inequality definition simplifies to:
+
+$$
+\begin{split}
+R(xt/d) &\le xm + n < R(xt/d) + 1 \\
+0 &\le xm + n < 1 \\
+\end{split}
+$$
+
+Choosing $m=0$ gives $0 \le n < 1$, so all pairs $(0,n), n\in[0,1)$ are linear solutions.
+
+Rearranging for $m$ gives $-n/x \le m < (1-n)/x$. The larger $x$, the smaller the range of $m$ values, so pick the maximum $x$ value which is $x=u$: $-n/u \le m < (1-n)/u$. So all pairs $(m,n), m\in[-n/u,(1-n)/u),n\in[0,1)$ are linear solutions.
+
+**Notes:**
+
+1. This has the interesting consequence that the solution space is a parallelogram-like shape for constant-zero functions. Notice that the distance between the bounds for $m$, $(1-n)/u - (-n/u) = 1/u$ is constant. For $n=0$ and $n=1$, this gives 4 points that defines the shape of the solution space: $A = (0,0)$, $B = (1/u,0)$, $C = (0,1)$, and $D = (-1/u,1)$. The area of parallelogram $ABCD$ then defines the solution space with the minor exception that the lines $BC$ and $CD$ are not part of the solution set.
+
+TODO: add an image of the parallelogram
 
 ### The shape of the solution space
 
-It's useful to have an actual image for the shape of the solution, so here is an interactive visualization for all $(m,n)$ that are linear solutions. The area is what is the solution space. The area is dark green shows all solutions for $U=\set{0,u}$. This is useful to see how increasing $u$ changes the shape of the solution space.
+It's useful to have an actual image for the shape of the solution, so here is an interactive visualization for all $(m,n)$ that are linear solutions.
+
+- $m$ is plotted on the x-axis, $n$ on the y-axis.
+- The parameters of the problem can be adjusted using the inputs for $t$, $d$, $u$, and the rounding function.
+- Use the move to zoom (scroll) and pan (drag) the plot.
+- The *Reset View* button will reset the view to the default.
+- The *Focus* button will zoom in on the area of the solution space.
+- The area in **white** is the solution space. Each point represents a linear solution.
+- The area is **dark green** is the exact bounds for $m$ with $x=u$ for each $n$. This area is what this $x=u$ requires.
+- The **pink** lines mark the trivial solutions. The vertical line is $m=t/d$. The solid horizontal line is $n=r/d$ and the dashed line is $n=(r+1)/d$.
 
 TODO: Vis
+
+### Observations
+
+1. The solution space is a convex polygon.
+
+2. The solution space is is the intersection for the parallelograms for all $x\in\set{1,...,u}$.
+
+    This observation is hardly surprising, since it essentially just means that a linear solution must be a linear solution for all $x\in U$.
+
+    However, this perspective is useful since it allows geometric reasoning for the entire solution space. In particular, it explains observation 1. Since the intersection of 2 convex polygons is also a convex polygon, the solution space must be a convex polygon.
+
+3. The solution space is a polygon with 3, 4, or 5 sides.
+
+    This is *highly* surprising. Since the solution space is the intersection of $u$ polygons, I expected the number of sides to be a function of $u$.
+
+    However, this observation has large practical implications. It means that the entire solution can defined from the intersection of the parallelograms of at most 5 $x$ values. This is a huge win for the search algorithm, because it means that we only need to check 3 to 5 values of $x$ instead of $O(\min\set{t \bmod d, u})$. In other words, a potential solution can be verified to be correct in **constant time**.
+
+4. For $u \ge 2d$, the polygon of the solution space always has 4 sides.
+
+    This suggests that the polygon of the solution space becomes more regular as $u$ grows. Therefor, it should be easier to find the 4 $x$ values that define the solution space.
+
+5. For $u \ge d$, the pairs $(m=t/d, n=(r+1)/d)$ and $(m=t/d, n=(r-\epsilon)/d),\epsilon>0$ are never solutions.
+
+### Theorem 105: Intersection definition
+
+Let $e_x := R(xt/d)$ and $P_x$ be the set of all points in the parallelogram $ABCD$ without the lines $BC$ and $CD$ for: $A=(e_x/x,0)$, $B=((e_x+1)/x,0)$, $C=(e_x/x,1)$, and $D=((e_x-1)/x,1)$.
+
+A pair $(m,n)$ is a linear solution iff $\forall x \in U \setminus \set{0}: (m,n) \in P_x$.
+
+**Proof:**
+
+TODO: proof
+
+        // expected <= m * x + n < expected + 1
+        // (expected - n) / x <= m < (expected + 1 - n) / x
+
+**Notes:**
+
+1. This means that $(m,n)$ is a linear solution iff $(m,n) \in \textstyle\bigcap_{x=1}^u P_x$. This is why it's called the intersection definition.
+2. Note that $P_0$ is not defined.
+
+### Theorem 106
+
+If $u \ge d$ and $gcd(t,d) = 1$, then the pairs $(m=t/d, n=(r+1)/d)$ and $(m=t/d, n=(r-\epsilon)/d),\epsilon>0$ cannot be solutions.
+
+**Proof:** Let $x = d$. This is valid, because $u \ge d$.
+
+1. $(m=t/d, n=(r+1)/d)$:
+
+    $$
+    \begin{split}
+    R(xt/d) &\le xt/d + (r+1)/d < R(xt/d) + 1 \\
+    R(t) &\le t + (r+1)/d < R(t) + 1 \\
+    t &\le t + (r+1)/d < t + 1 \\
+    \end{split}
+    $$
 
 ---
 

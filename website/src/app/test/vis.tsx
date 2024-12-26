@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ProblemLike } from "../../components/multiply-add/interfaces";
 import { ProblemInput } from "../projects/multiply-add-constants-finder/ConversionConstantsSearch";
 import { useDevicePixelRatio } from "../../hooks/useDevicePixelRatio";
+import { DownDown, SmallButton } from "../../components/FormInputs";
+import { GmaProblem } from "./gma";
 
 interface Transform {
     /** Center x */
@@ -35,7 +36,7 @@ class RenderTransform {
     }
 }
 
-function drawUnitCircle(ctx: CanvasRenderingContext2D, t: RenderTransform) {
+function _drawUnitCircle(ctx: CanvasRenderingContext2D, t: RenderTransform) {
     const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     const { width, height } = imageData;
@@ -58,164 +59,34 @@ function drawUnitCircle(ctx: CanvasRenderingContext2D, t: RenderTransform) {
     ctx.putImageData(imageData, 0, 0);
 }
 
-function getRounding(problem: ProblemLike): number {
-    switch (problem.rounding) {
-        case "round":
-            return problem.d >> 1;
-        case "floor":
-            return 0;
-        case "ceil":
-            return problem.d - 1;
-    }
-}
-
-/**
- * Whether the linear function y = mx + b is a solution to the given problem.
- */
-function linearFnIsSolution(problem: ProblemLike, [m, n]: [m: number, n: number]) {
-    const { t, d, inputRange } = problem;
-    const r = getRounding(problem);
-
-    for (let x = 0; x <= inputRange; x++) {
-        const expected = Math.floor((x * t + r) / d);
-        const actual = Math.floor(m * x + n);
-        if (expected !== actual) return false;
-    }
-
-    return true;
-}
-function linearFnSolveN(problem: ProblemLike, m: number): [nMin: number, nMax: number] | undefined {
-    const { t, d, inputRange } = problem;
-    const r = getRounding(problem);
-
-    if (m <= 0) return undefined;
-
-    let nMin = 0;
-    let nMax = 1;
-
-    for (let x = 1; x <= inputRange; x++) {
-        // expected <= m * x + n < expected + 1
-        // expected / (m*x) <= n < (expected + 1) / (m*x)
-        const expected = Math.floor((x * t + r) / d);
-        const n1 = expected / (m * x);
-        const n2 = (expected + 1) / (m * x);
-        nMin = Math.max(nMin, n1);
-        nMax = Math.min(nMax, n2);
-        if (nMin >= nMax) return undefined;
-    }
-
-    return [nMin, nMax];
-}
-function linearFnSolveM(problem: ProblemLike, n: number): [mMin: number, mMax: number] | undefined {
-    const { t, d, inputRange } = problem;
-    const r = getRounding(problem);
-
-    if (n < 0 || n >= 1) return undefined;
-
-    let mMin = 0;
-    let mMax = Infinity;
-
-    for (let x = 1; x <= inputRange; x++) {
-        // expected <= m * x + n < expected + 1
-        // (expected - n) / x <= m < (expected + 1 - n) / x
-        const expected = Math.floor((x * t + r) / d);
-        const m1 = (expected - n) / x;
-        const m2 = (expected + 1 - n) / x;
-        mMin = Math.max(mMin, m1);
-        mMax = Math.min(mMax, m2);
-        if (mMin >= mMax) return undefined;
-    }
-
-    return [mMin, mMax];
-}
-function linearFnSolvePotentialMFull(
-    problem: ProblemLike,
-): [mMinN0: number, mMaxN0: number, mMinN1: number, mMaxN1: number] {
-    const { t, d, inputRange } = problem;
-    const r = getRounding(problem);
-
-    const x = inputRange;
-    // expected <= m * x + n < expected + 1
-    // (expected - n) / x <= m < (expected + 1 - n) / x
-    const expected = Math.floor((x * t + r) / d);
-    return [expected / x, (expected + 1) / x, (expected - 1) / x, expected / x];
-}
-/**
- * Returns a range of n values inside the given range that are all solutions.
- */
-function findSolutionNRange(
-    problem: ProblemLike,
-    inRange: [number, number],
-): [number, number] | undefined {
-    let [rangeMin, rangeMax] = inRange;
-    const rangeSize = rangeMax - rangeMin;
-    const maxStepSize = 1 / problem.d;
-
-    // Step 1: find any n that is a solution
-    let middleN: number | undefined = undefined;
-    for (let stepSize = 0; stepSize <= 10; stepSize++) {
-        const steps = 1 << stepSize;
-        for (let i = 0; i < steps; i++) {
-            const alpha = (i + 0.5) / steps;
-            const n = rangeMin + alpha * rangeSize;
-            if (linearFnSolveM(problem, n)) {
-                middleN = n;
-                break;
-            }
-        }
-
-        if (middleN !== undefined) {
-            // done
-            break;
-        }
-        if (1 / steps <= maxStepSize) {
-            // search failed
-            break;
-        }
-    }
-
-    // no solutions
-    if (middleN === undefined) return undefined;
-
-    // Step 2: find the exact bounds of n with binary search
-    let nMin = middleN;
-    let nMax = middleN;
-    for (let iter = 0; iter < 14; iter++) {
-        // min
-        const newMin = (nMin + rangeMin) / 2;
-        if (linearFnSolveN(problem, newMin)) {
-            nMin = newMin;
-        } else {
-            rangeMin = newMin;
-        }
-
-        // max
-        const newMax = (nMax + rangeMax) / 2;
-        if (linearFnSolveN(problem, newMax)) {
-            nMax = newMax;
-        } else {
-            rangeMax = newMax;
-        }
-    }
-
-    return [nMin, nMax];
-}
-
 function drawSolutionSpace(
     ctx: CanvasRenderingContext2D,
     t: RenderTransform,
-    problem: ProblemLike,
+    { height }: CssSize,
+    problem: GmaProblem,
 ) {
-    // show the area for the current x=input_range
-    const potential = linearFnSolvePotentialMFull(problem);
-    ctx.fillStyle = "#040";
-    ctx.beginPath();
-    ctx.moveTo(...t.worldToPixel(potential[0], 0));
-    ctx.lineTo(...t.worldToPixel(potential[1], 0));
-    ctx.lineTo(...t.worldToPixel(potential[3], 1));
-    ctx.lineTo(...t.worldToPixel(potential[2], 1));
-    ctx.closePath();
-    ctx.fill();
+    {
+        // show the area for the current x=input_range
+        const current = problem.solveCurrentForFullM();
+
+        const nMin = Math.max(0, Math.min(t.pixelToWorld(0, -1)[1], 1));
+        const nMax = Math.max(0, Math.min(t.pixelToWorld(0, height)[1], 1));
+        const [mMinN0, mMaxN0, mMinN1, mMaxN1] = current;
+        const lerp = (a: number, b: number, t: number) => a * (1 - t) + b * t;
+        const mMinNMin = lerp(mMinN0, mMinN1, nMin);
+        const mMaxNMin = lerp(mMaxN0, mMaxN1, nMin);
+        const mMinNMax = lerp(mMinN0, mMinN1, nMax);
+        const mMaxNMax = lerp(mMaxN0, mMaxN1, nMax);
+
+        ctx.fillStyle = "#040";
+        ctx.beginPath();
+        ctx.moveTo(...t.worldToPixel(mMinNMin, nMin));
+        ctx.lineTo(...t.worldToPixel(mMaxNMin, nMin));
+        ctx.lineTo(...t.worldToPixel(mMaxNMax, nMax));
+        ctx.lineTo(...t.worldToPixel(mMinNMax, nMax));
+        ctx.closePath();
+        ctx.fill();
+    }
 
     // show the area of actual solutions
     // const range = findSolutionNRange(problem, [
@@ -226,13 +97,12 @@ function drawSolutionSpace(
     //     ctx.fillStyle = "#fff";
     //     ctx.beginPath();
     // }
-    const { height } = ctx.canvas;
     const leftSide: [number, number][] = [];
     for (let outerY = 0; outerY < height * 2; outerY++) {
         const y = outerY / 2;
         const n = t.pixelToWorld(0, y)[1];
 
-        const solved = linearFnSolveM(problem, n);
+        const solved = problem.solveForM(n);
         if (solved) {
             const x1 = t.worldToPixel(solved[0], 0)[0];
             const x2 = t.worldToPixel(solved[1], 0)[0];
@@ -262,13 +132,11 @@ function drawSolutionSpace(
 function drawTrivialSolutions(
     ctx: CanvasRenderingContext2D,
     t: RenderTransform,
-    problem: ProblemLike,
+    { width, height }: CssSize,
+    problem: GmaProblem,
 ) {
-    const { width, height } = ctx.canvas;
-
-    const r = getRounding(problem);
-    const [expectedX, expectedY] = t.worldToPixel(problem.t / problem.d, r / problem.d);
-    const [, expectedYAlt] = t.worldToPixel(0, (r + 1) / problem.d);
+    const [expectedX, expectedY] = t.worldToPixel(problem.t / problem.d, problem.r / problem.d);
+    const [, expectedYAlt] = t.worldToPixel(0, (problem.r + 1) / problem.d);
     ctx.strokeStyle = "rgb(255 64 255 / 75%)";
     ctx.lineWidth = 2;
 
@@ -291,30 +159,49 @@ function drawTrivialSolutions(
     ctx.stroke();
 }
 
-function drawLegend(ctx: CanvasRenderingContext2D, t: RenderTransform) {
+function drawLegend(ctx: CanvasRenderingContext2D, t: RenderTransform, { width, height }: CssSize) {
     const minDistance = 60;
     const minDistance2 = 80;
 
-    let stepSize = 1;
     const originPixels = t.worldToPixel(0, 0);
-    let stepSizePixels = Math.abs(t.worldToPixel(0, stepSize)[1] - originPixels[1]);
-    while (stepSizePixels / 10 > minDistance) {
-        stepSize /= 10;
-        stepSizePixels /= 10;
-    }
+    const oneOnePixels = t.worldToPixel(1, 1);
 
-    // some points
-    const { width, height } = ctx.canvas;
-
-    const closeToPrevStep = (v: number): boolean => {
+    const closeToPrevStep = (v: number, stepSize: number): boolean => {
         const prev = stepSize * 10;
         let m = ((v % prev) + prev) % prev;
         m = Math.min(m, prev - m);
         return m < 1e-8;
     };
 
+    function drawStroked(text: string, x: number, y: number) {
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "black";
+        const d = 1.33;
+        ctx.fillText(text, x - d, y - d);
+        ctx.fillText(text, x + d, y - d);
+        ctx.fillText(text, x - d, y + d);
+        ctx.fillText(text, x + d, y + d);
+        ctx.fillText(text, x - d, y);
+        ctx.fillText(text, x + d, y);
+        ctx.fillText(text, x, y - d);
+        ctx.fillText(text, x, y + d);
+        ctx.fillStyle = "white";
+        ctx.fillText(text, x, y);
+    }
+
+    const printNumber = (n: number): string => {
+        return Number(n.toExponential(13)).toString();
+    };
+
     // n
     {
+        let stepSize = 1;
+        let stepSizePixels = Math.abs(oneOnePixels[1] - originPixels[1]);
+        while (stepSizePixels / 10 > minDistance) {
+            stepSize /= 10;
+            stepSizePixels /= 10;
+        }
+
         let nMin = t.pixelToWorld(0, 0)[1];
         let nMax = t.pixelToWorld(0, height)[1];
         [nMin, nMax] = [Math.min(nMin, nMax), Math.max(nMin, nMax)];
@@ -323,31 +210,40 @@ function drawLegend(ctx: CanvasRenderingContext2D, t: RenderTransform) {
         for (let i = 0; i <= nSteps; i++) {
             const n = nStepStart + i * stepSize;
             const y = t.worldToPixel(0, n)[1];
-            const thick = closeToPrevStep(n);
+            const thick = closeToPrevStep(n, stepSize);
             ctx.fillStyle = thick ? "rgb(200 200 200 / 80%)" : "rgb(150 150 150 / 70%)";
             ctx.fillRect(0, y, width, thick ? 2 : 1);
 
-            ctx.fillStyle = "#fff";
-            ctx.font = "12px Arial";
-            ctx.fillText(`n=${Number(n.toFixed(10))}`, 10, y - 3);
+            // ctx.fillStyle = "#fff";
+            // ctx.font = "12px Arial";
+            // ctx.fillText(`n=${Number(n.toFixed(10))}`, 10, y - 3);
+            drawStroked(`n=${printNumber(n)}`, 10, y - 3);
 
             if (stepSizePixels > minDistance2) {
                 ctx.fillStyle = "rgb(150 150 150 / 70%)";
                 ctx.fillRect(0, y + stepSizePixels / 2, width, 0.5);
 
-                ctx.fillStyle = "#fff";
-                ctx.font = "12px Arial";
-                ctx.fillText(
-                    `n=${Number((n - stepSize / 2).toFixed(10))}`,
-                    10,
-                    y + stepSizePixels / 2 - 3,
-                );
+                // ctx.fillStyle = "#fff";
+                // ctx.font = "12px Arial";
+                // ctx.fillText(
+                //     `n=${Number((n - stepSize / 2).toFixed(10))}`,
+                //     10,
+                //     y + stepSizePixels / 2 - 3,
+                // );
+                drawStroked(`n=${printNumber(n - stepSize / 2)}`, 10, y + stepSizePixels / 2 - 3);
             }
         }
     }
 
     // m
     {
+        let stepSize = 1;
+        let stepSizePixels = Math.abs(oneOnePixels[0] - originPixels[0]);
+        while (stepSizePixels / 10 > minDistance) {
+            stepSize /= 10;
+            stepSizePixels /= 10;
+        }
+
         let mMin = t.pixelToWorld(0, 0)[0];
         let mMax = t.pixelToWorld(width, 0)[0];
         [mMin, mMax] = [Math.min(mMin, mMax), Math.max(mMin, mMax)];
@@ -356,13 +252,13 @@ function drawLegend(ctx: CanvasRenderingContext2D, t: RenderTransform) {
         for (let i = 0; i <= mSteps; i++) {
             const m = mStepStart + i * stepSize;
             const x = t.worldToPixel(m, 0)[0];
-            const thick = closeToPrevStep(m);
+            const thick = closeToPrevStep(m, stepSize);
             ctx.fillStyle = thick ? "rgb(200 200 200 / 80%)" : "rgb(150 150 150 / 70%)";
             ctx.fillRect(x, 0, thick ? 2 : 1, height);
 
-            ctx.fillStyle = "#fff";
-            ctx.font = "12px Arial";
-            ctx.fillText(`m=${Number(m.toFixed(10))}`, x + 4, height - 10);
+            // ctx.fillStyle = "#fff";
+            // ctx.font = "12px Arial";
+            drawStroked(`m=${printNumber(m)}`, x + 4, height - 10);
 
             if (stepSizePixels > minDistance2) {
                 ctx.fillStyle = "rgb(150 150 150 / 70%)";
@@ -372,13 +268,24 @@ function drawLegend(ctx: CanvasRenderingContext2D, t: RenderTransform) {
     }
 }
 
+type ScaleMode = "xy" | "x" | "y";
+
+/**
+ * The size of the canvas in CSS pixels.
+ *
+ * `scale` is the ratio of the canvas size to the actual pixel size. So e.g.
+ * `width * scale` is the actual pixel width.
+ */
+interface CssSize {
+    width: number;
+    height: number;
+    scale: number;
+}
+
 export function SolutionVisualizer() {
-    const [problem, setProblem] = useState<ProblemLike>({
-        rounding: "round",
-        t: 1,
-        d: 3,
-        inputRange: 10,
-    });
+    const [problem, setProblem] = useState<GmaProblem>(() =>
+        GmaProblem.from({ rounding: "round", t: 1, d: 3, inputRange: 10 }),
+    );
 
     const [transform, setTransform] = useState<Transform>({
         x: 0.5,
@@ -387,6 +294,8 @@ export function SolutionVisualizer() {
         scaleY: -0.5,
     });
 
+    const [scaleMode, setScaleMode] = useState<ScaleMode>("xy");
+
     const dpr = useDevicePixelRatio();
 
     useEffect(() => {
@@ -394,26 +303,36 @@ export function SolutionVisualizer() {
         if (c) {
             c.style.width = c.clientWidth + "px";
             c.style.height = c.clientHeight + "px";
-            c.width = c.clientWidth * dpr;
-            c.height = c.clientHeight * dpr;
+            c.width = Math.ceil(c.clientWidth * dpr);
+            c.height = Math.ceil(c.clientHeight * dpr);
         }
     }, [dpr]);
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
+
     const render = useCallback(() => {
         const ctx = canvasRef.current?.getContext("2d");
         if (!ctx) return;
 
+        ctx.resetTransform();
+        ctx.scale(dpr, dpr);
+
+        const css: CssSize = {
+            width: ctx.canvas.clientWidth,
+            height: ctx.canvas.clientHeight,
+            scale: dpr,
+        };
+        console.log(css);
+
         ctx.fillStyle = "#000000";
-        ctx.fillRect(-1, -1, ctx.canvas.width + 2, ctx.canvas.height + 2);
-        // ctx.scale(dpr, dpr);
+        ctx.fillRect(-1, -1, css.width + 2, css.height + 2);
 
         // drawUnitCircle(ctx, new RenderTransform(transform, ctx.canvas.width));
         const start = performance.now();
-        const t = new RenderTransform(transform, ctx.canvas.width, ctx.canvas.height);
-        drawSolutionSpace(ctx, t, problem);
-        drawLegend(ctx, t);
-        drawTrivialSolutions(ctx, t, problem);
+        const t = new RenderTransform(transform, css.width, css.height);
+        drawSolutionSpace(ctx, t, css, problem);
+        drawLegend(ctx, t, css);
+        drawTrivialSolutions(ctx, t, css, problem);
         console.log("Render time:", performance.now() - start);
 
         // ctx.fillStyle = "#fff";
@@ -424,76 +343,134 @@ export function SolutionVisualizer() {
         //     100,
         // );
     }, [problem, transform, dpr]);
-
     useEffect(() => {
         render();
     }, [render]);
+
+    const onWheel = useCallback(
+        (e: WheelEvent) => {
+            e.preventDefault();
+
+            const canvas = canvasRef.current?.getContext("2d")?.canvas;
+            if (!canvas) return;
+            const { clientWidth: width, clientHeight: height } = canvas;
+            setTransform((t) => {
+                const doScaleX = scaleMode === "xy" || scaleMode === "x";
+                const doScaleY = scaleMode === "xy" || scaleMode === "y";
+                const newScaleX = doScaleX ? t.scaleX * (1 + -e.deltaY / 1000) : t.scaleX;
+                const newScaleY = doScaleY ? t.scaleY * (1 + -e.deltaY / 1000) : t.scaleY;
+
+                const pixelCoord = [e.offsetX, e.offsetY] as const;
+                const oldT = new RenderTransform(t, width, height);
+                const worldCoord = oldT.pixelToWorld(...pixelCoord);
+                // the goal is to map this pixel coord to the same world coord with the new scale
+                const newT = new RenderTransform(
+                    { ...t, scaleX: newScaleX, scaleY: newScaleY },
+                    width,
+                    height,
+                );
+                const newWorldCoord = newT.pixelToWorld(...pixelCoord);
+                const diffX = worldCoord[0] - newWorldCoord[0];
+                const diffY = worldCoord[1] - newWorldCoord[1];
+                return {
+                    x: t.x + diffX,
+                    y: t.y + diffY,
+                    scaleX: newScaleX,
+                    scaleY: newScaleY,
+                };
+            });
+        },
+        [scaleMode],
+    );
+    const onMouseMove: React.MouseEventHandler = (e) => {
+        if (e.buttons === 1) {
+            e.preventDefault();
+            const canvas = canvasRef.current?.getContext("2d")?.canvas;
+            if (!canvas) return;
+            const { clientWidth: width, clientHeight: height } = canvas;
+            setTransform((t) => {
+                const rt = new RenderTransform(t, width, height);
+                const w0 = rt.pixelToWorld(0, 0);
+                const w1 = rt.pixelToWorld(1, 1);
+                const diffX = w0[0] - w1[0];
+                const diffY = w0[1] - w1[1];
+                return {
+                    ...t,
+                    x: t.x + (e.movementX / dpr) * diffX,
+                    y: t.y + (e.movementY / dpr) * diffY,
+                };
+            });
+        }
+    };
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+            canvas.addEventListener("wheel", onWheel, { passive: false });
+            return () => {
+                canvas.removeEventListener("wheel", onWheel);
+            };
+        }
+    }, [onWheel]);
 
     return (
         <>
             <div className="narrow">
                 <ProblemInput
                     problem={problem}
-                    setProblem={setProblem}
-                    constraints={{ tMax: 100, dMax: 100, inputRangeMax: 100 }}
+                    setProblem={(p) => {
+                        if (typeof p === "function") {
+                            setProblem((old) => GmaProblem.from(p(old)));
+                        } else {
+                            setProblem(GmaProblem.from(p));
+                        }
+                    }}
+                    constraints={{
+                        maxT: 2 ** 16 - 1,
+                        maxD: 2 ** 16 - 1,
+                        maxInputRange: 2 ** 16 - 1,
+                    }}
                 />
+                <div className="py-4">
+                    Scale mode:{" "}
+                    <DownDown
+                        value={scaleMode}
+                        onChange={setScaleMode}
+                        options={["xy", "x", "y"]}
+                        getLabel={(m) => ({ xy: "Both", x: "Only m", y: "Only n" })[m]}
+                    />
+                    <div className="mt-4 flex gap-2">
+                        <SmallButton
+                            onClick={() => {
+                                setTransform({ x: 0.5, y: 0.5, scaleX: 0.5, scaleY: -0.5 });
+                            }}
+                        >
+                            Reset view
+                        </SmallButton>
+                        <SmallButton
+                            onClick={() => {
+                                const { t, d, r } = problem;
+                                const solvedRange = problem.solveForM(r / d)!;
+                                const mRange = solvedRange[1] - solvedRange[0];
+                                const nRange = 1 / d;
+                                setTransform({
+                                    x: t / d,
+                                    y: (r + 0.5) / d,
+                                    scaleX: 0.25 / mRange,
+                                    scaleY: -0.166 / nRange,
+                                });
+                            }}
+                        >
+                            Focus
+                        </SmallButton>
+                    </div>
+                </div>
             </div>
             <canvas
                 ref={canvasRef}
+                tabIndex={-1}
                 width={900}
                 height={500}
-                onWheel={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const canvas = canvasRef.current?.getContext("2d")?.canvas;
-                    if (!canvas) return;
-                    const { width, height } = canvas;
-                    setTransform((t) => {
-                        const newScaleX = transform.scaleX * (1 + -e.deltaY / 1000);
-                        const newScaleY = transform.scaleY * (1 + -e.deltaY / 1000);
-
-                        const pixelCoord = [e.nativeEvent.offsetX, e.nativeEvent.offsetY] as const;
-                        // console.log(pixelCoord);
-                        // console.log(e);
-                        const oldT = new RenderTransform(t, width, height);
-                        const worldCoord = oldT.pixelToWorld(...pixelCoord);
-                        // the goal is to map this pixel coord to the same world coord with the new scale
-                        const newT = new RenderTransform(
-                            { ...t, scaleX: newScaleX, scaleY: newScaleY },
-                            width,
-                            height,
-                        );
-                        const newWorldCoord = newT.pixelToWorld(...pixelCoord);
-                        const diffX = worldCoord[0] - newWorldCoord[0];
-                        const diffY = worldCoord[1] - newWorldCoord[1];
-                        return {
-                            x: t.x + diffX,
-                            y: t.y + diffY,
-                            scaleX: newScaleX,
-                            scaleY: newScaleY,
-                        };
-                    });
-                }}
-                onMouseMove={(e) => {
-                    if (e.buttons === 1) {
-                        e.preventDefault();
-                        const canvas = canvasRef.current?.getContext("2d")?.canvas;
-                        if (!canvas) return;
-                        const { width, height } = canvas;
-                        setTransform((t) => {
-                            const rt = new RenderTransform(t, width, height);
-                            const w0 = rt.pixelToWorld(0, 0);
-                            const w1 = rt.pixelToWorld(1, 1);
-                            const diffX = w0[0] - w1[0];
-                            const diffY = w0[1] - w1[1];
-                            return {
-                                ...t,
-                                x: t.x + e.movementX * diffX,
-                                y: t.y + e.movementY * diffY,
-                            };
-                        });
-                    }
-                }}
+                onMouseMove={onMouseMove}
             />
         </>
     );

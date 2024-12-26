@@ -248,20 +248,34 @@ export function ConversionConstantsSearch() {
     );
 }
 
+interface InputConstraints {
+    maxT: number;
+    maxD: number;
+    maxInputRange: number;
+}
+const defaultConstraints: InputConstraints = {
+    maxT: 2 ** 32 - 1,
+    maxD: 2 ** 32 - 1,
+    maxInputRange: 2 ** 32 - 1,
+};
 interface ProblemInputProps {
     problem: ProblemLike;
     setProblem: (value: React.SetStateAction<ProblemLike>) => void;
+    constraints?: Readonly<Partial<InputConstraints>>;
 }
-const ProblemInput = memo(({ problem, setProblem }: ProblemInputProps) => {
+export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemInputProps) => {
     const { inputRange, d: denominator, t: enumerator, rounding } = problem;
+    const {
+        maxD = defaultConstraints.maxD,
+        maxT = defaultConstraints.maxT,
+        maxInputRange = defaultConstraints.maxInputRange,
+    } = constraints || defaultConstraints;
 
     const setInputRange = (value: number) => setProblem((p) => ({ ...p, inputRange: value }));
     const setDenominator = (value: number) => setProblem((p) => ({ ...p, d: value }));
     const setEnumerator = (value: number) => setProblem((p) => ({ ...p, t: value }));
     const setRounding = (value: ProblemLike["rounding"]) =>
         setProblem((p) => ({ ...p, rounding: value }));
-
-    const MAX = 2 ** 32 - 1;
 
     return (
         <>
@@ -291,7 +305,7 @@ const ProblemInput = memo(({ problem, setProblem }: ProblemInputProps) => {
                     <NumberInput
                         name="enumerator"
                         min={1}
-                        max={MAX}
+                        max={maxT}
                         className="xs:max-w-40 w-full min-w-0"
                         value={enumerator}
                         onChange={setEnumerator}
@@ -307,7 +321,7 @@ const ProblemInput = memo(({ problem, setProblem }: ProblemInputProps) => {
                     <NumberInput
                         name="denominator"
                         min={1}
-                        max={MAX}
+                        max={maxD}
                         className="xs:max-w-40 w-full min-w-0"
                         value={denominator}
                         onChange={setDenominator}
@@ -324,27 +338,40 @@ const ProblemInput = memo(({ problem, setProblem }: ProblemInputProps) => {
                         <NumberInput
                             name="inputRange"
                             min={1}
-                            max={MAX}
+                            max={maxInputRange}
                             value={inputRange}
                             className="xs:max-w-40 w-full min-w-0"
                             onChange={setInputRange}
                         />
                         <span className="flex flex-wrap gap-1">
-                            <UButton
-                                inputRange={inputRange}
-                                setInputRange={setInputRange}
-                                bits={8}
-                            />
-                            <UButton
-                                inputRange={inputRange}
-                                setInputRange={setInputRange}
-                                bits={16}
-                            />
-                            <UButton
-                                inputRange={inputRange}
-                                setInputRange={setInputRange}
-                                bits={32}
-                            />
+                            {maxInputRange >= 2 ** 8 - 1 && (
+                                <UButton
+                                    inputRange={inputRange}
+                                    setInputRange={setInputRange}
+                                    bits={8}
+                                />
+                            )}
+                            {maxInputRange >= 2 ** 16 - 1 && (
+                                <UButton
+                                    inputRange={inputRange}
+                                    setInputRange={setInputRange}
+                                    bits={16}
+                                />
+                            )}
+                            {maxInputRange >= 2 ** 24 - 1 && (
+                                <UButton
+                                    inputRange={inputRange}
+                                    setInputRange={setInputRange}
+                                    bits={24}
+                                />
+                            )}
+                            {maxInputRange >= 2 ** 32 - 1 && (
+                                <UButton
+                                    inputRange={inputRange}
+                                    setInputRange={setInputRange}
+                                    bits={32}
+                                />
+                            )}
                         </span>
                     </div>
                 </div>
