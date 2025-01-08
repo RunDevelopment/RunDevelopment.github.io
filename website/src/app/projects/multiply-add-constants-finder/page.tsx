@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function Page() {
     return (
-        <BasicPage selectedLink="projects">
+        <BasicPage selectedLink="projects" alwaysShowScrollBar>
             <div className="narrow-container py-8">
                 <p>asdasd</p>
                 <ConversionConstantsSearch />

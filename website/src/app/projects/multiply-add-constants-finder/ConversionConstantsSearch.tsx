@@ -508,15 +508,6 @@ interface MoreSolutionsProps {
     searchMore?: () => void;
 }
 const AllSolutions = memo(({ result, searchMore }: MoreSolutionsProps) => {
-    // showing more solution will make the page longer and likely require scrolling
-    // a scrollbar popping in and out of existence is annoying, so we force it to always be visible
-    useEffect(() => {
-        document.body.style.overflowY = "scroll";
-        return () => {
-            document.body.style.overflowY = "auto";
-        };
-    });
-
     const formatDuration = (time: number) => {
         if (time < 0.1) {
             return "<0.1ms";
