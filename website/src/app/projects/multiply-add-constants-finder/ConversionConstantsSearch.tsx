@@ -218,6 +218,64 @@ export function ConversionConstantsSearch() {
         });
     }, []);
 
+    // read problem from URL hash
+    useEffect(() => {
+        const parseRounding = (value: string | null): ProblemLike["rounding"] | undefined => {
+            const values: ProblemLike["rounding"][] = ["round", "floor", "ceil"];
+            if (!values.includes(value as never)) {
+                return undefined;
+            }
+            return value as ProblemLike["rounding"];
+        };
+        const parseU32 = (value: string | null): number | undefined => {
+            if (!value) {
+                return undefined;
+            }
+            if (!/^\d+$/.test(value)) {
+                return undefined;
+            }
+            const n = Number(value);
+            if (n < 0 || n >= 2 ** 32) {
+                return undefined;
+            }
+            return n;
+        };
+
+        try {
+            const hash = new URLSearchParams(window.location.hash.slice(1));
+            const rounding = parseRounding(hash.get("r"));
+            const t = parseU32(hash.get("t"));
+            const d = parseU32(hash.get("d"));
+            const inputRange = parseU32(hash.get("u"));
+
+            setProblem((old) => ({
+                rounding: rounding ?? old.rounding,
+                t: t ?? old.t,
+                d: d ?? old.d,
+                inputRange: inputRange ?? old.inputRange,
+            }));
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    // update URL hash with the current problem
+    useEffect(() => {
+        const update = () => {
+            const hash = new URLSearchParams();
+            hash.set("r", problem.rounding);
+            hash.set("t", String(problem.t));
+            hash.set("d", String(problem.d));
+            hash.set("u", String(problem.inputRange));
+
+            // replace the current URL
+            history.replaceState(null, "", "#" + hash.toString());
+        };
+
+        const timer = setTimeout(update, 300);
+        return () => clearTimeout(timer);
+    }, [problem]);
+
     const [result, setResult] = useState<Result>(dummyResult);
     useEffect(() => {
         const result = solve(problem);
