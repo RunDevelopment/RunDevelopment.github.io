@@ -158,10 +158,10 @@ function pickBestSolution(
         best = addZero;
     }
 
-    if (best.shift > 0 && best.factor !== 1n && intermediateType === outputType * 2) {
-        // If the shift is that same as the output type, the compiler can
-        // possibly optimize away the shift operation
-        const preferredShift = outputType;
+    if (best.shift > 0 && best.factor !== 1n && intermediateType > outputType) {
+        // If the shift is a multiple of the size of the output type, then the
+        // compiler can potentially optimize away the shift operation
+        const preferredShift = Math.ceil(best.shift / outputType) * outputType;
         if (preferredShift > best.shift) {
             const c = 2n ** BigInt(preferredShift - best.shift);
             const preferred: SolutionLike = {

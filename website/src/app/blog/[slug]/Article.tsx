@@ -4,11 +4,15 @@ import { Markdown } from "../../../components/md/Markdown";
 import { TagList } from "../../../components/TagList";
 import { formatDateString } from "../../../lib/util";
 import { H1 } from "../../../components/md/Headings";
+import { OpenDetailsOnPrint } from "../../../components/DetailOpener";
 
 function AfterHeader({ meta }: { meta: PostMetadata }) {
     return (
         <div className="-mt-4 mb-6 text-sm text-zinc-400">
-            <p className="mb-2 text-center text-sm text-zinc-400">
+            <p className="mb-0 text-center text-sm text-zinc-400">
+                by Michael Schmidt (RunDevelopment)
+            </p>
+            <p className="mb-2 mt-1 text-center text-sm text-zinc-400">
                 <span>{formatDateString(meta.datePublished)}</span>
                 {meta.dateModified !== meta.datePublished && (
                     <span className="italic"> (Updated {formatDateString(meta.dateModified)})</span>
@@ -53,6 +57,7 @@ export const Article = memo(({ post }: ArticleProps) => {
                 getImageUrl={post.imageUrlMapping}
                 imageSizes={post.imageSizes}
             />
+            <OpenDetailsOnPrint />
         </article>
     );
 });

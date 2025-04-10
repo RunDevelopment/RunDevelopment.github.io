@@ -76,7 +76,7 @@ export const CodeBlock = memo(({ code, lang, runnable }: CodeBlockProps) => {
         );
     } else if (langTitle) {
         title = (
-            <div className="relative">
+            <div className="relative print:hidden">
                 <div className={sourceCodePro.className + " absolute right-0 top-0 text-[13px]"}>
                     <span className="mr-1.5 select-none text-slate-400">{langTitle}</span>
                 </div>
@@ -85,13 +85,13 @@ export const CodeBlock = memo(({ code, lang, runnable }: CodeBlockProps) => {
     }
 
     return (
-        <div className="-mx-4 my-2 w-[calc(100%+2rem)] md:-mx-6 md:w-[calc(100%+3rem)] lg:mx-0 lg:w-auto lg:max-w-full">
+        <div className="-mx-4 my-2 w-[calc(100%+2rem)] md:-mx-6 md:w-[calc(100%+3rem)] lg:mx-0 lg:w-auto lg:max-w-full print:my-4 print:pl-12">
             {title}
             <pre
                 tabIndex={0}
                 className={
                     sourceCodePro.className +
-                    " text-[13px] sm:text-[14px] overflow-auto whitespace-pre rounded-md bg-black px-4 py-4 leading-5 md:px-6 lg:px-8 print:text-[13px]"
+                    " text-[13px] sm:text-[14px] overflow-auto whitespace-pre rounded-md bg-black px-4 py-4 leading-5 md:px-6 lg:px-8 print:text-[13px] print:py-0"
                 }
             >
                 <SyntaxHighlight code={code.replace(/\n$/, "")} lang={lang || "none"} />

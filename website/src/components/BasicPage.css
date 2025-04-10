@@ -1,11 +1,12 @@
 :root {
     color-scheme: only dark;
+    scrollbar-color: rgb(160 160 160) rgb(24 24 27);
 
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
         "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 
     --page-width: 980px;
-    --page-narrow-width: 660px;
+    --page-narrow-width: 720px;
 }
 
 body {
@@ -19,10 +20,34 @@ article .normal-my {
     margin-bottom: 1rem;
 }
 @media print {
+    :root {
+        --page-narrow-width: var(--page-width);
+    }
+    header {
+        display: none;
+    }
+
     article p,
     article .normal-my {
         margin-top: 0.75rem;
         margin-bottom: 0.75rem;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    strong,
+    em,
+    p {
+        color: black !important;
+    }
+    main {
+        contain: none !important;
+    }
+
+    pre > code {
+        white-space: pre-wrap !important;
     }
 }
 article .compact p,
