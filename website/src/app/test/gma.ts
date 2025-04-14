@@ -238,7 +238,7 @@ export class GmaProblem implements ProblemLike {
 }
 
 /**
- * An fraction represented by a numerator and a denominator, both bigint.
+ * A fraction represented by a numerator and a denominator, both bigint.
  */
 export class Fraction {
     constructor(numerator: bigint, denominator: bigint);
