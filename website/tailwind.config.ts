@@ -19,6 +19,12 @@ const config: Config = {
                 portrait: { raw: "(orientation: portrait)" },
                 landscape: { raw: "(orientation: landscape)" },
             },
+            fontFamily: {
+                header: ["var(--font-header)", "sans-serif"],
+                sans: ["var(--font-sans)", "sans-serif"],
+                serif: ["var(--font-serif)", "Georgia", "serif"],
+                mono: ["var(--font-mono)", "monospace"],
+            },
         },
     },
     plugins: [],

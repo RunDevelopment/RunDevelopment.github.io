@@ -88,13 +88,13 @@ A solution $(f,a,s)$ is called **minimal** iff no solution $(f',a',s-1)$ exists.
 
 ### Simplifications and trivial solutions
 
-Some instances of the CFMP can be simplified and or trivially solved.
+Some instances of the CFMP can be simplified and/or trivially solved.
 
-1. Most obviously, if $t$ and $d$ are not co-prime, then divide $t$ and $d$ by their GCD.
+1. Most obviously, fractions can be simplified. If $t$ and $d$ are not co-prime, then divide $t$ and $d$ by their GCD.
 
-2. If $(u,t,d,r_d)$ is a CMFP with $t = jd+t'$ where $t'=t \bmod d$, then its solutions can be derived from the solutions of $(u,t',d,r_d)$.
+2. If $(u,t,d,r_d)$ is a CMFP with $t = jd+t'$ where $t'=t \bmod d$ and $j\in\N_1$, then its solutions can be derived from the solutions of $(u,t',d,r_d)$.
 
-    Let $(f,a,s)$ be a solution for $(u,t',d,r_d)$, then $(f + j 2^s,a,s)$ is a solution for $(u,t,d,r_d)$.
+    $(f,a,s)$ is a solution for $(u,t',d,r_d)$, iff $(f + j 2^s,a,s)$ is a solution for $(u,t,d,r_d)$.
 
     <details>
     <summary><strong>Proof:</strong></summary>
@@ -139,7 +139,9 @@ A solution $(f,a,s)$ is called **derived** iff there exists a solution $(f',a',s
 **Notes:**
 
 1. If a solution is derived, it's not minimal. If a solution is minimal, it's not derived. There are solution which are neither derived nor minimal.
-2. A solution is derived iff $f$ is even and $s>0$. It follows that minimal solutions have odd $f$ or $s=0$.
+2. A solution is derived iff $f$ is even and $s>0$.
+
+It follows that $f \text{ is odd} \lor s=0$ is a **necessary condition** for a solution to be minimal.
 
 ### Theorem 1: bounds for $f$ and $a$
 
@@ -455,7 +457,7 @@ Therefore, $t/d \cdot 2^s$ is always either an odd integer or not an integer at 
 
 ## Algorithm 1
 
-Similar to in theorem 1, the inequality definition can be used to establish bounds for $f$ or $a$, if all other parameters are fixed (including $x$). These are the bounds obtained by rearranging the inequality definition:
+Similar to the proof of theorem 1, the inequality definition can be used to establish bounds for $f$ or $a$, if all other parameters are fixed (including $x$). These are the bounds obtained by rearranging the inequality definition:
 
 $$
 \begin{split}
@@ -468,21 +470,21 @@ These bounds be interpreted as intervals dependent on $x$:
 
 $$
 \begin{split}
-f_x &= [\frac{R(xt/d) \cdot 2^s - a}{x}, \frac{(R(xt/d) + 1) \cdot 2^s - a}{x}) \\
-a_x &= [R(xt/d) \cdot 2^s - xf , (R(xt/d) + 1) \cdot 2^s - xf)
+F_x &= [\frac{R(xt/d) \cdot 2^s - a}{x}, \frac{(R(xt/d) + 1) \cdot 2^s - a}{x}) \\
+A_x &= [R(xt/d) \cdot 2^s - xf , (R(xt/d) + 1) \cdot 2^s - xf)
 \end{split}
 $$
 
-The valid values for $f$ and $a$ are the intersection of all intervals and the natural numbers:
+The valid values for $f$ and $a$ are the intersection of all intervals and $\N$:
 
 $$
 \begin{split}
-F &= \N \cap \bigcap_{x\in U\setminus\set{0}} f_x \\
-A &= \N \cap \bigcap_{x\in U} a_x
+F &= \N \cap \bigcap_{x\in U\setminus\set{0}} F_x \\
+A &= \N \cap \bigcap_{x\in U} A_x
 \end{split}
 $$
 
-In the case of $A$, this makes it possible to determine an entire solution range at once.
+With this definition for $A$, it's possible to compute entire solution ranges, not just solutions.
 
 From theorems 6 and 7, it follows that $F$ and $A$ can be computed by only performing the intersection for a subset of all inputs $X \subseteq U$. This is an important optimization as it reduces the runtime complexity to $O(|X|)$, instead of $O(u)$. Unfortunately, theorems 6 and 7 put the size of $X$ at $O(\min\set{t, u})$, assuming $t<d$. In later sections, I will show how to reduce the size to $O(1)$.
 
@@ -543,11 +545,11 @@ def algorithm_1a(p: Problem, f: int, s: int, X: set[int]) -> tuple[int, int] | N
 
 The algorithm has a time complexity of $O(|X|)$ and a space complexity of $O(1)$, assuming that all arithmetic operations are $O(1)$ in time and space.
 
-This assumption is technically not true, but this doesn't matter for practical applications. In practice, this algorithm will be implemented with fixed-size integers and clear maximum values for $f$ and $s$, which makes it possible to calculate the maximum intermediate values and select an appropriately large integer type.
+Technically, this assumption is not true, but it doesn't matter for practical applications. It's relatively easy to calculate the maximum intermediate values of all arithmetic operations, which makes it possible to use fixed-width integer types in performance-oriented applications. I.e. if $t,d,u<2^{32}$ and $s\le 64$, then 128-bit unsigned integers are sufficient to store all intermediate values in the above algorithms.
 
 ### Finding minimal solutions
 
-The above algorithm cannot be used directly to find minimal solutions, but it can be used as a building block.
+The above algorithms cannot find minimal solutions directly, but it is a useful building block. With conjecture 8, any algorithm that finds solutions with candidate $f$ and $s$ values can be used to find minimal solutions as follows:
 
 1. Handle trivial solutions and simplifications.
 2. Set $s$ to 0.
@@ -556,13 +558,13 @@ The above algorithm cannot be used directly to find minimal solutions, but it ca
 5. If $A \ne \empty$, return $(f,A,s)$ as the minimal solution range.
 6. Otherwise, increment $s$ and go to step 3.
 
-Since conjecture 8 states that the $f$ value of the minimal solution can be computed from $s$, the algorithm simply tries all $s$ in order to find the first $f$ value that together forms a solution. Assuming that the conjecture is true, this algorithm will always find the minimal solution range.
+A simple brute-force approach: try all $s$ and pick the smallest. This algorithm is guaranteed to terminate, since a minimal solution always exists as will be shown later.
 
 The runtime complexity of this algorithm is $O(s \cdot |X|)$, assuming that all arithmetic operations are $O(1)$ in time and space.
 
 ### Finding solutions with $a=0$
 
-Solutions with $a=0$ are interesting, because they are very efficient to compute. Unfortunately, not all CFMPs have solutions with $a=0$ and if solutions with $a=0$ exist, they are often not minimal solutions.
+Solutions with $a=0$ are interesting for practical applications, because they are very efficient, solving the problem in just one multiplication plus one bit shift. Unfortunately, not all CFMPs have solutions with $a=0$ and if solutions with $a=0$ exist, they are often not minimal solutions.
 
 The following algorithm will find the solution $(f,0,s)$ with the smallest $s$, if it exists:
 
@@ -928,7 +930,7 @@ $\square$
 
 ### Conjecture 14
 
-Let $(u,t,d,r_d)$ be a CFMP where $t$ and $d$ are co-prime, $0<t<d$, and $2d\le u$. The set of all real solutions is a four-sided polygon.
+Let $(u,t,d,r_d)$ be a CFMP where $t$ and $d$ are co-prime and $0<t<d$ (WLOG). Furthermore, $2d\le u$. The set of all real solutions is a four-sided polygon.
 
 As such, the set of all real solutions can be computed as the intersection of at most 4 parallelograms $P_x$. The $x$ values for $P_x$ are:
 

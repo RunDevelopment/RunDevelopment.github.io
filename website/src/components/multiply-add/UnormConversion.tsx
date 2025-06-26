@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ProblemLike } from "./interfaces";
 import { NumberInput } from "../FormInputs";
 import { InlineCode } from "../md/InlineCode";
-import { ConversionCode } from "./CodeGen";
+import { ConversionCode, getIntermediateTypeSize } from "./CodeGen";
 import { SolutionLike } from "./interfaces";
 import precomputed from "./unorm-constants.json";
 
@@ -22,6 +22,36 @@ function parseConversion(s: string): SolutionLike {
     return { factor: BigInt(factor), add: BigInt(add), shift: Number(shift) };
 }
 
+function optimizeSolution(inputRange: number, solution: SolutionLike): SolutionLike {
+    const { factor, add, shift } = solution;
+
+    if (shift === 0 || shift === 8 || shift === 16 || shift === 32 || shift === 64) {
+        // shift is already optimal
+        return solution;
+    }
+    if (shift > 32) {
+        // shift is too large already
+        return solution;
+    }
+
+    const preferredShift = 2 ** Math.ceil(Math.log2(shift));
+    const shiftDiff = BigInt(preferredShift - shift);
+    const preferred: SolutionLike = {
+        factor: factor << shiftDiff,
+        add: add << shiftDiff,
+        shift: preferredShift,
+    };
+
+    if (
+        getIntermediateTypeSize(inputRange, solution) ===
+        getIntermediateTypeSize(inputRange, preferred)
+    ) {
+        return preferred;
+    }
+
+    return solution; // no optimization possible
+}
+
 export function UnormConversion() {
     const [from, setFrom] = useState(5);
     const [to, setTo] = useState(8);
@@ -30,7 +60,7 @@ export function UnormConversion() {
     const outputRange = 2 ** to - 1;
 
     const problem: ProblemLike = { inputRange, rounding: "round", d: inputRange, t: outputRange };
-    const solution = getUnormConversion(from, to);
+    const solution = optimizeSolution(inputRange, getUnormConversion(from, to));
 
     return (
         <>

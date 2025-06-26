@@ -10,6 +10,7 @@ interface NumberInputProps {
     readOnly?: boolean;
     className?: string;
     name?: string;
+    id?: string;
 }
 export function NumberInput({
     value,
@@ -19,6 +20,7 @@ export function NumberInput({
     readOnly,
     className,
     name,
+    id,
 }: NumberInputProps) {
     const [text, setText] = useState(value.toString());
 
@@ -40,6 +42,7 @@ export function NumberInput({
 
     return (
         <input
+            id={id}
             name={name}
             type="number"
             className={
@@ -75,6 +78,7 @@ interface DownDownProps<T extends string> {
     getLabel?: (value: T) => string;
     className?: string;
     name?: string;
+    id?: string;
 }
 export function DownDown<T extends string>({
     value,
@@ -83,9 +87,11 @@ export function DownDown<T extends string>({
     getLabel = String,
     className,
     name,
+    id,
 }: DownDownProps<T>) {
     return (
         <select
+            id={id}
             name={name}
             className={
                 (className || "") +

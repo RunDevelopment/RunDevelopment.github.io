@@ -2,12 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-    --font-sans: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Apple Color Emoji','Segoe UI Emoji','Segoe UI Symbol',sans-serif;
-}
-
 @layer utilities {
     .text-balance {
         text-wrap: balance;
+    }
+
+    .orientation-sideways {
+        text-orientation: sideways;
+    }
+    .orientation-upright {
+        text-orientation: upright;
+    }
+    .orientation-mixed {
+        text-orientation: mixed;
+    }
+    .orientation-sideways-right {
+        text-orientation: sideways-right;
+    }
+    .orientation-glyph {
+        text-orientation: use-glyph-orientation;
+    }
+
+    .vertical-writing-lr {
+        writing-mode: vertical-lr;
+    }
+    .vertical-writing-rl {
+        writing-mode: vertical-rl;
+    }
+    .horizontal-writing-tb {
+        writing-mode: horizontal-tb;
     }
 }

@@ -10,7 +10,6 @@
 }
 
 body {
-    /* line-height: 1.75rem; */
     font-family: var(--font-sans);
 }
 
@@ -19,6 +18,7 @@ article .normal-my {
     margin-top: 1rem;
     margin-bottom: 1rem;
 }
+
 @media print {
     :root {
         --page-narrow-width: var(--page-width);
@@ -56,6 +56,10 @@ article .compact .normal-my {
     margin-bottom: 0.75rem;
 }
 
+article pre {
+    scrollbar-color: #666 black;
+}
+
 a.run-link:not(:hover):not(:focus) {
     /*
     * This is bg-blue-800. The gradient starts with the opaque color and then
@@ -79,6 +83,5 @@ a.run-link:not(:hover):not(:focus) {
 }
 
 .katex-display {
-    font-size: 110%;
     margin: 0.5rem 0 !important;
 }

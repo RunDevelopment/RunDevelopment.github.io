@@ -1,9 +1,6 @@
 import { memo } from "react";
 import { SyntaxHighlight } from "./SyntaxHighlight";
-import { Source_Code_Pro } from "next/font/google";
 import Link from "next/link";
-
-const sourceCodePro = Source_Code_Pro({ subsets: ["latin"] });
 
 function indent(s: string, indent: string = "    ") {
     return s.replace(/^(?!$)/gm, indent);
@@ -77,7 +74,7 @@ export const CodeBlock = memo(({ code, lang, runnable }: CodeBlockProps) => {
     } else if (langTitle) {
         title = (
             <div className="relative print:hidden">
-                <div className={sourceCodePro.className + " absolute right-0 top-0 text-[13px]"}>
+                <div className="absolute right-0 top-0 font-mono text-[13px] sm:text-[14px]">
                     <span className="mr-1.5 select-none text-slate-400">{langTitle}</span>
                 </div>
             </div>
@@ -85,14 +82,11 @@ export const CodeBlock = memo(({ code, lang, runnable }: CodeBlockProps) => {
     }
 
     return (
-        <div className="-mx-4 my-2 w-[calc(100%+2rem)] md:-mx-6 md:w-[calc(100%+3rem)] lg:mx-0 lg:w-auto lg:max-w-full print:my-4 print:pl-12">
+        <div className="-mx-4 my-2 w-[calc(100%+2rem)] md:-mx-6 md:w-[calc(100%+3rem)] lg:mx-0 lg:w-auto lg:max-w-full print:my-4 print:pl-12 [.compact>&]:!mx-0 [.compact>&]:!w-auto">
             {title}
             <pre
                 tabIndex={0}
-                className={
-                    sourceCodePro.className +
-                    " text-[13px] sm:text-[14px] overflow-auto whitespace-pre rounded-md bg-black px-4 py-4 leading-5 md:px-6 lg:px-8 print:text-[13px] print:py-0"
-                }
+                className="overflow-auto whitespace-pre rounded-md bg-black p-4 font-mono text-[13px] sm:text-[14px] md:px-6 md:text-[15px] lg:px-8 print:py-0 print:text-[13px]"
             >
                 <SyntaxHighlight code={code.replace(/\n$/, "")} lang={lang || "none"} />
             </pre>

@@ -224,7 +224,7 @@ Sed nec leo mi. Duis sed justo mattis, posuere metus eget, porta diam. Integer v
 
 ## Notes
 
-Notes and side notes can be added like this:
+Notes can be added like this:
 
 ```md
 <div class="info">
@@ -254,17 +254,17 @@ Rust explainer. Hehe.
 
 </div>
 
-And
+Notes can also have a title:
 
 ```md
-<div class="side-note">
+<div class="info" data-title="Side note">
 
 This is a side note.
 
 </div>
 ```
 
-<div class="side-note">
+<div class="info" data-title="Side note">
 
 This is a side note.
 

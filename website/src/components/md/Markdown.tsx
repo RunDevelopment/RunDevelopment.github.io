@@ -15,6 +15,7 @@ import { InlineCode } from "./InlineCode";
 import { identity } from "../../lib/util";
 import { ImageSize } from "../../lib/schema";
 import { TodoMarker } from "./TodoMarker";
+import { InfoBox } from "./InfoBox";
 
 interface CodeProps {
     children?: ReactNode;
@@ -47,7 +48,7 @@ const TOC = memo(({ markdown }: TOCProps) => {
 
     return (
         <section className="narrow">
-            <h2 className="mb-2 mt-12 text-xl text-white" id="contents">
+            <h2 className="font-header mb-2 mt-12 text-xl text-white" id="contents">
                 Contents
             </h2>
             <ul dir="auto">
@@ -145,17 +146,18 @@ const staticComponents = {
     },
 
     h1: H1,
-    h2(props) {
-        // if (props.children === "Contents") {
-        //     return <TOC />;
-        // }
-        return <H2 {...props} />;
-    },
+    h2: H2,
     h3: H3,
     h4: H4,
 
+    em({ children }) {
+        return <em className="italic text-white">{children}</em>;
+    },
     strong({ children }) {
-        return <strong className="font-bold text-zinc-200">{children}</strong>;
+        return <strong className="font-bold text-white">{children}</strong>;
+    },
+    del({ children }) {
+        return <del className="text-neutral-500">{children}</del>;
     },
 
     blockquote({ children, ...props }) {
@@ -213,15 +215,13 @@ const staticComponents = {
 
     div(props) {
         if (props.className === "info" || props.className === "side-note") {
-            const title = props.className === "side-note" ? "Side note" : "Info";
-            return (
-                <div className="narrow normal-my -mx-4 bg-gray-800 py-px pl-8 pr-4 leading-snug md:mx-0 md:px-6">
-                    <div className="-mb-2 mt-3">
-                        <strong>{title}:</strong>
-                    </div>
-                    <div className="compact my-4">{props.children}</div>
-                </div>
-            );
+            const titleKey = "data-title";
+            const customTitle =
+                titleKey in props && typeof props[titleKey] === "string"
+                    ? props[titleKey]
+                    : undefined;
+            const title = customTitle ?? "Info";
+            return <InfoBox title={title}>{props.children}</InfoBox>;
         }
 
         return <div {...props} />;
@@ -284,11 +284,7 @@ export const Markdown = memo(
             ),
             h1: noH1 ? Empty : staticComponents.h1,
             h2: (props) =>
-                props.children === "Contents" ? (
-                    <TOC markdown={markdown} />
-                ) : (
-                    staticComponents.h2(props)
-                ),
+                props.children === "Contents" ? <TOC markdown={markdown} /> : <H2 {...props} />,
             p: inline ? ForwardChildren : draft ? PWithDraft : P,
             code: inlineCodeLanguage
                 ? (props) => <Code {...props} inlineCodeLang={inlineCodeLanguage} />

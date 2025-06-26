@@ -195,13 +195,6 @@ function getIntermediateBits(solution: SolutionLike, inputRange: number): number
     return maxIntermediate.toString(2).length;
 }
 
-function focusByName(name: string) {
-    const element = document.getElementsByName(name)[0];
-    if (element) {
-        element.focus();
-    }
-}
-
 export function ConversionConstantsSearch() {
     const [problem, setProblem] = useState<ProblemLike>({
         rounding: "round",
@@ -346,7 +339,7 @@ export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemI
                         Rounding <span className="border-b-2 border-yellow-500">(R)</span>
                     </label>
                     <DownDown
-                        name="rounding"
+                        id="rounding"
                         value={rounding}
                         onChange={setRounding}
                         className="xs:max-w-40 w-full"
@@ -361,7 +354,7 @@ export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemI
                         Enumerator <span className="border-b-2 border-emerald-400">(T)</span>
                     </label>
                     <NumberInput
-                        name="enumerator"
+                        id="enumerator"
                         min={1}
                         max={maxT}
                         className="xs:max-w-40 w-full min-w-0"
@@ -377,7 +370,7 @@ export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemI
                         Denominator <span className="border-b-2 border-red-600">(D)</span>
                     </label>
                     <NumberInput
-                        name="denominator"
+                        id="denominator"
                         min={1}
                         max={maxD}
                         className="xs:max-w-40 w-full min-w-0"
@@ -394,7 +387,7 @@ export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemI
                     </label>
                     <div className="flex w-full flex-row flex-wrap gap-x-2 gap-y-1">
                         <NumberInput
-                            name="inputRange"
+                            id="inputRange"
                             min={1}
                             max={maxInputRange}
                             value={inputRange}
@@ -440,35 +433,33 @@ export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemI
                     The Problem:
                 </div>
                 <div className="xs:text-left text-center font-serif text-lg">
-                    <span
-                        className="border-b-2 border-yellow-500 pb-1"
-                        onClick={() => focusByName("rounding")}
+                    <label
+                        className="cursor-text border-b-2 border-yellow-500 pb-1"
+                        htmlFor="rounding"
                     >
                         {rounding}
-                    </span>
+                    </label>
                     (<em>x</em> •{" "}
-                    <span
-                        className="border-b-2 border-emerald-400 pb-1"
-                        onClick={() => focusByName("enumerator")}
+                    <label
+                        className="cursor-text border-b-2 border-emerald-400 pb-1"
+                        htmlFor="enumerator"
                     >
                         {enumerator}
-                    </span>{" "}
+                    </label>{" "}
                     /{" "}
-                    <span
-                        className="border-b-2 border-red-600 pb-1"
-                        onClick={() => focusByName("denominator")}
+                    <label
+                        className="cursor-text border-b-2 border-red-600 pb-1"
+                        htmlFor="denominator"
                     >
                         {denominator}
-                    </span>
+                    </label>
                     ){" "}
                     <span className="whitespace-nowrap">
-                        for <em>x</em> in 0..=
-                        <span
-                            className="border-b-2 border-slate-500 pb-1"
-                            onClick={() => focusByName("inputRange")}
-                        >
-                            {inputRange}
-                        </span>
+                        for <em>x</em> in{" "}
+                        <label className="cursor-text" htmlFor="inputRange">
+                            0..=
+                            <span className="border-b-2 border-slate-500 pb-1">{inputRange}</span>
+                        </label>
                     </span>
                 </div>
             </div>

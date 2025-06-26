@@ -40,7 +40,7 @@ fn u5_to_u8_naive(x: u8) -> u8 {
 }
 ```
 
-<div class="side-note">
+<div class="info" data-title="Side note">
 
 Unfortunately, Rust doesn't have a `u5` type, so `x: u8` + `debug_assert!` will have to do. I yearn for the day when Rust allows me to express integer types if arbitrary bit width. (Or even better, arbitrary ranges like 0 to 100, but that day will likely never come...)
 
@@ -50,7 +50,7 @@ While this function works correctly and gets the job done, it's not so great per
 
 This article will show various ways to optimize the problem of converting unorms. We'll start with some floating-point tricks to make the naive implementation faster and work our way up to a version that is **46x faster**.
 
-<div class="info">
+<div class="info" data-title="Correction">
 
 The benchmark previously had [a bug](https://github.com/RunDevelopment/rounding-bench-rs/issues/1) that affected the timing of `u5_to_u8_naive`. No other implementations were affected. The bug was fixed on 2024-09-24.
 
@@ -163,7 +163,7 @@ round(r) = \begin{cases}
 \end{cases}
 $$
 
-<div class="side-note">
+<div class="info" data-title="Side note">
 
 Implementing this formula in code might _seem_ straightforward, but floating-point numbers only have a finite precision, so adding/subtracting 0.5 will return a _rounded_ result. All assertions in the following code will pass:
 
@@ -393,7 +393,7 @@ And it's faster than our highly-optimized floating-point code. Not but much, but
 
 Especially for small input domains, LUTs are cache-friendly and can be hard to beat in terms of simplicity and performance. In our case, the LUT is just 32 bytes, so it even fits in a single cache line (assuming favorable alignment).
 
-<div class="side-note">
+<div class="info" data-title="Side note">
 
 In a previous version of this article, I used Rust 1.78.0 for benchmarking. This version of Rust had a performance regression that caused the LUT version to be more than 2x slower (around 14µs). Essentially, the compiler thought it was a good idea to first copy the LUT onto the stack before using it. It even did that inside the tight loop of the benchmark, always writing the entire LUT to the stack before reading the data back.
 
@@ -495,7 +495,7 @@ u5_to_u8_int:
         ret
 ```
 
-<div class="side-note">
+<div class="info" data-title="Side note">
 
 Performance-wise, `x % 32` doesn't make it any faster. Just like with `u5_to_u8_safer_int`, the compiler already knows that `x` is between 0 and 31 because of the bit-wise AND in the benchmark. So the above version with `x % 32` simply shows us the assembly that the compiler is generating in our benchmark (or rather, assembly very close to it).
 
@@ -557,26 +557,6 @@ And it's the fastest method.
 
 Since it is doing strictly less work than the integer rounding method, this result is not surprising. However, the generalized multiply-add method is only 10% faster, so that's still a little disappointing.
 
-### Constants
-
-In case you need constants for other unorm conversions, here's a little tool. Given the _From_ and _To_ bits of the unorm conversion, it will return constants for the multiply-add method. The tool will also generate Rust and C code for the specified unorm conversion with those constants.
-
-```json:custom
-{
-    "component": "unorm-conversion"
-}
-```
-
-<div class="info">
-
-Limitations:
-
--   This tool is limited to a maximum of 32 bits in either direction. (All constants were precomputed.)
-
--   The generated C code may not be standard conforming, due to the lack of a standardized 128-bit integer type. If the code uses the `uint128_t` type, replace it with the appropriate 128-bit integer type for your compiler. See [this Stack Overflow answer](https://stackoverflow.com/a/54815033/7595472) for more details.
-
-</div>
-
 ### Vectorization-friendly constants
 
 This trick was suggested by [u/rofrol](https://www.reddit.com/r/rust/comments/1fl7uo4/comment/lo8s3ij/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button) on Reddit. The idea is to use constants that allow the compiler to skip the bit shift entirely. If $s$ is 8, 16, 32 or 64, the bit shift can be performed implicitly by just reading the upper byte(s) of the result. On its own, this doesn't actually perform any better than a bit shift, but it's very useful for SIMD! The compiler auto-vectorizes our benchmark code and can take advantage of this.
@@ -589,7 +569,7 @@ $$
 
 So we can make $s$ as large as we want, we just have to increase $f$ and $a$ accordingly.
 
-We previously used the constants $f=527,a=23,s=6$, so we know that the constants $f=2108,a=92,s=8$ will also work. Luckily, these constants don't overflow `u16`, so we plug them directly into our code:
+We previously used the constants $f=527,a=23,s=6$, so we know that the constants $f=2108,a=92,s=8$ will also work. Luckily, these constants don't overflow `u16`, so we can plug them directly into our code:
 
 ```rust
 fn u5_to_u8_ma8(x: u8) -> u8 {
@@ -624,6 +604,24 @@ u5_to_u8_ma8       [4.2081 µs 4.2210 µs 4.2356 µs]  46.8x
 Yup, the compiler was able to take advantage of the shift by 8 and generated faster assembly for our benchmark.
 
 I suspect that we could push it even further with some handwritten SIMD, but that's beyond the scope of this article. For now, 46x faster is good enough for me.
+
+### Constants
+
+In case you need constants for other unorm conversions, here's a little tool. Given the _From_ and _To_ bits of the unorm conversion, it will return constants for the multiply-add method. The tool will also generate Rust and C code for the specified unorm conversion with those constants.
+
+```json:custom
+{
+    "component": "unorm-conversion"
+}
+```
+
+<div class="info" data-title="Limitations">
+
+-   This tool is limited to a maximum of 32 bits in either direction. (All constants were precomputed.)
+
+-   The generated C code may not be standard conforming, due to the lack of a standardized 128-bit integer type. If the code uses the `uint128_t` type, replace it with the appropriate 128-bit integer type for your compiler. See [this Stack Overflow answer](https://stackoverflow.com/a/54815033/7595472) for more details.
+
+</div>
 
 ## Conclusion
 

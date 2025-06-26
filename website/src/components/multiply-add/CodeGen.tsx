@@ -10,6 +10,11 @@ import { CodeBlock } from "../md/CodeBlock";
  */
 export const bitsToTypeSize = (bits: number) => Math.max(8, 2 ** Math.ceil(Math.log2(bits)));
 
+export const getIntermediateTypeSize = (inputRange: number, solution: SolutionLike) => {
+    const bits = getRequiredBits(solution, inputRange);
+    return bitsToTypeSize(bits.intermediate);
+};
+
 interface Bits {
     input: number;
     output: number;

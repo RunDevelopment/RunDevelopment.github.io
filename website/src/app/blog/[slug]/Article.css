@@ -1,0 +1,35 @@
+:root {
+    --bg-image-height: 320px;
+}
+
+@media screen and (min-width: 1024px) {
+    :root {
+        --bg-image-height: 480px;
+    }
+}
+
+#bg-img-fade {
+    background: radial-gradient(
+            500px 30% at 50% 100%,
+            rgb(0 0 0/50%),
+            rgb(0 0 0/40%) 50%,
+            rgb(0 0 0/5%) 90%,
+            transparent
+        ),
+        radial-gradient(
+            1250px 700px at 50% 20%,
+            transparent,
+            rgb(24 24 27/0%) 75%,
+            rgb(24 24 27/8%) 80%,
+            rgb(24 24 27/20%) 85%,
+            rgb(24 24 27/35%) 90%,
+            rgb(24 24 27/45%) 92%,
+            rgb(24 24 27/92%) 98%,
+            rgb(24 24 27/97%) 99%,
+            rgb(24 24 27)
+        );
+}
+
+#title-contianer > * {
+    text-box-trim: trim-both;
+}
