@@ -3,13 +3,15 @@ datePublished: 2025-05-01
 draft: true
 tags: math optimization compilers
 inlineCodeLanguage: rust
+image: ./m34.avif
+color: "#9b0029"
 ---
 
-# Unsigned integer multiplication with a constant fraction
+# Constant Fraction Unsigned Integer Multiplication
 
-Integer division by a constant has long been the subject of optimization by all major compilers, as division is a rather slow operation on modern CPUs. To avoid this cost, compilers employ strategies to replace division with cheaper operations. One such strategy is the multiply-add method. It works as follows:
+Integer division by a constant has long been the subject of optimization by all major compilers. As division is a rather slow operation on modern CPUs, compilers employ strategies to replace division with cheaper operations producing equivalent results. One such strategy is the multiply-add method. It works as follows:
 
-**Multiply-add method** (MAM): Given an expression of the form $\lfloor x/d \rfloor$, where $x\in\N$ is an integer and $d\in\N_1$ is a constant, it can be represented by constants $f,a,s\in\N$ such that:
+**Multiply-add method** (MAM): Given an expression of the form $\lfloor x/d \rfloor$, where $x\in\N$ is an integer and $d\in\N_1$ is a constant, the following equation holds for suitable $f,a,s\in\N$:
 
 $$
 \lfloor \frac{x}{d} \rfloor = \lfloor \frac{xf + a}{2^s} \rfloor

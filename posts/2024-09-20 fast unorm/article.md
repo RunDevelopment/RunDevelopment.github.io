@@ -4,7 +4,8 @@ dateModified: 2024-09-24
 description: Optimizing the conversion of 5-bit unorms to 8-bit unorms in Rust.
 inlineCodeLanguage: rust
 tags: rust optimization unorm
-image: ./ds3-m32-2024-09-19.jpg
+image: ./ds3-m32-2024-09-19.avif
+imageSmall: ./ds3-m32-2024-09-19_small.avif
 color: "#55b0ed"
 ---
 
@@ -167,7 +168,7 @@ $$
 
 Implementing this formula in code might _seem_ straightforward, but floating-point numbers only have a finite precision, so adding/subtracting 0.5 will return a _rounded_ result. All assertions in the following code will pass:
 
-```rust
+```rust @rust-playground
 fn simple_round(x: f32) -> f32 {
     if x >= 0.0 {
         (x + 0.5).floor()

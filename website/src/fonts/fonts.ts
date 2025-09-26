@@ -1,10 +1,10 @@
-import { Montserrat, Inter, Source_Code_Pro, Source_Serif_4 } from "next/font/google";
+import { Montserrat, Source_Code_Pro, Source_Serif_4, Roboto } from "next/font/google";
 
-export const sans = Inter({
+export const sans = Roboto({
     weight: ["400", "700"],
     subsets: ["latin"],
     adjustFontFallback: false,
-    fallback: ["Arial", "sans-serif"],
+    fallback: ["Roboto", "Segoe UI", "Arial", "sans-serif"],
     variable: "--font-sans",
 });
 export const serif = Source_Serif_4({
@@ -16,7 +16,7 @@ export const serif = Source_Serif_4({
     variable: "--font-serif",
 });
 export const header = Montserrat({
-    weight: ["400", "700"],
+    weight: ["300", "400", "500", "700"],
     style: ["normal", "italic"],
     subsets: ["latin"],
     adjustFontFallback: false,

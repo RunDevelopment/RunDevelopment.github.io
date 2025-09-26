@@ -7,6 +7,7 @@ import c from "react-syntax-highlighter/dist/esm/languages/prism/c";
 import json from "react-syntax-highlighter/dist/esm/languages/prism/json";
 import yaml from "react-syntax-highlighter/dist/esm/languages/prism/yaml";
 import python from "react-syntax-highlighter/dist/esm/languages/prism/python";
+import markdown from "react-syntax-highlighter/dist/esm/languages/prism/markdown";
 import { coldarkDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { ForwardChildren } from "../util";
 
@@ -15,6 +16,7 @@ SyntaxHighlighter.registerLanguage("c", c);
 SyntaxHighlighter.registerLanguage("json", json);
 SyntaxHighlighter.registerLanguage("yaml", yaml);
 SyntaxHighlighter.registerLanguage("python", python);
+SyntaxHighlighter.registerLanguage("markdown", markdown);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function nasm(Prism: any) {

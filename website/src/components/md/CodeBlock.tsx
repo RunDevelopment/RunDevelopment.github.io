@@ -23,22 +23,36 @@ function getLangTitle(lang: string): string | undefined {
         case "c":
             return "C";
         case "cpp":
+        case "c++":
             return "C++";
         case "cs":
+        case "c#":
             return "C#";
-        case "rs":
-        case "rust":
-            return "Rust";
-        case "py":
-            return "Python";
+        case "html":
+        case "markup":
+            return "HTML";
         case "js":
         case "javascript":
             return "JavaScript";
+        case "json":
+            return "JSON";
         case "java":
             return "Java";
+        case "md":
+        case "markdown":
+            return "Markdown";
+        case "py":
+        case "python":
+            return "Python";
+        case "rs":
+        case "rust":
+            return "Rust";
         case "ts":
         case "typescript":
             return "TypeScript";
+        case "yml":
+        case "yaml":
+            return "YAML";
         default:
             return undefined;
     }
@@ -47,15 +61,13 @@ function getLangTitle(lang: string): string | undefined {
 interface CodeBlockProps {
     code: string;
     lang?: string;
-    runnable?: boolean;
+    meta?: string;
 }
-export const CodeBlock = memo(({ code, lang, runnable }: CodeBlockProps) => {
-    runnable ??= /\bassert(?:_eq|_ne)?!/.test(code);
-
+export const CodeBlock = memo(({ code, lang, meta = "" }: CodeBlockProps) => {
     const langTitle = getLangTitle(lang || "");
 
     let title;
-    if (runnable) {
+    if (/@rust-playground/i.test(meta)) {
         title = (
             <div className="relative">
                 <div className="absolute -top-1 right-3">
@@ -75,7 +87,7 @@ export const CodeBlock = memo(({ code, lang, runnable }: CodeBlockProps) => {
         title = (
             <div className="relative print:hidden">
                 <div className="absolute right-0 top-0 font-mono text-[13px] sm:text-[14px]">
-                    <span className="mr-1.5 select-none text-slate-400">{langTitle}</span>
+                    <span className="mr-1.5 select-none text-gray-400 opacity-80">{langTitle}</span>
                 </div>
             </div>
         );

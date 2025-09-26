@@ -1,36 +1,11 @@
 import { memo } from "react";
-import { ProblemLike, SolutionLike } from "./interfaces";
 import { CodeBlock } from "../md/CodeBlock";
+import { Problem, RoundingMode, Solution, Bits } from "./multiply-add-solver";
 
-/**
- * Given the number of bits required to represent a number, returns the smallest
- * bit-width of a fixed-size unsigned integer that can hold that number.
- *
- * Example: `bitsToTypeSize(3) === 8` and `bitsToTypeSize(9) === 16`
- */
-export const bitsToTypeSize = (bits: number) => Math.max(8, 2 ** Math.ceil(Math.log2(bits)));
-
-export const getIntermediateTypeSize = (inputRange: number, solution: SolutionLike) => {
-    const bits = getRequiredBits(solution, inputRange);
-    return bitsToTypeSize(bits.intermediate);
-};
-
-interface Bits {
-    input: number;
-    output: number;
-    intermediate: number;
-}
-function getRequiredBits({ factor, add, shift }: SolutionLike, inputRange: number): Bits {
-    const outputRange = (BigInt(inputRange) * factor + add) >> BigInt(shift);
-    const maxIntermediate = BigInt(inputRange) * factor + add;
-
-    return {
-        input: inputRange.toString(2).length,
-        output: outputRange.toString(2).length,
-        intermediate: maxIntermediate.toString(2).length,
-    };
-}
-interface CodeGenOptions {
+interface CodeGenParams {
+    solution: Solution;
+    problem: Problem;
+    rounding: RoundingMode;
     comment?: string;
     noComment?: boolean;
     functionName?: string;
@@ -39,62 +14,58 @@ interface GeneratedCode {
     rust: string;
     c: string;
 }
-function generateCode(
-    solution: SolutionLike,
-    problem: ProblemLike,
-    options?: CodeGenOptions,
-): GeneratedCode {
-    const { factor, add, shift } = solution;
-    const { inputRange, t: T, d: D, rounding: R } = problem;
-    const outputRange = (BigInt(inputRange) * factor + add) >> BigInt(shift);
+function generateCode(params: CodeGenParams): GeneratedCode {
+    const { f, a, s } = params.solution;
+    const { u, t: t, d: d } = params.problem;
+    const outputRange = (u * f + a) >> BigInt(s);
 
-    const roundingComment: Record<ProblemLike["rounding"], string> = {
+    const roundingComment: Record<RoundingMode, string> = {
         round: "rounding",
         floor: "rounding down",
         ceil: "rounding up",
     };
-    const bits = getRequiredBits(solution, problem.inputRange);
+    const bits = params.solution.requiredBits(u);
 
-    const fromType = bitsToTypeSize(bits.input);
-    const toType = bitsToTypeSize(bits.output);
+    const fromType = Bits.typeSize(bits.input);
+    const toType = Bits.typeSize(bits.output);
 
     const {
         noComment,
-        comment = `Converts a value 0..=${inputRange} to 0..=${outputRange}\nby multiplying with ${T}/${D} and then ${roundingComment[R]}.`,
+        comment = `Converts a value 0..=${u} to 0..=${outputRange}\nby multiplying with ${t}/${d} and then ${roundingComment[params.rounding]}.`,
         functionName = "convert_range",
-    } = options || {};
+    } = params;
 
     let rustExpr, cExpr;
-    if (add === 0n && shift === 0) {
+    if (a === 0n && s === 0n) {
         rustExpr = fromType < toType ? `x as u${toType}` : `x`;
-        rustExpr += factor === 1n ? `` : ` * ${factor}`;
+        rustExpr += f === 1n ? `` : ` * ${f}`;
 
         cExpr = fromType < toType ? `(uint${toType}_t)x` : `x`;
-        cExpr += factor === 1n ? `` : ` * ${factor}`;
+        cExpr += f === 1n ? `` : ` * ${f}`;
     } else {
-        const interType = bitsToTypeSize(bits.intermediate);
+        const interType = Bits.typeSize(bits.intermediate);
 
         rustExpr = fromType < interType ? `x as u${interType}` : `x`;
-        rustExpr += factor === 1n ? `` : ` * ${factor}`;
-        rustExpr += add === 0n ? `` : ` + ${add}`;
-        rustExpr = `${add === 0n ? rustExpr : `(${rustExpr})`} >> ${shift}`;
+        rustExpr += f === 1n ? `` : ` * ${f}`;
+        rustExpr += a === 0n ? `` : ` + ${a}`;
+        rustExpr = `${a === 0n ? rustExpr : `(${rustExpr})`} >> ${s}`;
         if (interType > toType) {
             rustExpr = `(${rustExpr}) as u${toType}`;
         }
 
         cExpr = fromType < interType ? `(uint${interType}_t)x` : `x`;
-        cExpr += factor === 1n ? `` : ` * ${factor}`;
-        cExpr += add === 0n ? `` : ` + ${add}`;
-        cExpr = `${add === 0n ? cExpr : `(${cExpr})`} >> ${shift}`;
+        cExpr += f === 1n ? `` : ` * ${f}`;
+        cExpr += a === 0n ? `` : ` + ${a}`;
+        cExpr = `${a === 0n ? cExpr : `(${cExpr})`} >> ${s}`;
     }
 
     const commentLines = comment.split("\n");
-    const needsAssert = inputRange !== 2 ** fromType - 1;
+    const needsAssert = u !== 2n ** BigInt(fromType) - 1n;
 
     const rustCode = [
         ...(!noComment ? commentLines.map((l) => "/// " + l) : []),
         `fn ${functionName}(x: u${fromType}) -> u${toType} {`,
-        needsAssert ? `    debug_assert!(x <= ${inputRange});` : "",
+        needsAssert ? `    debug_assert!(x <= ${u});` : "",
         `    ${rustExpr}`,
         `}`,
     ]
@@ -104,7 +75,7 @@ function generateCode(
     const cCode = [
         ...(!noComment ? commentLines.map((l) => "// " + l) : []),
         `uint${toType}_t ${functionName}(uint${fromType}_t x) {`,
-        needsAssert ? `    assert(x <= ${inputRange});` : "",
+        needsAssert ? `    assert(x <= ${u});` : "",
         `    return ${cExpr};`,
         `}`,
     ]
@@ -114,19 +85,13 @@ function generateCode(
     return { rust: rustCode, c: cCode };
 }
 
-export const ConversionCode = memo(
-    ({
-        solution,
-        problem,
-        ...options
-    }: { solution: SolutionLike; problem: ProblemLike } & CodeGenOptions) => {
-        const { rust, c } = generateCode(solution, problem, options);
+export const ConversionCode = memo((params: CodeGenParams) => {
+    const { rust, c } = generateCode(params);
 
-        return (
-            <>
-                <CodeBlock code={rust} lang="rust" />
-                <CodeBlock code={c} lang="c" />
-            </>
-        );
-    },
-);
+    return (
+        <>
+            <CodeBlock code={rust} lang="rust" />
+            <CodeBlock code={c} lang="c" />
+        </>
+    );
+});

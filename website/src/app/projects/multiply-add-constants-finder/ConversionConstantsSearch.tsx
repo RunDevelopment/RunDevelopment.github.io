@@ -1,348 +1,325 @@
 "use client";
 
 import { memo, useCallback, useEffect, useState } from "react";
-import { NumberInput, DownDown, SmallButton } from "../../../components/FormInputs";
-import init_gma, {
-    Problem,
-    SolutionIter as WasmSolutionIter,
-    SolutionRange,
-} from "@rundevelopment/gma_wasm";
-import { bitsToTypeSize, ConversionCode } from "../../../components/multiply-add/CodeGen";
-import {
-    AddRangeLike,
-    ProblemLike,
-    SolutionLike,
-    SolutionRangeLike,
-} from "../../../components/multiply-add/interfaces";
+import { NumberInput, DownDown, SmallButton, BigIntInput } from "../../../components/FormInputs";
+import { ConversionCode } from "../../../components/multiply-add/CodeGen";
 import { groupBy } from "../../../lib/util";
+import {
+    Bits,
+    Problem,
+    Range,
+    RoundingMode,
+    Solution,
+    SolutionRange,
+} from "../../../components/multiply-add/multiply-add-solver";
 
+interface ProblemDesc {
+    rounding: RoundingMode;
+    t: bigint;
+    d: bigint;
+    u: bigint;
+    inputLimit?: number;
+}
 interface Result {
-    problem: ProblemLike;
-    bestSolution: SolutionLike;
-    addZero: SolutionLike | undefined;
-    solutions: SolutionRangeLike[];
+    problem: Problem;
+    rounding: RoundingMode;
+    bestSolution: Solution;
+    addZero: Solution | undefined;
+    iter: MaterializedIter<SolutionRange>;
     time: number;
-    hasMoreSolutions: boolean;
-    getMoreSolutions: () => [solutions: SolutionRangeLike[], done: boolean];
 }
-type SolveFn = (problem: ProblemLike) => Result;
+function solve(desc: ProblemDesc): Result {
+    const timeStart = performance.now();
 
-const dummyResult: Result = {
-    problem: { rounding: "round", t: 255, d: 31, inputRange: 31 },
-    bestSolution: { factor: 2108n, add: 92n, shift: 8 },
-    addZero: undefined,
-    solutions: [{ factor: 527n, add: { min: 23n, max: 23n }, shift: 6 }],
-    time: 0,
-    hasMoreSolutions: false,
-    getMoreSolutions: () => [[], true],
-};
-const dummySolve: SolveFn = (problem) => {
-    return { ...dummyResult, problem };
-};
-class SolutionIter {
-    private iter: WasmSolutionIter;
-    private back: SolutionRange | undefined;
-    done: boolean = false;
-    constructor(iter: WasmSolutionIter) {
-        this.iter = iter;
-    }
-    next(): SolutionRange | undefined {
-        if (this.back) {
-            const s = this.back;
-            this.back = undefined;
-            return s;
-        }
-        const s = this.iter.next();
-        if (s === undefined) {
-            this.done = true;
-        }
-        return s;
-    }
-    putBack(s: SolutionRange) {
-        if (this.back) {
-            throw new Error("Can only put back one solution");
-        }
-        this.back = s;
-    }
-}
-function iterateSolutionsWithinTimeFrame(
-    iter: SolutionIter,
-    maxIterTime: number,
-    maxSolutions: number,
-): SolutionRange[] {
-    const solutions: SolutionRange[] = [];
+    const p = Problem[desc.rounding](desc.u, desc.t, desc.d);
 
-    const iterStart = performance.now();
-    let time = 0;
-    let s;
-    // iterate all solution until we take too long OR we have enough solutions
-    while (time < maxIterTime && (s = iter.next())) {
-        solutions.push(s);
+    let solver;
+    try {
+        solver = p.solve(desc.inputLimit);
+    } catch (e) {
+        // this means that we exceeded the input limit
+        const primitive = p.simplify().primitiveSolution().original();
 
-        if (solutions.length >= maxSolutions) {
-            break;
-        }
-        time = performance.now() - iterStart;
+        return {
+            problem: p,
+            rounding: desc.rounding,
+            bestSolution: primitive.optimize(desc.u),
+            addZero: undefined,
+            iter: MaterializedIter.of(SolutionRange.from(primitive)),
+            time: performance.now() - timeStart,
+        };
     }
 
-    if (solutions.length > 0 && time < maxIterTime / 2) {
-        // we still have a lot of time left, so let's get all solutions for
-        // the last shift to finish it and then stop
-        const shift = solutions[solutions.length - 1].shift;
-        while ((s = iter.next())) {
-            if (s.shift !== shift) {
-                iter.putBack(s);
-                break;
-            }
-            solutions.push(s);
-        }
+    const iter = MaterializedIter.from(solver.iterateSolutions());
+    iter.addMany(1); // add the minimal solution
+    const smallest = iter.items[0].pickAny();
+    const addZero = smallest.a === 0n ? smallest : solver.zeroSolution() ?? undefined;
+    const bestSolution = pickBestSolution(smallest, addZero, desc.u);
+
+    const timeUntilNow = performance.now() - timeStart;
+    if (timeUntilNow < 5) {
+        // if we found solutions very quickly, let's find some more for the user
+        advanceSolutionIter(iter, 5, 50);
     }
-
-    return solutions;
-}
-const wasmSolve: SolveFn = (p) => {
-    const start = performance.now();
-
-    const problem = new Problem(p.rounding, p.t, p.d, p.inputRange);
-
-    const iter = new SolutionIter(problem.getSolutionRanges());
-    const smallestSolution = iter.next()!;
-    const addZero =
-        smallestSolution.add.min === 0n
-            ? smallestSolution.pickMin()
-            : problem.getSmallestAddZeroSolution();
-
-    const solutions = [smallestSolution];
-
-    const MAX_SOLUTIONS = 50;
-    const MAX_ITER_TIME = 10; // ms
-    const FIRST_MAX_TIME = 30; // ms
-
-    const iterStart = performance.now();
-    let time = iterStart - start;
-    // only iterate solution if the first solution was found quickly
-    if (time < FIRST_MAX_TIME) {
-        solutions.push(...iterateSolutionsWithinTimeFrame(iter, MAX_ITER_TIME, MAX_SOLUTIONS));
-    }
-
-    time = performance.now() - start;
 
     return {
-        problem,
-        bestSolution: pickBestSolution(smallestSolution.pickAny(), addZero, p.inputRange),
-        solutions,
+        problem: p,
+        rounding: desc.rounding,
+        bestSolution,
         addZero,
-        time,
-        hasMoreSolutions: !iter.done,
-        getMoreSolutions: () => {
-            const moreSolutions = iterateSolutionsWithinTimeFrame(iter, 500, 500);
-            return [moreSolutions, iter.done];
-        },
+        iter,
+        time: performance.now() - timeStart,
     };
-};
+}
+
+class MaterializedIter<T> {
+    private _items: T[] = [];
+    private _iter: Iterator<T>;
+    private _done: boolean = false;
+
+    get items(): readonly T[] {
+        return this._items;
+    }
+    get finished(): boolean {
+        return this._done;
+    }
+
+    constructor(iter: Iterator<T>) {
+        this._iter = iter;
+    }
+
+    static from<T>(iterable: Iterable<T>): MaterializedIter<T> {
+        return new MaterializedIter(iterable[Symbol.iterator]());
+    }
+    static of<T>(...items: readonly T[]): MaterializedIter<T> {
+        const iter = new MaterializedIter(items[Symbol.iterator]());
+        iter._items = [...items];
+        iter._done = true;
+        return iter;
+    }
+
+    addMany(count: number) {
+        let i = 0;
+        this.addWhile(() => ++i < count);
+    }
+
+    addWhile(cond: (item: T) => boolean) {
+        while (!this._done) {
+            const next = this._iter.next();
+            if (next.done) {
+                this._done = true;
+            } else {
+                this._items.push(next.value);
+                if (!cond(next.value)) {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+function advanceSolutionIter(
+    iter: MaterializedIter<SolutionRange>,
+    maxIterTime: number, // ms
+    maxSolutions: number,
+) {
+    if (iter.finished) return;
+
+    const start = performance.now();
+    let stopS = undefined;
+
+    iter.addWhile((item) => {
+        // check time
+        const time = performance.now() - start;
+        if (time >= maxIterTime) return false;
+
+        // check max solutions
+        maxSolutions--;
+        if (maxSolutions <= 0) {
+            // even if we have the required number of solutions, we want to
+            // finish the current shift
+            stopS ??= item.s + 1n;
+            if (item.s !== stopS) return true;
+
+            return false;
+        }
+
+        return true;
+    });
+}
+function getVisibleSolution(iter: MaterializedIter<SolutionRange>): readonly SolutionRange[] {
+    if (iter.finished || iter.items.length < 10) {
+        return iter.items;
+    }
+
+    const last = iter.items[iter.items.length - 1];
+    const prev = iter.items[iter.items.length - 2];
+    if (last.s === prev.s) {
+        return iter.items;
+    }
+    return iter.items.slice(0, -1);
+}
 
 function pickBestSolution(
-    smallest: SolutionLike,
-    addZero: SolutionLike | undefined,
-    inputRange: number,
-): SolutionLike {
-    let best = smallest;
-    const intermediateType = bitsToTypeSize(getIntermediateBits(best, inputRange));
-    const outputRange = (BigInt(inputRange) * best.factor + best.add) >> BigInt(best.shift);
-    const outputType = bitsToTypeSize(outputRange.toString(2).length);
-
-    if (addZero && intermediateType === bitsToTypeSize(getIntermediateBits(addZero, inputRange))) {
-        // this means that the zero solution doesn't require a jump to a
-        // larger integer type, so it's better since it doesn't need to do
-        // an addition
-        best = addZero;
-    }
-
-    if (best.shift > 0 && best.factor !== 1n && intermediateType > outputType) {
-        // If the shift is a multiple of the size of the output type, then the
-        // compiler can potentially optimize away the shift operation
-        const preferredShift = Math.ceil(best.shift / outputType) * outputType;
-        if (preferredShift > best.shift) {
-            const c = 2n ** BigInt(preferredShift - best.shift);
-            const preferred: SolutionLike = {
-                factor: best.factor * c,
-                // choose a nice-looking add value if possible
-                add:
-                    best.add !== best.factor && best.add === 2n ** BigInt(best.shift) - 1n
-                        ? 2n ** BigInt(preferredShift) - 1n
-                        : best.add * c,
-                shift: preferredShift,
-            };
-
-            const bestIntermediate = bitsToTypeSize(getIntermediateBits(best, inputRange));
-            const preferredIntermediate = bitsToTypeSize(
-                getIntermediateBits(preferred, inputRange),
-            );
-            if (bestIntermediate === preferredIntermediate) {
-                // this means that the zero solution doesn't require a jump to a
-                // larger integer type, so it's better since it doesn't need to do
-                // an addition
-                best = preferred;
-            }
+    smallest: Solution,
+    addZero: Solution | undefined,
+    inputRange: bigint,
+): Solution {
+    if (addZero) {
+        const smallestType = Bits.typeSize(smallest.requiredBits(inputRange).intermediate);
+        const addZeroType = Bits.typeSize(addZero.requiredBits(inputRange).intermediate);
+        if (addZeroType <= smallestType) {
+            // this means that the zero solution doesn't require a jump to a
+            // larger integer type, so it's typically better since it doesn't
+            // need to do an addition
+            return addZero.optimize(inputRange);
         }
     }
 
-    return best;
+    return smallest.optimize(inputRange);
 }
 
-function getIntermediateBits(solution: SolutionLike, inputRange: number): number {
-    const maxIntermediate = BigInt(inputRange) * solution.factor + solution.add;
-    return maxIntermediate.toString(2).length;
+function updateFromUrlHash(old: ProblemDesc): ProblemDesc {
+    const parseRounding = (value: string | null): RoundingMode | undefined => {
+        const values: RoundingMode[] = ["round", "floor", "ceil"];
+        if (!values.includes(value as never)) {
+            return undefined;
+        }
+        return value as RoundingMode;
+    };
+    const parseInt = (value: string | null): bigint | undefined => {
+        if (!value) {
+            return undefined;
+        }
+        if (!/^\d+$/.test(value)) {
+            return undefined;
+        }
+        return BigInt(value);
+    };
+
+    try {
+        const hash = new URLSearchParams(window.location.hash.slice(1));
+        const rounding = parseRounding(hash.get("r"));
+        const t = parseInt(hash.get("t"));
+        const d = parseInt(hash.get("d"));
+        const u = parseInt(hash.get("u"));
+
+        return {
+            ...old,
+            rounding: rounding ?? old.rounding,
+            t: t ?? old.t,
+            d: d ?? old.d,
+            u: u ?? old.u,
+        };
+    } catch {
+        return old;
+    }
 }
+function updateUrlHash(problem: ProblemDesc) {
+    const hash = new URLSearchParams();
+    hash.set("r", problem.rounding);
+    hash.set("t", String(problem.t));
+    hash.set("d", String(problem.d));
+    hash.set("u", String(problem.u));
+
+    // replace the current URL
+    history.replaceState(null, "", "#" + hash.toString());
+}
+
+const START_PROBLEM: ProblemDesc = {
+    rounding: "round",
+    t: 255n,
+    d: 31n,
+    u: 31n,
+    inputLimit: 65536,
+};
+const START_SOLUTION = new Solution(527n, 23n, 6n);
+const START_RESULT: Result = {
+    problem: Problem.round(31n, 255n, 31n),
+    rounding: "round",
+    bestSolution: START_SOLUTION,
+    addZero: undefined,
+    iter: MaterializedIter.of(SolutionRange.from(START_SOLUTION)),
+    time: 1,
+};
 
 export function ConversionConstantsSearch() {
-    const [problem, setProblem] = useState<ProblemLike>({
-        rounding: "round",
-        t: 255,
-        d: 31,
-        inputRange: 31,
-    });
+    const [problem, setProblem] = useState<ProblemDesc>(START_PROBLEM);
+    const [result, setResult] = useState<Result>(START_RESULT);
 
-    const [solve, setSolve] = useState<SolveFn>(() => dummySolve);
-
+    // URL hash handling
     useEffect(() => {
-        init_gma().then(() => {
-            setSolve(() => wasmSolve);
-        });
+        setProblem((old) => updateFromUrlHash(old));
     }, []);
-
-    // read problem from URL hash
     useEffect(() => {
-        const parseRounding = (value: string | null): ProblemLike["rounding"] | undefined => {
-            const values: ProblemLike["rounding"][] = ["round", "floor", "ceil"];
-            if (!values.includes(value as never)) {
-                return undefined;
-            }
-            return value as ProblemLike["rounding"];
-        };
-        const parseU32 = (value: string | null): number | undefined => {
-            if (!value) {
-                return undefined;
-            }
-            if (!/^\d+$/.test(value)) {
-                return undefined;
-            }
-            const n = Number(value);
-            if (n < 0 || n >= 2 ** 32) {
-                return undefined;
-            }
-            return n;
-        };
-
-        try {
-            const hash = new URLSearchParams(window.location.hash.slice(1));
-            const rounding = parseRounding(hash.get("r"));
-            const t = parseU32(hash.get("t"));
-            const d = parseU32(hash.get("d"));
-            const inputRange = parseU32(hash.get("u"));
-
-            setProblem((old) => ({
-                rounding: rounding ?? old.rounding,
-                t: t ?? old.t,
-                d: d ?? old.d,
-                inputRange: inputRange ?? old.inputRange,
-            }));
-        } catch {
-            // ignore
-        }
-    }, []);
-
-    // update URL hash with the current problem
-    useEffect(() => {
-        const update = () => {
-            const hash = new URLSearchParams();
-            hash.set("r", problem.rounding);
-            hash.set("t", String(problem.t));
-            hash.set("d", String(problem.d));
-            hash.set("u", String(problem.inputRange));
-
-            // replace the current URL
-            history.replaceState(null, "", "#" + hash.toString());
-        };
-
-        const timer = setTimeout(update, 300);
+        const timer = setTimeout(() => updateUrlHash(problem), 300);
         return () => clearTimeout(timer);
     }, [problem]);
 
-    const [result, setResult] = useState<Result>(dummyResult);
+    // solve
     useEffect(() => {
-        const result = solve(problem);
-        setResult(result);
-        setHasMoreSolutions(result.hasMoreSolutions);
-    }, [solve, problem]);
-    const [hasMoreSolutions, setHasMoreSolutions] = useState(true);
+        // TODO: debounce?
+        setResult(solve(problem));
+    }, [problem]);
+
+    // search more solutions
     const searchMore = useCallback(() => {
         const startTime = performance.now();
-        const [moreSolutions, done] = result.getMoreSolutions();
+        advanceSolutionIter(result.iter, 500, 500);
         const time = performance.now() - startTime;
-
-        if (done || moreSolutions.length === 0) {
-            setHasMoreSolutions(false);
-        }
-        setResult((r) => {
-            return { ...r, solutions: [...r.solutions, ...moreSolutions], time: r.time + time };
-        });
+        setResult({ ...result, time: result.time + time });
     }, [result]);
 
     return (
         <>
             <ProblemInput problem={problem} setProblem={setProblem} />
-            <SolutionOutput best={result.bestSolution} addZero={result.addZero} />
-            <ConversionCode problem={result.problem} solution={result.bestSolution} />
-            <AllSolutions result={result} searchMore={hasMoreSolutions ? searchMore : undefined} />
+            <SolutionOutput
+                optimal={!result.iter.finished}
+                best={result.bestSolution}
+                addZero={result.addZero}
+            />
+            <ConversionCode
+                problem={result.problem}
+                solution={result.bestSolution}
+                rounding={result.rounding}
+            />
+            <AllSolutions
+                problem={result.problem}
+                time={result.time}
+                solutions={getVisibleSolution(result.iter)}
+                searchMore={result.iter.finished ? undefined : searchMore}
+            />
         </>
     );
 }
 
-interface InputConstraints {
-    maxT: number;
-    maxD: number;
-    maxInputRange: number;
-}
-const defaultConstraints: InputConstraints = {
-    maxT: 2 ** 32 - 1,
-    maxD: 2 ** 32 - 1,
-    maxInputRange: 2 ** 32 - 1,
-};
 interface ProblemInputProps {
-    problem: ProblemLike;
-    setProblem: (value: React.SetStateAction<ProblemLike>) => void;
-    constraints?: Readonly<Partial<InputConstraints>>;
+    problem: ProblemDesc;
+    setProblem: (value: React.SetStateAction<ProblemDesc>) => void;
 }
-export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemInputProps) => {
-    const { inputRange, d: denominator, t: enumerator, rounding } = problem;
-    const {
-        maxD = defaultConstraints.maxD,
-        maxT = defaultConstraints.maxT,
-        maxInputRange = defaultConstraints.maxInputRange,
-    } = constraints || defaultConstraints;
+export const ProblemInput = memo(({ problem, setProblem }: ProblemInputProps) => {
+    const { u, d, t, rounding } = problem;
 
-    const setInputRange = (value: number) => setProblem((p) => ({ ...p, inputRange: value }));
-    const setDenominator = (value: number) => setProblem((p) => ({ ...p, d: value }));
-    const setEnumerator = (value: number) => setProblem((p) => ({ ...p, t: value }));
-    const setRounding = (value: ProblemLike["rounding"]) =>
-        setProblem((p) => ({ ...p, rounding: value }));
+    const setInputRange = (value: bigint) => setProblem((p) => ({ ...p, u: value }));
+    const setDenominator = (value: bigint) => setProblem((p) => ({ ...p, d: value }));
+    const setEnumerator = (value: bigint) => setProblem((p) => ({ ...p, t: value }));
+    const setRounding = (value: RoundingMode) => setProblem((p) => ({ ...p, rounding: value }));
 
     return (
         <>
-            <div className="narrow">
+            <div className="narrow mt-5">
                 <div className="mb-1 flex">
                     <label
                         className="mr-2 inline-block w-32 shrink-0 text-right leading-8"
                         htmlFor="rounding"
                     >
-                        Rounding <span className="border-b-2 border-yellow-500">(R)</span>
+                        Rounding <span className="border-b-2 border-yellow-500">(r)</span>
                     </label>
                     <DownDown
                         id="rounding"
                         value={rounding}
                         onChange={setRounding}
-                        className="xs:max-w-40 w-full"
+                        className="sm:max-w-64 w-full"
                         options={["round", "floor", "ceil"]}
                     />
                 </div>
@@ -351,14 +328,13 @@ export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemI
                         className="mr-2 inline-block w-32 shrink-0 text-right leading-8"
                         htmlFor="enumerator"
                     >
-                        Enumerator <span className="border-b-2 border-emerald-400">(T)</span>
+                        Enumerator <span className="border-b-2 border-emerald-400">(t)</span>
                     </label>
-                    <NumberInput
+                    <BigIntInput
                         id="enumerator"
-                        min={1}
-                        max={maxT}
-                        className="xs:max-w-40 w-full min-w-0"
-                        value={enumerator}
+                        min={1n}
+                        className="sm:max-w-64 w-full min-w-0"
+                        value={t}
                         onChange={setEnumerator}
                     />
                 </div>
@@ -367,14 +343,13 @@ export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemI
                         className="mr-2 inline-block w-32 shrink-0 text-right leading-8"
                         htmlFor="denominator"
                     >
-                        Denominator <span className="border-b-2 border-red-600">(D)</span>
+                        Denominator <span className="border-b-2 border-red-600">(d)</span>
                     </label>
-                    <NumberInput
+                    <BigIntInput
                         id="denominator"
-                        min={1}
-                        max={maxD}
-                        className="xs:max-w-40 w-full min-w-0"
-                        value={denominator}
+                        min={1n}
+                        className="sm:max-w-64 w-full min-w-0"
+                        value={d}
                         onChange={setDenominator}
                     />
                 </div>
@@ -383,82 +358,58 @@ export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemI
                         className="mr-2 inline-block w-32 shrink-0 text-right leading-8"
                         htmlFor="inputRange"
                     >
-                        Input range <span className="border-b-2 border-slate-500">(U)</span>
+                        Input range <span className="border-b-2 border-slate-500">(u)</span>
                     </label>
                     <div className="flex w-full flex-row flex-wrap gap-x-2 gap-y-1">
-                        <NumberInput
+                        <BigIntInput
                             id="inputRange"
-                            min={1}
-                            max={maxInputRange}
-                            value={inputRange}
-                            className="xs:max-w-40 w-full min-w-0"
+                            min={1n}
+                            value={u}
+                            className="sm:max-w-64 w-full min-w-0"
                             onChange={setInputRange}
                         />
                         <span className="flex flex-wrap gap-1">
-                            {maxInputRange >= 2 ** 8 - 1 && (
-                                <UButton
-                                    inputRange={inputRange}
-                                    setInputRange={setInputRange}
-                                    bits={8}
-                                />
-                            )}
-                            {maxInputRange >= 2 ** 16 - 1 && (
-                                <UButton
-                                    inputRange={inputRange}
-                                    setInputRange={setInputRange}
-                                    bits={16}
-                                />
-                            )}
-                            {maxInputRange >= 2 ** 24 - 1 && (
-                                <UButton
-                                    inputRange={inputRange}
-                                    setInputRange={setInputRange}
-                                    bits={24}
-                                />
-                            )}
-                            {maxInputRange >= 2 ** 32 - 1 && (
-                                <UButton
-                                    inputRange={inputRange}
-                                    setInputRange={setInputRange}
-                                    bits={32}
-                                />
-                            )}
+                            <UButton inputRange={u} setInputRange={setInputRange} bits={8} />
+                            <UButton inputRange={u} setInputRange={setInputRange} bits={16} />
+                            <UButton inputRange={u} setInputRange={setInputRange} bits={24} />
+                            <UButton inputRange={u} setInputRange={setInputRange} bits={32} />
+                            <UButton inputRange={u} setInputRange={setInputRange} bits={64} />
                         </span>
                     </div>
                 </div>
             </div>
 
             <div className="narrow xs:flex mt-4">
-                <div className="xs:inline-block xs:w-32 xs:text-right mr-2 shrink-0 text-center leading-7">
+                <div className="xs:inline-block xs:w-32 xs:text-right mr-2 shrink-0 text-center leading-7 text-zinc-300">
                     The Problem:
                 </div>
-                <div className="xs:text-left text-center font-serif text-lg">
+                <div className="xs:text-left text-center font-serif text-lg text-zinc-100">
                     <label
-                        className="cursor-text border-b-2 border-yellow-500 pb-1"
+                        className="cursor-text border-b-2 border-yellow-500 pb-0.5"
                         htmlFor="rounding"
                     >
                         {rounding}
                     </label>
                     (<em>x</em> •{" "}
                     <label
-                        className="cursor-text border-b-2 border-emerald-400 pb-1"
+                        className="cursor-text border-b-2 border-emerald-400 pb-0.5"
                         htmlFor="enumerator"
                     >
-                        {enumerator}
+                        {String(t)}
                     </label>{" "}
                     /{" "}
                     <label
-                        className="cursor-text border-b-2 border-red-600 pb-1"
+                        className="cursor-text border-b-2 border-red-600 pb-0.5"
                         htmlFor="denominator"
                     >
-                        {denominator}
+                        {String(d)}
                     </label>
                     ){" "}
                     <span className="whitespace-nowrap">
                         for <em>x</em> in{" "}
                         <label className="cursor-text" htmlFor="inputRange">
                             0..=
-                            <span className="border-b-2 border-slate-500 pb-1">{inputRange}</span>
+                            <span className="border-b-2 border-slate-500 pb-0.5">{String(u)}</span>
                         </label>
                     </span>
                 </div>
@@ -468,30 +419,31 @@ export const ProblemInput = memo(({ problem, setProblem, constraints }: ProblemI
 });
 
 interface SolutionOutputProps {
-    best: SolutionLike;
-    addZero?: SolutionLike;
+    optimal: boolean;
+    best: Solution;
+    addZero?: Solution;
 }
-const SolutionOutput = memo(({ best, addZero }: SolutionOutputProps) => {
+const SolutionOutput = memo(({ optimal, best, addZero }: SolutionOutputProps) => {
     let expression = <em>x</em>;
 
-    if (best.factor !== 1n) {
+    if (best.f !== 1n) {
         expression = (
             <>
-                {expression} • {String(best.factor)}
+                {expression} • {String(best.f)}
             </>
         );
     }
-    if (best.add !== 0n) {
+    if (best.a !== 0n) {
         expression = (
             <>
-                {expression} + {String(best.add)}
+                {expression} + {String(best.a)}
             </>
         );
     }
-    if (best.shift > 0) {
-        const shift = <span className="whitespace-nowrap">&gt;&gt; {best.shift}</span>;
+    if (best.s > 0) {
+        const shift = <span className="whitespace-nowrap">&gt;&gt; {String(best.s)}</span>;
         expression =
-            best.add === 0n ? (
+            best.a === 0n ? (
                 <>
                     {expression} {shift}
                 </>
@@ -504,25 +456,29 @@ const SolutionOutput = memo(({ best, addZero }: SolutionOutputProps) => {
 
     return (
         <>
-            <div className="narrow xs:flex mt-8">
-                <div className="xs:inline-block xs:w-32 xs:text-right mr-2 shrink-0 text-center leading-6">
+            <div className="narrow xs:flex my-8">
+                <div className="xs:inline-block xs:w-32 xs:text-right mr-2 shrink-0 text-center leading-6 text-zinc-300">
                     Best Solution:
                 </div>
-                <div className="xs:text-left text-center font-serif text-lg leading-6">
+                <div className="xs:text-left text-center font-serif text-lg leading-6 text-zinc-100">
                     {expression}
+                    {!optimal && (
+                        <span title="This solution is correct but may not be optimal." className="cursor-help">
+                            {" ⚠️"}
+                        </span>
+                    )}
                 </div>
             </div>
-            <div className="narrow xs:flex mt-2">
-                <div className="xs:inline-block xs:w-32 xs:text-right mr-2 shrink-0 text-center leading-6">
+            {/* <div className="narrow xs:flex mt-2 mb-8">
+                <div className="xs:inline-block xs:w-32 xs:text-right mr-2 shrink-0 text-center leading-6 text-zinc-300">
                     Zero Solution:
                 </div>
-                <div className="xs:text-left text-center font-serif text-lg leading-6">
+                <div className="xs:text-left text-center font-serif text-lg leading-6 text-zinc-100">
                     {addZero ? (
                         <>
-                            <em>s</em>={String(addZero.shift)}
-                            <span className="inline-block w-2" /> <em>f</em>=
-                            {String(addZero.factor)}
-                            <span className="inline-block w-2" /> <em>a</em>={String(addZero.add)}
+                            <em>s</em>={String(addZero.s)}
+                            <span className="inline-block w-2" /> <em>f</em>={String(addZero.f)}
+                            <span className="inline-block w-2" /> <em>a</em>={String(addZero.a)}
                         </>
                     ) : (
                         <>
@@ -530,21 +486,22 @@ const SolutionOutput = memo(({ best, addZero }: SolutionOutputProps) => {
                         </>
                     )}
                 </div>
-            </div>
+            </div> */}
         </>
     );
 });
 
 interface UButtonProps {
-    inputRange: number;
-    setInputRange: (value: number) => void;
+    inputRange: bigint;
+    setInputRange: (value: bigint) => void;
     bits: number;
 }
 const UButton = memo(({ inputRange, setInputRange, bits }: UButtonProps) => {
+    const u = (1n << BigInt(bits)) - 1n;
     return (
         <SmallButton
-            selected={inputRange === 2 ** bits - 1}
-            onClick={() => setInputRange(2 ** bits - 1)}
+            selected={inputRange === u}
+            onClick={() => setInputRange(u)}
             title={`Set input range to 2^${bits} - 1`}
         >
             u{bits}
@@ -552,11 +509,13 @@ const UButton = memo(({ inputRange, setInputRange, bits }: UButtonProps) => {
     );
 });
 
-interface MoreSolutionsProps {
-    result: Result;
+interface AllSolutionsProps {
+    problem: Problem;
+    time: number;
+    solutions: readonly SolutionRange[];
     searchMore?: () => void;
 }
-const AllSolutions = memo(({ result, searchMore }: MoreSolutionsProps) => {
+const AllSolutions = memo(({ problem, time, solutions, searchMore }: AllSolutionsProps) => {
     const formatDuration = (time: number) => {
         if (time < 0.1) {
             return "<0.1ms";
@@ -564,39 +523,31 @@ const AllSolutions = memo(({ result, searchMore }: MoreSolutionsProps) => {
         if (time < 10) {
             return time.toFixed(1) + "ms";
         }
-        return time.toFixed(0) + "ms";
+        if (time < 1000) {
+            return time.toFixed(0) + "ms";
+        }
+        return (time / 1000).toFixed(1) + "s";
     };
 
-    const shifts = Array.from(groupBy(result.solutions, (s) => s.shift));
+    const shifts = Array.from(groupBy(solutions, (s) => s.s));
+
+    const resetKey = problem.toString();
 
     return (
         <div className="narrow my-8">
             <details>
                 <summary className="w-fit cursor-pointer select-none rounded-md border-2 border-zinc-700 bg-black px-4 py-2 text-neutral-200 transition-colors hover:border-zinc-500 active:bg-slate-800 [&:not(:read-only)]:hover:text-white">
-                    All solutions ({searchMore ? "≥" : ""}
-                    {result.solutions.length})
+                    All solutions
                 </summary>
 
                 <div className="my-4">
-                    Found {result.solutions.length} solution{result.solutions.length !== 1 && "s"}{" "}
-                    in {formatDuration(result.time)}.
+                    Found {solutions.length} solution{solutions.length !== 1 && "s"} in{" "}
+                    {formatDuration(time)}.
                 </div>
 
-                <div className="my-4">
+                <div className="my-4" key={resetKey}>
                     {shifts.map(([shift, solutions]) => {
-                        const maxFactorLen = maxLen(solutions.map((s) => s.factor));
-                        const content = solutions
-                            .map((s) => formatSolution(s, maxFactorLen))
-                            .join("\n");
-
-                        return (
-                            <pre
-                                key={shift}
-                                className="-mx-4 mb-4 overflow-auto whitespace-pre px-4 font-mono text-sm sm:mx-0 sm:px-0"
-                            >
-                                {content}
-                            </pre>
-                        );
+                        return <SolutionList key={shift} solutions={solutions} />;
                     })}
                 </div>
 
@@ -606,12 +557,51 @@ const AllSolutions = memo(({ result, searchMore }: MoreSolutionsProps) => {
     );
 });
 
+const SolutionList = memo(({ solutions }: { solutions: readonly SolutionRange[] }) => {
+    if (solutions.length === 0) {
+        throw new Error("No solutions");
+    }
+
+    const COMPACT_THRESHOLD = 8;
+    const COMPACT_PADDING = 2;
+
+    const [collapsed, setCollapsed] = useState(solutions.length >= COMPACT_THRESHOLD);
+
+    const maxFactorLen = maxLen([solutions[0].f, solutions[solutions.length - 1].f]);
+    const formatMany = (solutions: readonly SolutionRange[]) =>
+        solutions.map((s) => formatSolution(s, maxFactorLen)).join("\n");
+
+    const isCompact = collapsed && solutions.length >= COMPACT_THRESHOLD;
+
+    return (
+        <pre className="-mx-4 mb-4 overflow-auto whitespace-pre px-4 font-mono text-sm sm:mx-0 sm:px-0">
+            {isCompact && (
+                <>
+                    {formatMany(solutions.slice(0, COMPACT_PADDING))}
+                    {"\n"}
+                    <span
+                        className="text-zinc-400 hover:text-white cursor-pointer"
+                        onClick={() => {
+                            setCollapsed(false);
+                        }}
+                    >
+                        {"... show " + (solutions.length - COMPACT_PADDING * 2) + " more"}
+                    </span>
+                    {"\n"}
+                    {formatMany(solutions.slice(-COMPACT_PADDING))}
+                </>
+            )}
+            {!isCompact && formatMany(solutions)}
+        </pre>
+    );
+});
+
 function maxLen(array: readonly unknown[]): number {
     return Math.max(...array.map((a) => String(a).length));
 }
-function formatAdd(add: AddRangeLike): string {
+function formatAdd(add: Range): string {
     return add.min === add.max ? String(add.min) : add.min + "..=" + add.max;
 }
-function formatSolution(s: SolutionRangeLike, maxFactorLen: number = 0): string {
-    return `s=${s.shift} f=${String(s.factor).padEnd(maxFactorLen)} a=${formatAdd(s.add)}`;
+function formatSolution(s: SolutionRange, maxFactorLen: number = 0): string {
+    return `s=${s.s} f=${String(s.f).padEnd(maxFactorLen)} a=${formatAdd(s.A)}`;
 }

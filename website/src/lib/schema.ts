@@ -24,6 +24,8 @@ export interface PostMetadata {
     tags: readonly string[];
     color: string;
     image?: string;
+    /** A data URL containing a tiny version of `image` */
+    imageInlinePreviewData?: string;
     imageSmall?: string;
     minutesToRead: number;
 }

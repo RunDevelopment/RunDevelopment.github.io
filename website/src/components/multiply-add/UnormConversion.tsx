@@ -1,66 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { ProblemLike } from "./interfaces";
 import { NumberInput } from "../FormInputs";
 import { InlineCode } from "../md/InlineCode";
-import { ConversionCode, getIntermediateTypeSize } from "./CodeGen";
-import { SolutionLike } from "./interfaces";
+import { ConversionCode } from "./CodeGen";
 import precomputed from "./unorm-constants.json";
+import { Problem, Solution } from "./multiply-add-solver";
 
 const MAX_KNOWN_CONVERSION = Math.sqrt(precomputed.length);
 
-function getUnormConversion(from: number, to: number): SolutionLike {
+function getUnormConversion(from: number, to: number): Solution {
     if (from <= MAX_KNOWN_CONVERSION && to <= MAX_KNOWN_CONVERSION) {
         return parseConversion(precomputed[(from - 1) * MAX_KNOWN_CONVERSION + (to - 1)]);
     }
     throw new Error(`No UNORM conversion data for ${from} -> ${to}`);
 }
 
-function parseConversion(s: string): SolutionLike {
+function parseConversion(s: string): Solution {
     const [factor, add, shift] = s.split(",");
-    return { factor: BigInt(factor), add: BigInt(add), shift: Number(shift) };
-}
-
-function optimizeSolution(inputRange: number, solution: SolutionLike): SolutionLike {
-    const { factor, add, shift } = solution;
-
-    if (shift === 0 || shift === 8 || shift === 16 || shift === 32 || shift === 64) {
-        // shift is already optimal
-        return solution;
-    }
-    if (shift > 32) {
-        // shift is too large already
-        return solution;
-    }
-
-    const preferredShift = 2 ** Math.ceil(Math.log2(shift));
-    const shiftDiff = BigInt(preferredShift - shift);
-    const preferred: SolutionLike = {
-        factor: factor << shiftDiff,
-        add: add << shiftDiff,
-        shift: preferredShift,
-    };
-
-    if (
-        getIntermediateTypeSize(inputRange, solution) ===
-        getIntermediateTypeSize(inputRange, preferred)
-    ) {
-        return preferred;
-    }
-
-    return solution; // no optimization possible
+    return new Solution(BigInt(factor), BigInt(add), BigInt(shift));
 }
 
 export function UnormConversion() {
     const [from, setFrom] = useState(5);
     const [to, setTo] = useState(8);
 
-    const inputRange = 2 ** from - 1;
-    const outputRange = 2 ** to - 1;
+    const inputRange = (1n << BigInt(from)) - 1n;
+    const outputRange = (1n << BigInt(to)) - 1n;
 
-    const problem: ProblemLike = { inputRange, rounding: "round", d: inputRange, t: outputRange };
-    const solution = optimizeSolution(inputRange, getUnormConversion(from, to));
+    const problem = Problem.round(inputRange, outputRange, inputRange);
+    const solution = getUnormConversion(from, to).optimize(inputRange);
 
     return (
         <>
@@ -85,13 +54,14 @@ export function UnormConversion() {
                     <span className="mr-4 inline-block w-20 text-right">Constants</span>
                     <InlineCode
                         lang="json"
-                        code={`f=${solution.factor}, a=${solution.add}, s=${solution.shift}`}
+                        code={`f=${solution.f}, a=${solution.a}, s=${solution.s}`}
                     />
                 </div>
             </div>
             <ConversionCode
                 solution={solution}
                 problem={problem}
+                rounding="round"
                 functionName={`unorm${from}_to_unorm${to}`}
                 comment={
                     `Converts a ${from}-bit unorm to a ${to}-bit unorm.\n` +

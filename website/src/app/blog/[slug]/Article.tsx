@@ -4,6 +4,7 @@ import { Markdown } from "../../../components/md/Markdown";
 import { TagList } from "../../../components/TagList";
 import { formatDateString } from "../../../lib/util";
 import { OpenDetailsOnPrint } from "../../../components/DetailOpener";
+import { BaseArticle } from "../../../components/md/BaseArticle";
 import "./Article.css";
 
 function AfterHeader({ meta }: { meta: PostMetadata }) {
@@ -13,9 +14,9 @@ function AfterHeader({ meta }: { meta: PostMetadata }) {
                 <TagList tags={meta.tags} />
             </div>
 
-            <p className="mt-2 flex flex-col items-center justify-center text-center text-sm sm:block">
+            <p className="xs:block mt-2 flex flex-col items-center justify-center text-center text-sm">
                 <span className="whitespace-nowrap">Michael Schmidt</span>
-                <span className="hidden px-2 sm:inline">{" / "}</span>
+                <span className="xs:inline hidden px-2">{" / "}</span>
                 <span className="whitespace-nowrap">
                     {formatDateString(meta.datePublished)}
                     {meta.dateModified !== meta.datePublished && (
@@ -25,23 +26,30 @@ function AfterHeader({ meta }: { meta: PostMetadata }) {
                         </span>
                     )}
                 </span>
-                <span className="hidden px-2 sm:inline">{" / "}</span>
+                <span className="xs:inline hidden px-2">{" / "}</span>
                 <span className="whitespace-nowrap">{meta.minutesToRead} min read</span>
             </p>
         </div>
     );
 }
 
-function BackgroundImage({ image }: { image: string }) {
+function BackgroundImage({ image, inlineData }: { image: string; inlineData?: string }) {
     return (
-        <div className="absolute inset-x-0 z-0 overflow-hidden">
-            <div className="pointer-events-none absolute bottom-0 size-full" id="bg-img-fade" />
+        <div
+            className="relative inset-x-0 z-0 -mx-4 overflow-hidden sm:absolute sm:mx-0"
+            aria-hidden
+        >
+            <div
+                className="pointer-events-none absolute bottom-0 hidden size-full sm:block"
+                id="bg-img-fade"
+            />
 
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
                 src={image}
                 alt="Cover image"
-                className="mx-auto h-[var(--bg-image-height)] object-cover"
+                className="mx-auto h-[var(--bg-image-height)] bg-cover bg-center object-cover"
+                style={{ backgroundImage: inlineData ? `url('${inlineData}')` : undefined }}
             />
         </div>
     );
@@ -52,31 +60,54 @@ interface ArticleProps {
 }
 export const Article = memo(({ post }: ArticleProps) => {
     const headerContainerHeight = post.metadata.image
-        ? "h-[var(--bg-image-height)] lg:h-[calc(var(--bg-image-height)-0.5rem)]"
+        ? "sm:h-[var(--bg-image-height)] lg:h-[calc(var(--bg-image-height)-0.5rem)]"
         : "h-auto mt-12";
+    const headerFont =
+        "font-header text-3xl sm:text-4xl md:text-5xl lg:text-6xl sm:font-light !leading-snug text-balance text-center";
+
     return (
         <>
-            {post.metadata.image && <BackgroundImage image={post.metadata.image} />}
-            <article className="narrow-container xs:text-[17px] relative z-[1] text-pretty break-normal text-[16px] leading-relaxed print:text-[14px] print:leading-snug print:text-black">
+            {post.metadata.image && (
+                <BackgroundImage
+                    image={post.metadata.image}
+                    inlineData={post.metadata.imageInlinePreviewData}
+                />
+            )}
+            <BaseArticle>
+                <div
+                    className="-mx-4 mb-8 block h-4 sm:hidden"
+                    style={{
+                        background: post.metadata.color,
+                    }}
+                ></div>
                 <div className={headerContainerHeight + " flex flex-col justify-end text-center"}>
-                    <div className="relative mb-2" id="title-contianer">
-                        <div className="h-0 contain-size contain-layout" aria-hidden>
-                            <div className="font-header relative z-0 text-balance text-center text-3xl !leading-snug text-transparent opacity-50 md:text-4xl lg:text-5xl">
-                                <span className="bg-zinc-900 box-decoration-clone px-4 py-2">
+                    <div className="relative sm:mb-2" id="title-contianer">
+                        <div
+                            className="hidden h-0 contain-size contain-layout sm:block"
+                            aria-hidden
+                        >
+                            <div
+                                className={headerFont + " relative z-0 text-transparent opacity-80"}
+                            >
+                                <span className="bg-black box-decoration-clone px-4 py-2">
                                     {post.metadata.title}
                                 </span>
                             </div>
                         </div>
 
-                        <h1 className="font-header relative z-10 my-0 text-balance text-center text-3xl !leading-snug text-white md:text-4xl lg:text-5xl print:text-black">
-                            <span className="box-decoration-clone px-4 py-2">
+                        <h1
+                            className={
+                                headerFont + " relative z-10 my-0 text-white print:text-black"
+                            }
+                        >
+                            <span className="box-decoration-clone sm:px-4 sm:py-2">
                                 {post.metadata.title}
                             </span>
                         </h1>
                     </div>
                 </div>
                 <div
-                    className="-mx-4 h-4 md:-mx-6 lg:mx-0 lg:rounded-xl"
+                    className="-mx-4 hidden h-4 sm:block md:-mx-6 lg:mx-0 lg:rounded-xl"
                     style={{
                         background: post.metadata.color,
                     }}
@@ -91,7 +122,7 @@ export const Article = memo(({ post }: ArticleProps) => {
                     imageSizes={post.imageSizes}
                 />
                 <OpenDetailsOnPrint />
-            </article>
+            </BaseArticle>
         </>
     );
 });

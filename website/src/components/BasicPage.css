@@ -6,17 +6,11 @@
         "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 
     --page-width: 980px;
-    --page-narrow-width: 720px;
+    --page-narrow-width: 680px;
 }
 
 body {
     font-family: var(--font-sans);
-}
-
-article p,
-article .normal-my {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
 }
 
 @media print {
@@ -50,10 +44,26 @@ article .normal-my {
         white-space: pre-wrap !important;
     }
 }
+
+article p,
+article .normal-my {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
 article .compact p,
 article .compact .normal-my {
     margin-top: 0.75rem;
     margin-bottom: 0.75rem;
+}
+
+article p {
+    /* This will give paragraphs just a few pixels more space to the right, which makes text appear more balanced. */
+    width: calc(100% + 0.25rem);
+}
+@media screen and (min-width: 768px) {
+    article p {
+        width: auto;
+    }
 }
 
 article pre {
@@ -83,5 +93,12 @@ a.run-link:not(:hover):not(:focus) {
 }
 
 .katex-display {
+    font-size: 105%;
     margin: 0.5rem 0 !important;
+    padding: 0.125rem 0;
+}
+@media screen and (min-width: 640px) {
+    :not(.katex-display) > span.katex {
+        white-space: nowrap;
+    }
 }

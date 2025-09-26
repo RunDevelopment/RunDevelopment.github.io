@@ -4,9 +4,10 @@ import YAML from "yaml";
 import { ImageSize, InternalPostId, PostMetadata, PostWithInternals } from "../schema";
 import { timedCached } from "../util";
 import crypto from "crypto";
-import { IS_DEV, POST_DIR } from "./config";
+import { IS_DEV, POST_DIR, IMAGE_CACHE_DIR } from "./config";
 import sizeOf from "image-size";
 import { promisify } from "util";
+import sharp from "sharp";
 
 export const getPostsWithInternals = timedCached(2000, async () => {
     const postFiles = await fs.readdir(POST_DIR, {
@@ -30,6 +31,7 @@ export const getPostsWithInternals = timedCached(2000, async () => {
 
 const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithInternals> => {
     const filePath = path.join(POST_DIR, id);
+    const fileDir = path.dirname(filePath);
     const content = await fs.readFile(filePath, { encoding: "utf-8" });
 
     let frontMatter = undefined;
@@ -43,6 +45,9 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
     const metadata = getMetadata(frontMatter ?? {}, markdown);
 
     // image URLs
+    await fixMetadataImagePaths(fileDir, metadata);
+    await inlineImagePreviewData(fileDir, metadata);
+
     const imageUrls = getImageUrls(markdown);
     if (metadata.image) {
         imageUrls.push(metadata.image);
@@ -57,9 +62,7 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
     for (const url of imageUrls) {
         const isRelative = /^(?:\.\.?\/|(?!http)\w)/.test(url);
         if (isRelative) {
-            const imageFilePath = path.resolve(
-                path.join(path.dirname(filePath), decodeURIComponent(url)),
-            );
+            const imageFilePath = path.resolve(path.join(fileDir, decodeURIComponent(url)));
             const imageFileName = path.basename(imageFilePath).replace(/[^\w\-.]/g, "-");
             imageUrlMapping[url] = `/images/${imageFileName}`;
             referencedImageFiles[imageFilePath] = imageFileName;
@@ -98,6 +101,8 @@ interface FrontMatter {
     inlineCodeLanguage: string;
     tags: string;
     image: string;
+    imageLoad: string;
+    imageSmall: string;
     color: string;
 }
 type PartialNull<T> = {
@@ -123,7 +128,7 @@ function getMetadata(frontMatter: PartialNull<FrontMatter>, markdown: string): P
 
     const color = frontMatter.color ?? getPostColor(slug);
     const image = frontMatter.image ?? undefined;
-    const imageSmall = image?.replace(/\.(\w+)$/, "_small.$1");
+    const imageSmall = frontMatter.imageSmall ?? image?.replace(/\.(\w+)$/, "_small.$1");
 
     const tags = (frontMatter.tags ?? "")
         .split(/\s+/)
@@ -150,6 +155,141 @@ function getMetadata(frontMatter: PartialNull<FrontMatter>, markdown: string): P
         imageSmall,
         minutesToRead,
     };
+}
+
+async function fixMetadataImagePaths(relativeTo: string, metadata: PostMetadata) {
+    async function resolve(url: string | undefined): Promise<string | undefined> {
+        if (!url) return undefined;
+
+        const file = path.resolve(path.join(relativeTo, decodeURIComponent(url)));
+        if (await fsExists(file)) {
+            return url;
+        }
+
+        // try other extensions
+        const otherExtensions = [".avif", ".webp", ".jpg", ".jpeg", ".png", ".gif"];
+        for (const ext of otherExtensions) {
+            const newUrl = url.replace(/\.\w+$/, ext);
+            const newFile = path.resolve(path.join(relativeTo, decodeURIComponent(newUrl)));
+            if (await fsExists(newFile)) {
+                return newUrl;
+            }
+        }
+
+        return undefined;
+    }
+
+    await Promise.all([
+        resolve(metadata.image).then((url) => (metadata.image = url)),
+        resolve(metadata.imageSmall).then((url) => (metadata.imageSmall = url)),
+    ]);
+}
+
+async function fsExists(file: string): Promise<boolean> {
+    try {
+        await fs.access(file);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function inlineImagePreviewData(relativeTo: string, metadata: PostMetadata): Promise<void> {
+    if (!metadata.image) return;
+
+    type ImageFormat = "webp" | "avif" | "jpeg";
+    const FORMAT: ImageFormat = "avif";
+    const MAX_QUALITY: Record<ImageFormat, number> = { webp: 75, avif: 50, jpeg: 80 };
+    const PREVIEW_HEIGHT = 160;
+    const PREVIEW_BYTES = 3000;
+    const COMPRESSOR: Record<ImageFormat, (image: sharp.Sharp, quality: number) => sharp.Sharp> = {
+        webp: (image, quality) =>
+            image.webp({
+                quality,
+                effort: 6,
+                smartDeblock: true,
+                smartSubsample: true,
+                preset: "photo",
+            }),
+        avif: (image, quality) => image.avif({ quality }),
+        jpeg: (image, quality) => image.jpeg({ quality }),
+    };
+
+    async function toTiny(image: sharp.Sharp, targetSize: number): Promise<Buffer> {
+        let best = undefined;
+
+        let low = 1;
+        let high = MAX_QUALITY[FORMAT] + 1;
+
+        while (low < high) {
+            const mid = Math.floor((low + high) / 2);
+            const tiny = await COMPRESSOR[FORMAT](image, mid).toBuffer();
+            if (tiny.length <= targetSize) {
+                low = mid + 1; // try higher quality
+            } else {
+                high = mid; // try lower quality
+            }
+            if (
+                !best ||
+                (tiny.length < best.length && best.length > targetSize) ||
+                (tiny.length > best.length && tiny.length <= targetSize)
+            ) {
+                best = [tiny, mid] as const;
+            }
+        }
+
+        console.log(best![1], relativeTo);
+
+        return best![0];
+    }
+
+    try {
+        const imagePath = path.join(relativeTo, decodeURIComponent(metadata.image));
+        const cachePath = path.join(
+            IMAGE_CACHE_DIR,
+            "preview-" +
+                (await getImageCacheKey(imagePath, [FORMAT, PREVIEW_HEIGHT, PREVIEW_BYTES])) +
+                "." +
+                FORMAT,
+        );
+
+        let imageBytes;
+        if (await fsExists(cachePath)) {
+            imageBytes = await fs.readFile(cachePath);
+        } else {
+            const resizedImage = sharp(imagePath).resize({
+                height: PREVIEW_HEIGHT,
+                fit: "outside",
+            });
+            const tiny = await toTiny(resizedImage, PREVIEW_BYTES);
+
+            await fs.mkdir(IMAGE_CACHE_DIR, { recursive: true });
+            await fs.writeFile(cachePath, tiny as never);
+
+            imageBytes = tiny;
+        }
+
+        const base64 = imageBytes.toString("base64");
+        metadata.imageInlinePreviewData = `data:image/${FORMAT};base64,${base64}`;
+    } catch (e) {
+        console.error(`Error inlining image load for ${metadata.image}:`, e);
+        metadata.imageInlinePreviewData = undefined;
+    }
+}
+async function getImageCacheKey(imagePath: string, other: Iterable<unknown> = []): Promise<string> {
+    // I'm using the file size as a proxy for the content hash.
+    // Not perfect, but very fast.
+    const fileSize = await fs.stat(imagePath).then((stat) => stat.size);
+
+    const hash = crypto.createHash("sha256");
+    hash.update(fileSize.toString());
+    hash.update(";");
+    hash.update(imagePath);
+    for (const o of other) {
+        hash.update(";");
+        hash.update(String(o));
+    }
+    return hash.digest("hex").slice(0, 8);
 }
 
 function getMinutesToRead(markdown: string): number {

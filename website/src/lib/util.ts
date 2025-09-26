@@ -83,7 +83,7 @@ export function formatDateString(date: string, year: boolean = true): string {
     return monthAndDay;
 }
 
-export function groupBy<T, K>(items: T[], keyFn: (item: T) => K): Map<K, T[]> {
+export function groupBy<T, K>(items: Iterable<T>, keyFn: (item: T) => K): Map<K, T[]> {
     const map = new Map<K, T[]>();
     for (const item of items) {
         const key = keyFn(item);
@@ -95,4 +95,10 @@ export function groupBy<T, K>(items: T[], keyFn: (item: T) => K): Map<K, T[]> {
         }
     }
     return map;
+}
+
+export function assert(condition: unknown, message?: string): asserts condition {
+    if (!condition) {
+        throw new Error(message ?? "Assertion failed");
+    }
 }

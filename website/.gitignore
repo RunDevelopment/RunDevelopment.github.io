@@ -37,3 +37,4 @@ next-env.d.ts
 
 # generated images
 public/images
+.image_cache
