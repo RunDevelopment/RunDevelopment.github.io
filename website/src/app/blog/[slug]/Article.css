@@ -42,6 +42,6 @@
         );
 }
 
-#title-contianer > * {
-    text-box-trim: trim-both;
+#title-container > * {
+    text-box-trim: trim-none;
 }
