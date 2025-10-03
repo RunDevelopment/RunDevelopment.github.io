@@ -11,7 +11,7 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
     const href = `/blog/${meta.slug}`;
 
     return (
-        <div className="my-4 flex flex-row gap-4 ">
+        <div className="my-4 flex h-24 flex-row gap-4 sm:h-20">
             <Link
                 href={href}
                 className="block w-20 shrink-0 overflow-hidden rounded-xl pb-2 transition-all hover:brightness-75"
@@ -27,28 +27,28 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
                     />
                 )}
             </Link>
-            <div>
+            <div className="overflow-hidden">
                 <h3>
                     <Link
                         href={href}
-                        className="line-clamp-2 text-base text-blue-300 transition-colors hover:text-blue-400 md:line-clamp-1 md:text-lg"
+                        className="line-clamp-2 text-lg leading-tight text-blue-300 transition-colors hover:text-blue-400 md:line-clamp-1"
                     >
                         {meta.title}
                         {meta.draft && " [DRAFT]"}
                     </Link>
                 </h3>
-                <p className="mt-1 line-clamp-1 text-xs text-zinc-400 md:text-sm">
+                <p className="mt-1 line-clamp-1 text-sm text-zinc-400">
                     <span>{formatDateString(meta.datePublished, showYear)}</span>
                     {meta.dateModified !== meta.datePublished && (
                         <span className="italic">
                             {" "}
-                            (Updated {formatDateString(meta.dateModified)})
+                            (updated {formatDateString(meta.dateModified)})
                         </span>
                     )}
                     <span className="px-2">-</span>
                     <span>{meta.minutesToRead} min read</span>
                 </p>
-                <p className="line-clamp-1 text-sm md:text-base">{meta.description}</p>
+                <p className="mt-0.5 line-clamp-2 text-pretty leading-snug">{meta.description}</p>
             </div>
         </div>
     );
