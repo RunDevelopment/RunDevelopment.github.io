@@ -1,9 +1,6 @@
 import { memo } from "react";
 import { SyntaxHighlight } from "./SyntaxHighlight";
-import { Source_Code_Pro } from "next/font/google";
 import Link from "next/link";
-
-const sourceCodePro = Source_Code_Pro({ subsets: ["latin"] });
 
 function indent(s: string, indent: string = "    ") {
     return s.replace(/^(?!$)/gm, indent);
@@ -19,40 +16,89 @@ function getRustPlaygroundLink(code: string) {
     return link.href;
 }
 
+function getLangTitle(lang: string): string | undefined {
+    switch (lang.toLowerCase().trim()) {
+        case "asm":
+            return "ASM";
+        case "c":
+            return "C";
+        case "cpp":
+        case "c++":
+            return "C++";
+        case "cs":
+        case "c#":
+            return "C#";
+        case "html":
+        case "markup":
+            return "HTML";
+        case "js":
+        case "javascript":
+            return "JavaScript";
+        case "json":
+            return "JSON";
+        case "java":
+            return "Java";
+        case "md":
+        case "markdown":
+            return "Markdown";
+        case "py":
+        case "python":
+            return "Python";
+        case "rs":
+        case "rust":
+            return "Rust";
+        case "ts":
+        case "typescript":
+            return "TypeScript";
+        case "yml":
+        case "yaml":
+            return "YAML";
+        default:
+            return undefined;
+    }
+}
+
 interface CodeBlockProps {
     code: string;
     lang?: string;
-    runnable?: boolean;
+    meta?: string;
 }
-export const CodeBlock = memo(({ code, lang, runnable }: CodeBlockProps) => {
-    runnable ??= /\bassert(?:_eq|_ne)?!/.test(code);
+export const CodeBlock = memo(({ code, lang, meta = "" }: CodeBlockProps) => {
+    const langTitle = getLangTitle(lang || "");
 
     let title;
-    if (runnable) {
+    if (/@rust-playground/i.test(meta)) {
         title = (
             <div className="relative">
-                <Link
-                    href={getRustPlaygroundLink(code)}
-                    className="run-link absolute -top-2 right-3 rounded-md px-6 py-2 leading-4 hover:bg-blue-800 hover:text-white focus:bg-blue-800 focus:text-white"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Run on Rust Playground"
-                >
-                    Run
-                </Link>
+                <div className="absolute -top-1 right-3">
+                    <Link
+                        href={getRustPlaygroundLink(code)}
+                        className="run-link rounded-md px-6 py-2 leading-4 hover:bg-blue-800 hover:text-white focus:bg-blue-800 focus:text-white"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Run on Rust Playground"
+                    >
+                        Run
+                    </Link>
+                </div>
+            </div>
+        );
+    } else if (langTitle) {
+        title = (
+            <div className="relative print:hidden">
+                <div className="absolute right-0 top-0 font-mono text-[13px] sm:text-[14px]">
+                    <span className="mr-1.5 select-none text-gray-400 opacity-80">{langTitle}</span>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="-mx-4 my-2 w-[calc(100%+2rem)] md:-mx-6 md:w-[calc(100%+3rem)] lg:mx-0 lg:w-auto lg:max-w-full">
+        <div className="-mx-4 my-2 w-[calc(100%+2rem)] md:-mx-6 md:w-[calc(100%+3rem)] lg:mx-0 lg:w-auto lg:max-w-full print:my-4 print:pl-12 [.compact>&]:!mx-0 [.compact>&]:!w-auto">
             {title}
             <pre
                 tabIndex={0}
-                className={
-                    sourceCodePro.className +
-                    " text-[14px] sm:text-[15px] overflow-auto whitespace-pre rounded-md bg-black px-4 py-3 leading-5 md:px-6 lg:px-8 print:text-[13px]"
-                }
+                className="overflow-auto whitespace-pre rounded-md bg-black p-4 font-mono text-[13px] sm:text-[14px] md:px-6 md:text-[15px] lg:px-8 print:py-0 print:text-[13px]"
             >
                 <SyntaxHighlight code={code.replace(/\n$/, "")} lang={lang || "none"} />
             </pre>

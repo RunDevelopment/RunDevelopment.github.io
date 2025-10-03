@@ -14,13 +14,30 @@ import { H1, H2, H3, H4 } from "./Headings";
 import { InlineCode } from "./InlineCode";
 import { identity } from "../../lib/util";
 import { ImageSize } from "../../lib/schema";
+import { TodoMarker } from "./TodoMarker";
+import { InfoBox } from "./InfoBox";
+
+/** Returns a map from line number to code block meta. */
+function parseCodeMeta(markdown: string): Map<number, string> {
+    const lines = markdown.split("\n");
+    const map = new Map<number, string>();
+    const pattern = /^[ \t]*``` *\S+ +(\S.*)/;
+    for (let i = 0; i < lines.length; i++) {
+        const match = pattern.exec(lines[i]);
+        if (match) {
+            map.set(i + 1, match[1].trim());
+        }
+    }
+    return map;
+}
 
 interface CodeProps {
     children?: ReactNode;
     className?: string;
     inlineCodeLang?: string | undefined;
+    meta?: string | undefined;
 }
-const Code = memo(({ children, className, inlineCodeLang }: CodeProps) => {
+const Code = memo(({ children, className, inlineCodeLang, meta }: CodeProps) => {
     const code = String(children);
     const inline = !code.includes("\n");
 
@@ -30,8 +47,15 @@ const Code = memo(({ children, className, inlineCodeLang }: CodeProps) => {
         const lang = /\blanguage-([-\w:]+)/.exec(className || "")?.[1];
         if (lang === "json:custom") {
             return <CustomComponent json={code} />;
+        } else if ((lang === "md" || lang === "markdown") && meta === "@render") {
+            return (
+                <>
+                    <CodeBlock lang="markdown" code={code} />
+                    <Markdown markdown={code} />
+                </>
+            );
         } else {
-            return <CodeBlock lang={lang} code={code} />;
+            return <CodeBlock lang={lang} code={code} meta={meta} />;
         }
     }
 });
@@ -46,7 +70,7 @@ const TOC = memo(({ markdown }: TOCProps) => {
 
     return (
         <section className="narrow">
-            <h2 className="mb-2 mt-12 text-xl text-white" id="contents">
+            <h2 className="font-header mb-2 mt-12 text-xl text-white" id="contents">
                 Contents
             </h2>
             <ul dir="auto">
@@ -83,6 +107,7 @@ const PWithDraft: Components["p"] = memo(({ node, children }) => {
     if (isTodo) {
         return (
             <p className="my-4 bg-red-900 py-2 text-xl font-bold text-white outline outline-offset-8 outline-red-600">
+                <TodoMarker />
                 {children}
             </p>
         );
@@ -97,14 +122,34 @@ interface MdImageProps {
     getImageUrl: (url: string) => string | undefined;
     getImageSize: (url: string) => ImageSize | undefined;
 }
-const MdImage = memo(({ src, alt, getImageUrl, getImageSize }: MdImageProps) => {
+const MdImage = memo(({ src, alt = "Image", getImageUrl, getImageSize }: MdImageProps) => {
     const size = src ? getImageSize(src) : undefined;
+
+    const styles: string[] = [];
+    const extract = (pattern: RegExp, fn: (match: RegExpExecArray) => string) => {
+        const match = pattern.exec(alt);
+        if (match) {
+            styles.push(fn(match));
+            alt = alt.replace(pattern, "").trim();
+        }
+    };
+    extract(/@narrow$/, () => "max-width:calc(min(100%,var(--page-narrow-width)))");
+    extract(/@max-width:(.+)$/, ([, maxWidth]) => `max-width:calc(min(100%,${maxWidth}))`);
+
+    let id = undefined;
+    let css = styles.join(";");
+    if (css) {
+        id = btoa(src + ";\n" + css).replace(/\W/g, "-");
+        css = `#${id}{${css}}`;
+    }
     return (
         <div className="-mx-4 my-4 w-[calc(100%+2rem)] text-center md:-mx-6 md:w-[calc(100%+3rem)] lg:mx-0 lg:w-auto lg:max-w-full">
+            {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
+                id={id}
                 src={src && getImageUrl(src)}
-                alt={alt || "image"}
+                alt={alt}
                 width={size?.width}
                 height={size?.height}
                 className="inline-block h-auto max-w-full lg:rounded-md"
@@ -143,17 +188,18 @@ const staticComponents = {
     },
 
     h1: H1,
-    h2(props) {
-        // if (props.children === "Contents") {
-        //     return <TOC />;
-        // }
-        return <H2 {...props} />;
-    },
+    h2: H2,
     h3: H3,
     h4: H4,
 
+    em({ children }) {
+        return <em className="italic text-white">{children}</em>;
+    },
     strong({ children }) {
-        return <strong className="font-bold text-zinc-200">{children}</strong>;
+        return <strong className="font-bold text-white">{children}</strong>;
+    },
+    del({ children }) {
+        return <del className="text-neutral-500">{children}</del>;
     },
 
     blockquote({ children, ...props }) {
@@ -183,21 +229,21 @@ const staticComponents = {
 
     table({ children }) {
         return (
-            <div className="overflow-x-auto">
+            <div className="justify-items-center">
                 <table className="table-auto">{children}</table>
             </div>
         );
     },
     th({ children, style }) {
         return (
-            <th className="border-2 border-zinc-800 p-2 text-white" style={style}>
+            <th className="border-2 border-zinc-700 p-2 text-white" style={style}>
                 {children}
             </th>
         );
     },
     td({ children, style }) {
         return (
-            <td className="border-2 border-zinc-800 p-2" style={style}>
+            <td className="border-2 border-zinc-700 px-2 py-1" style={style}>
                 {children}
             </td>
         );
@@ -211,15 +257,13 @@ const staticComponents = {
 
     div(props) {
         if (props.className === "info" || props.className === "side-note") {
-            const title = props.className === "side-note" ? "Side note" : "Info";
-            return (
-                <div className="narrow normal-my -mx-4 bg-gray-800 py-px pl-8 pr-4 leading-normal md:mx-0 md:px-6">
-                    <div className="-mb-2 mt-4">
-                        <strong>{title}:</strong>
-                    </div>
-                    <div className="compact my-4">{props.children}</div>
-                </div>
-            );
+            const titleKey = "data-title";
+            const customTitle =
+                titleKey in props && typeof props[titleKey] === "string"
+                    ? props[titleKey]
+                    : undefined;
+            const title = customTitle ? <Markdown inline markdown={customTitle} /> : "Info";
+            return <InfoBox title={title}>{props.children}</InfoBox>;
         }
 
         return <div {...props} />;
@@ -274,6 +318,7 @@ export const Markdown = memo(
                 return () => undefined;
             }
         }, [imageSizes]);
+        const codeMeta = useMemo(() => parseCodeMeta(markdown), [markdown]);
 
         const components: Partial<Components> = {
             ...staticComponents,
@@ -282,15 +327,13 @@ export const Markdown = memo(
             ),
             h1: noH1 ? Empty : staticComponents.h1,
             h2: (props) =>
-                props.children === "Contents" ? (
-                    <TOC markdown={markdown} />
-                ) : (
-                    staticComponents.h2(props)
-                ),
+                props.children === "Contents" ? <TOC markdown={markdown} /> : <H2 {...props} />,
             p: inline ? ForwardChildren : draft ? PWithDraft : P,
-            code: inlineCodeLanguage
-                ? (props) => <Code {...props} inlineCodeLang={inlineCodeLanguage} />
-                : staticComponents.code,
+            code: (props) => {
+                const line = props.node?.position?.start.line;
+                const meta = line ? codeMeta.get(line) : undefined;
+                return <Code {...props} inlineCodeLang={inlineCodeLanguage} meta={meta} />;
+            },
         };
 
         return (

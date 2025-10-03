@@ -14,7 +14,16 @@ const config: Config = {
                     "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
             },
             screens: {
+                xs: "480px",
                 print: { raw: "print" },
+                portrait: { raw: "(orientation: portrait)" },
+                landscape: { raw: "(orientation: landscape)" },
+            },
+            fontFamily: {
+                header: ["var(--font-header)", "sans-serif"],
+                sans: ["var(--font-sans)", "sans-serif"],
+                serif: ["var(--font-serif)", "Georgia", "serif"],
+                mono: ["var(--font-mono)", "monospace"],
             },
         },
     },

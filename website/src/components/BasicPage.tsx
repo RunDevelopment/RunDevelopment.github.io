@@ -1,5 +1,6 @@
 import Link from "next/link";
 import React from "react";
+import { allFonts } from "../fonts/fonts";
 import "./BasicPage.css";
 
 type HeaderLinkProps = {
@@ -55,23 +56,25 @@ function Header({ selectedLink }: { selectedLink?: HeaderLinks }) {
     );
 }
 
-export function PageRoot({ children }: { children: React.ReactNode }) {
-    return <body className={" bg-zinc-900 text-zinc-200"}>{children}</body>;
-}
-
-export default function BasicPage({
-    children,
-    selectedLink,
-}: {
+export interface BasicPageProps {
     children: React.ReactNode;
     selectedLink?: HeaderLinks;
-}) {
+    alwaysShowScrollBar?: boolean;
+}
+export default function BasicPage({ children, selectedLink, alwaysShowScrollBar }: BasicPageProps) {
     return (
-        <PageRoot>
+        <body
+            className={
+                (alwaysShowScrollBar ? "overflow-y-scroll" : "") +
+                " " +
+                allFonts +
+                " font-sans bg-zinc-900 text-zinc-200"
+            }
+        >
             <Header selectedLink={selectedLink} />
-            <div className="m-auto box-content max-w-[var(--page-width)] px-4 pb-8 md:px-6">
-                <main className="contain-size">{children}</main>
-            </div>
-        </PageRoot>
+            <main className="mx-auto box-content max-w-[var(--page-width)] px-4 pb-8 contain-size md:px-6">
+                {children}
+            </main>
+        </body>
     );
 }

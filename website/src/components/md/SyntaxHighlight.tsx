@@ -1,18 +1,22 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useState, useEffect } from "react";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import rust from "react-syntax-highlighter/dist/esm/languages/prism/rust";
 import c from "react-syntax-highlighter/dist/esm/languages/prism/c";
 import json from "react-syntax-highlighter/dist/esm/languages/prism/json";
 import yaml from "react-syntax-highlighter/dist/esm/languages/prism/yaml";
-import { coldarkDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import python from "react-syntax-highlighter/dist/esm/languages/prism/python";
+import markdown from "react-syntax-highlighter/dist/esm/languages/prism/markdown";
+import { coldarkDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { ForwardChildren } from "../util";
 
 SyntaxHighlighter.registerLanguage("rust", rust);
 SyntaxHighlighter.registerLanguage("c", c);
 SyntaxHighlighter.registerLanguage("json", json);
 SyntaxHighlighter.registerLanguage("yaml", yaml);
+SyntaxHighlighter.registerLanguage("python", python);
+SyntaxHighlighter.registerLanguage("markdown", markdown);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function nasm(Prism: any) {
@@ -64,6 +68,21 @@ interface SyntaxHighlightProps {
 }
 
 export const SyntaxHighlight = memo(({ code, lang, noCodeElement }: SyntaxHighlightProps) => {
+    const [dark, setDark] = useState(true);
+
+    useEffect(() => {
+        const makeDark = () => setDark(true);
+        const makeLight = () => setDark(false);
+
+        window.addEventListener("beforeprint", makeLight);
+        window.addEventListener("afterprint", makeDark);
+
+        return () => {
+            window.removeEventListener("beforeprint", makeLight);
+            window.removeEventListener("afterprint", makeDark);
+        };
+    }, []);
+
     return (
         <SyntaxHighlighter
             PreTag={ForwardChildren}
@@ -71,7 +90,7 @@ export const SyntaxHighlight = memo(({ code, lang, noCodeElement }: SyntaxHighli
             // eslint-disable-next-line react/no-children-prop
             children={code}
             language={lang}
-            style={coldarkDark}
+            style={dark ? coldarkDark : oneLight}
         />
     );
 });

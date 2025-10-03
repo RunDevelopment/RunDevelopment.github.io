@@ -40,6 +40,8 @@ slug: string | null = null
 tags: string = ""
 # The cover image of the article. E.g. "./images/cover.jpg".
 image: string | null = null
+# The small image shows as the article's thumbnail. E.g. "./images/cover_small.jpg".
+imageSmall: string | null = null
 # The cover color of the article. E.g. "#f0f0f0". If no color is given, a random color will be generated.
 color: string | null = null
 ---
@@ -49,7 +51,7 @@ Additional notes:
 
 -   `description` will be used both for post cards and for the meta description.
 -   `datePublished` and `dateModified` must be in the format `YYYY-MM-DD`.
--   `image` must be either a file path relative to the article's `.md` file or a URL.
+-   `image`/`imageSmall` must be either a file path relative to the article's `.md` file or a URL.
 -   `color` must be a valid CSS color and should ideally go together with `image`.
 
 Also, when an article is marked as draft, it will not be deployed to the website. Draft-mode also enables TODOs, which are highlighted in the text.
@@ -121,6 +123,33 @@ inlineCodeLanguage: rust
 ---
 ```
 
+#### Code block meta
+
+You can specify additional meta information after the code language.
+
+`rust @rust-playground` will add a "Run" button that opens the code in the Rust Playground.
+
+````md @render
+```rust @rust-playground
+assert_eq!(2 + 2, 4);
+```
+````
+
+`@render` will render the code block as Markdown (if the code language is markdown). This is useful for showing Markdown examples and is used in this document.
+
+````md @render
+```md @render
+Hello!
+```
+````
+
+### Tables
+
+| Tables   | are   | cool |
+| -------- | ----- | ---- |
+| They     | can   | have |
+| multiple | lines | too  |
+
 ### Images
 
 ![](https://i.kym-cdn.com/photos/images/newsfeed/001/401/347/312.jpg)
@@ -135,30 +164,41 @@ Images can be either relative paths to a file or URLs.
 
 Relative paths are resolved from the article's `.md` file. This means that you can use regular Markdown editors to preview images.
 
+#### `@max-width`
+
+A maximum width can be set using `@max-width:100px` at the end of the image's text. E.g.
+
+```md @render
+![@max-width:100px](https://i.kym-cdn.com/photos/images/newsfeed/001/401/347/312.jpg)
+
+![@max-width:200px](https://i.kym-cdn.com/photos/images/newsfeed/001/401/347/312.jpg)
+
+![I have text @max-width:300px](https://i.kym-cdn.com/photos/images/newsfeed/001/401/347/312.jpg)
+```
+
+#### `@narrow`
+
+To set the maximum width to the text width, use `@narrow`:
+
+```md @render
+![@narrow](https://upload.wikimedia.org/wikipedia/commons/7/73/Lion_waiting_in_Namibia.jpg)
+```
+
 ### Quotes
 
 Quotes can be added like this:
 
+```md @render
 > This is a single-line quote.
 
 > This is a quote with a source.
 >
 > There's not much to it.
+```
 
 Use the following to automatically have the source attached:
 
-```md
-<blockquote data-src="https://doc.rust-lang.org/std/primitive.f32.html#method.max">
-
-    pub fn max(self, other: f32) -> f32
-
-Returns the maximum of the two numbers, ignoring NaN.
-
-If one of the arguments is NaN, then the other argument is returned. This follows the IEEE 754-2008 semantics for maxNum, except for handling of signaling NaNs; this function handles all NaNs the same way and avoids maxNum’s problems with associativity. This also matches the behavior of libm’s fmax.
-
-</blockquote>
-```
-
+````md @render
 <blockquote data-src="https://doc.rust-lang.org/std/primitive.f32.html#method.max">
 
 ```rust
@@ -170,6 +210,7 @@ Returns the maximum of the two numbers, ignoring NaN.
 If one of the arguments is NaN, then the other argument is returned. This follows the IEEE 754-2008 semantics for maxNum, except for handling of signaling NaNs; this function handles all NaNs the same way and avoids maxNum’s problems with associativity. This also matches the behavior of libm’s fmax.
 
 </blockquote>
+````
 
 ### Math
 
@@ -198,35 +239,24 @@ $$
 
 Details work as expected:
 
-```md
+```md @render
 <details>
 <summary>
-For those unfamiliar with Rust:
+This is a summary
 </summary>
 
-Rust explainer. Hehe.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean convallis egestas felis. Ut rutrum, ex eu maximus pharetra, nulla est gravida elit, at consequat quam dui nec dui. Sed ipsum nulla, commodo ac varius id, vestibulum non arcu. Donec feugiat ut lectus sit amet cursus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Suspendisse facilisis interdum ultrices.
+
+    Can contain code blocks.
 
 </details>
 ```
-
-<details>
-<summary>
-Lorem Ipsum
-</summary>
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean convallis egestas felis. Ut rutrum, ex eu maximus pharetra, nulla est gravida elit, at consequat quam dui nec dui. Sed ipsum nulla, commodo ac varius id, vestibulum non arcu. Donec feugiat ut lectus sit amet cursus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Suspendisse facilisis interdum ultrices. Sed mollis nulla est. Morbi luctus justo nec ipsum consectetur suscipit. Donec a diam sit amet libero scelerisque aliquet fringilla in nibh. Curabitur vel rhoncus nisi. Sed cursus justo metus, id tempor diam sagittis eu. Maecenas vitae mattis velit. Ut efficitur enim nunc, a fringilla massa tempor at. Integer hendrerit ac magna eu faucibus.
-
-    Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Duis imperdiet ligula facilisis, eleifend orci id, efficitur massa. Phasellus ut nunc at ante facilisis consectetur sed tristique libero. Praesent vitae lacinia ligula, ac aliquet lorem. Cras risus ante, vulputate vitae massa vitae, placerat congue nisl. Sed vel risus et libero scelerisque bibendum sed a odio. Praesent vehicula condimentum erat in imperdiet. Duis vel libero in nisi aliquam bibendum.
-
-Sed nec leo mi. Duis sed justo mattis, posuere metus eget, porta diam. Integer vitae molestie metus. Praesent sed orci diam. Maecenas auctor, enim vel viverra blandit, ex sem gravida orci, id molestie lectus nisl vitae orci. Praesent quis elit et ipsum tincidunt volutpat vitae non nibh. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-
-</details>
 
 ## Notes
 
-Notes and side notes can be added like this:
+Notes can be added like this:
 
-```md
+```md @render
 <div class="info">
 
 <details>
@@ -241,44 +271,24 @@ Rust explainer. Hehe.
 </div>
 ```
 
-<div class="info">
+Notes can also have a title:
 
-<details>
-<summary>
-For those unfamiliar with Rust:
-</summary>
-
-Rust explainer. Hehe.
-
-</details>
-
-</div>
-
-And
-
-```md
-<div class="side-note">
+```md @render
+<div class="info" data-title="Side note">
 
 This is a side note.
 
-</div>
-```
-
-<div class="side-note">
-
-This is a side note.
-
-```
-With code!
-```
+    With code!
 
 </div>
+```
 
 ## Custom components
 
 Custom UI elements can be inserted using a JSON block with the `json:custom` language. The JSON block must contain a `component` field with the component ID. The `props` field is optional.
 
-```json
+````md @render
+```json:custom
 {
     "component": "component-id",
     "props": {
@@ -286,3 +296,4 @@ Custom UI elements can be inserted using a JSON block with the `json:custom` lan
     }
 }
 ```
+````

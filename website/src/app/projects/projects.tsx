@@ -10,6 +10,13 @@ export interface ProjectInfo {
 
 const projects: readonly ProjectInfo[] = [
     {
+        title: "Multiply-Add Constants Finder",
+        description:
+            "Find constants to speed up the computation of $r(x \\cdot t / d)$ for arbitrary $t,d \\in \\N_1$ and rounding function $r$.",
+        date: "2025-09-24",
+        url: "/projects/multiply-add-constants-finder",
+    },
+    {
         title: "Regex Crossword",
         description: "A crossword puzzle that uses regular expressions.",
         date: "2024-09-01",
@@ -17,11 +24,10 @@ const projects: readonly ProjectInfo[] = [
         hidden: true,
     },
     {
-        title: "Multiply-Add Constants Finder",
-        description:
-            "Find constants to perform a fast computation for an equation $R(x \\cdot T / D)$ for arbitrary $T,D \\in \\N$ and rounding function $R$.",
+        title: "Connect Four",
+        description: "Play Connect Four against AI or other players.",
         date: "2024-09-12",
-        url: "/projects/multiply-add-constants-finder",
+        url: "/projects/connect-4444",
         hidden: true,
     },
 ];
