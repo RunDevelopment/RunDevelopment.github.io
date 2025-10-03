@@ -81,7 +81,7 @@ export const Article = memo(({ post }: ArticleProps) => {
                     }}
                 ></div>
                 <div className={headerContainerHeight + " flex flex-col justify-end text-center"}>
-                    <div className="relative sm:text-clip" id="title-container">
+                    <div className="relative sm:overflow-hidden" id="title-container">
                         <div
                             className="hidden h-0 contain-size contain-layout sm:block"
                             aria-hidden
