@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useState } from "react";
-import { NumberInput, DownDown, SmallButton, BigIntInput } from "../../../components/FormInputs";
+import { DownDown, SmallButton, BigIntInput } from "../../../components/FormInputs";
 import { ConversionCode } from "../../../components/multiply-add/CodeGen";
 import { groupBy } from "../../../lib/util";
 import {
@@ -13,7 +13,7 @@ import {
     SolutionRange,
 } from "../../../components/multiply-add/multiply-add-solver";
 
-interface ProblemDesc {
+export interface ProblemDesc {
     rounding: RoundingMode;
     t: bigint;
     d: bigint;
@@ -319,7 +319,7 @@ export const ProblemInput = memo(({ problem, setProblem }: ProblemInputProps) =>
                         id="rounding"
                         value={rounding}
                         onChange={setRounding}
-                        className="sm:max-w-64 w-full"
+                        className="w-full sm:max-w-64"
                         options={["round", "floor", "ceil"]}
                     />
                 </div>
@@ -333,7 +333,7 @@ export const ProblemInput = memo(({ problem, setProblem }: ProblemInputProps) =>
                     <BigIntInput
                         id="enumerator"
                         min={1n}
-                        className="sm:max-w-64 w-full min-w-0"
+                        className="w-full min-w-0 sm:max-w-64"
                         value={t}
                         onChange={setEnumerator}
                     />
@@ -348,7 +348,7 @@ export const ProblemInput = memo(({ problem, setProblem }: ProblemInputProps) =>
                     <BigIntInput
                         id="denominator"
                         min={1n}
-                        className="sm:max-w-64 w-full min-w-0"
+                        className="w-full min-w-0 sm:max-w-64"
                         value={d}
                         onChange={setDenominator}
                     />
@@ -365,7 +365,7 @@ export const ProblemInput = memo(({ problem, setProblem }: ProblemInputProps) =>
                             id="inputRange"
                             min={1n}
                             value={u}
-                            className="sm:max-w-64 w-full min-w-0"
+                            className="w-full min-w-0 sm:max-w-64"
                             onChange={setInputRange}
                         />
                         <span className="flex flex-wrap gap-1">
@@ -423,7 +423,7 @@ interface SolutionOutputProps {
     best: Solution;
     addZero?: Solution;
 }
-const SolutionOutput = memo(({ optimal, best, addZero }: SolutionOutputProps) => {
+const SolutionOutput = memo(({ optimal, best }: SolutionOutputProps) => {
     let expression = <em>x</em>;
 
     if (best.f !== 1n) {
@@ -463,7 +463,10 @@ const SolutionOutput = memo(({ optimal, best, addZero }: SolutionOutputProps) =>
                 <div className="xs:text-left text-center font-serif text-lg leading-6 text-zinc-100">
                     {expression}
                     {!optimal && (
-                        <span title="This solution is correct but may not be optimal." className="cursor-help">
+                        <span
+                            title="This solution is correct but may not be optimal."
+                            className="cursor-help"
+                        >
                             {" ⚠️"}
                         </span>
                     )}
@@ -580,7 +583,7 @@ const SolutionList = memo(({ solutions }: { solutions: readonly SolutionRange[] 
                     {formatMany(solutions.slice(0, COMPACT_PADDING))}
                     {"\n"}
                     <span
-                        className="text-zinc-400 hover:text-white cursor-pointer"
+                        className="cursor-pointer text-zinc-400 hover:text-white"
                         onClick={() => {
                             setCollapsed(false);
                         }}

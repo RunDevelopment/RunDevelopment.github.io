@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ProblemInput } from "../projects/multiply-add-constants-finder/ConversionConstantsSearch";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    ProblemDesc,
+    ProblemInput,
+} from "../projects/multiply-add-constants-finder/ConversionConstantsSearch";
 import { useDevicePixelRatio } from "../../hooks/useDevicePixelRatio";
 import { DownDown, SmallButton } from "../../components/FormInputs";
 import { GmaProblem } from "./gma";
@@ -36,6 +39,7 @@ class RenderTransform {
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _drawUnitCircle(ctx: CanvasRenderingContext2D, t: RenderTransform) {
     const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
 
@@ -412,22 +416,27 @@ export function SolutionVisualizer() {
         }
     }, [onWheel]);
 
+    const problemDesc = useMemo((): ProblemDesc => {
+        return {
+            rounding: problem.rounding,
+            t: BigInt(problem.t),
+            d: BigInt(problem.d),
+            u: BigInt(problem.inputRange),
+            inputLimit: 2 ** 16 - 1,
+        };
+    }, [problem]);
+
     return (
         <>
             <div className="narrow">
                 <ProblemInput
-                    problem={problem}
+                    problem={problemDesc}
                     setProblem={(p) => {
                         if (typeof p === "function") {
-                            setProblem((old) => GmaProblem.from(p(old)));
+                            setProblem(() => GmaProblem.fromDesc(p(problemDesc)));
                         } else {
-                            setProblem(GmaProblem.from(p));
+                            setProblem(GmaProblem.fromDesc(p));
                         }
-                    }}
-                    constraints={{
-                        maxT: 2 ** 16 - 1,
-                        maxD: 2 ** 16 - 1,
-                        maxInputRange: 2 ** 16 - 1,
                     }}
                 />
                 <div className="py-4">

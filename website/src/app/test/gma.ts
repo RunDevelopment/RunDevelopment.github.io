@@ -1,4 +1,12 @@
-import { ProblemLike, RoundingMode } from "../../components/multiply-add/interfaces";
+import type { RoundingMode } from "../../components/multiply-add/multiply-add-solver";
+import type { ProblemDesc } from "../projects/multiply-add-constants-finder/ConversionConstantsSearch";
+
+interface ProblemLike {
+    readonly inputRange: number;
+    readonly t: number;
+    readonly d: number;
+    readonly rounding: RoundingMode;
+}
 
 export class GmaProblem implements ProblemLike {
     readonly r: number;
@@ -32,6 +40,14 @@ export class GmaProblem implements ProblemLike {
 
     static from(problem: ProblemLike): GmaProblem {
         return new GmaProblem(problem.inputRange, problem.t, problem.d, problem.rounding);
+    }
+    static fromDesc(problem: ProblemDesc): GmaProblem {
+        return new GmaProblem(
+            Number(problem.u),
+            Number(problem.t),
+            Number(problem.d),
+            problem.rounding,
+        );
     }
 
     forNecessaryInputs<T>(fn: (x: number) => void | T): T | undefined {

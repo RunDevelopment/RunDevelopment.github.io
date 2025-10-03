@@ -14,7 +14,11 @@ export const CustomComponent = memo(({ json }: { json: string }) => {
 
     if (!Object.hasOwn(knownComponents, value.component)) {
         console.error("Unknown custom component:", value.component, value);
-        return <div className="bg-red-800 text-xl text-white p-8">Invalid component: <code>{value.component}</code></div>
+        return (
+            <div className="bg-red-800 p-8 text-xl text-white">
+                Invalid component: <code>{value.component}</code>
+            </div>
+        );
     }
 
     const Component = knownComponents[value.component as keyof typeof knownComponents];
