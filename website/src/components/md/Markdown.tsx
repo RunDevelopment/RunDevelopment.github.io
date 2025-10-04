@@ -117,13 +117,13 @@ const PWithDraft: Components["p"] = memo(({ node, children }) => {
 });
 
 interface MdImageProps {
-    src?: string;
+    src?: string | Blob;
     alt?: string;
     getImageUrl: (url: string) => string | undefined;
     getImageSize: (url: string) => ImageSize | undefined;
 }
 const MdImage = memo(({ src, alt = "Image", getImageUrl, getImageSize }: MdImageProps) => {
-    const size = src ? getImageSize(src) : undefined;
+    const size = typeof src === "string" ? getImageSize(src) : undefined;
 
     const styles: string[] = [];
     const extract = (pattern: RegExp, fn: (match: RegExpExecArray) => string) => {
@@ -142,13 +142,21 @@ const MdImage = memo(({ src, alt = "Image", getImageUrl, getImageSize }: MdImage
         id = btoa(src + ";\n" + css).replace(/\W/g, "-");
         css = `#${id}{${css}}`;
     }
+
+    let finalSrc;
+    if (typeof src === "string") {
+        finalSrc = getImageUrl(src);
+    } else if (src) {
+        finalSrc = URL.createObjectURL(src);
+    }
+
     return (
         <div className="-mx-4 my-4 w-[calc(100%+2rem)] text-center md:-mx-6 md:w-[calc(100%+3rem)] lg:mx-0 lg:w-auto lg:max-w-full">
             {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
                 id={id}
-                src={src && getImageUrl(src)}
+                src={finalSrc}
                 alt={alt}
                 width={size?.width}
                 height={size?.height}

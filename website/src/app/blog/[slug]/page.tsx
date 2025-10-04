@@ -5,10 +5,11 @@ import { Article } from "./Article";
 import { getPostFromSlug, getPosts } from "../../../lib/fs/uptodate";
 
 interface Props {
-    params: { slug: string };
+    params: Promise<{ slug: string }>;
 }
 
-export default async function Page({ params }: Props) {
+export default async function Page(props: Props) {
+    const params = await props.params;
     const post = await getPostFromSlug(params.slug);
     if (!post) {
         throw new Error("Post " + params.slug + " not found");
@@ -22,7 +23,8 @@ export default async function Page({ params }: Props) {
     );
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+    const params = await props.params;
     const post = await getPostFromSlug(params.slug);
     if (!post) {
         throw new Error("Post " + params.slug + " not found");
