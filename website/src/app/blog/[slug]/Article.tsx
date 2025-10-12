@@ -36,8 +36,11 @@ function AfterHeader({ meta }: { meta: PostMetadata }) {
 function BackgroundImage({ image, inlineData }: { image: string; inlineData?: string }) {
     return (
         <div
-            className="relative inset-x-0 z-0 -mx-4 overflow-hidden sm:absolute sm:mx-0 bg-cover bg-center"
-            style={{ backgroundImage: inlineData ? `url('${inlineData}')` : undefined }}
+            className="relative inset-x-0 z-0 -mx-4 overflow-hidden sm:absolute sm:mx-0 bg-center"
+            style={{
+                backgroundImage: inlineData ? `url('${inlineData}')` : undefined,
+                backgroundSize: "auto 100%",
+            }}
             aria-hidden
         >
             <div

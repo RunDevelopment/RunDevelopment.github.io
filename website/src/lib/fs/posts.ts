@@ -200,8 +200,9 @@ async function inlineImagePreviewData(relativeTo: string, metadata: PostMetadata
     type ImageFormat = "webp" | "avif" | "jpeg";
     const FORMAT: ImageFormat = "avif";
     const MAX_QUALITY: Record<ImageFormat, number> = { webp: 75, avif: 50, jpeg: 80 };
-    const PREVIEW_HEIGHT = 160;
-    const PREVIEW_BYTES = 3000;
+    const PREVIEW_HEIGHT = 480;
+    const PREVIEW_MAX_RATIO = 3; // maximum width / height
+    const PREVIEW_BYTES = 8 * 1024;
     const COMPRESSOR: Record<ImageFormat, (image: sharp.Sharp, quality: number) => sharp.Sharp> = {
         webp: (image, quality) =>
             image.webp({
@@ -248,7 +249,12 @@ async function inlineImagePreviewData(relativeTo: string, metadata: PostMetadata
         const cachePath = path.join(
             IMAGE_CACHE_DIR,
             "preview-" +
-                (await getImageCacheKey(imagePath, [FORMAT, PREVIEW_HEIGHT, PREVIEW_BYTES])) +
+                (await getImageCacheKey(imagePath, [
+                    FORMAT,
+                    PREVIEW_HEIGHT,
+                    PREVIEW_MAX_RATIO,
+                    PREVIEW_BYTES,
+                ])) +
                 "." +
                 FORMAT,
         );
@@ -258,8 +264,9 @@ async function inlineImagePreviewData(relativeTo: string, metadata: PostMetadata
             imageBytes = await fs.readFile(cachePath);
         } else {
             const resizedImage = sharp(imagePath).resize({
+                width: PREVIEW_HEIGHT * PREVIEW_MAX_RATIO,
                 height: PREVIEW_HEIGHT,
-                fit: "outside",
+                fit: "cover",
             });
             const tiny = await toTiny(resizedImage, PREVIEW_BYTES);
 

@@ -74,9 +74,9 @@ const TOC = memo(({ markdown }: TOCProps) => {
                 Contents
             </h2>
             <ul dir="auto">
-                {headings.map((h) => {
+                {headings.map((h, i) => {
                     return (
-                        <li key={h.id} className={h.level === 3 ? "pl-6" : "pt-1"}>
+                        <li key={h.id + "-" + i} className={h.level === 3 ? "pl-6" : "pt-1"}>
                             <TextLink href={"#" + h.id} simple>
                                 <Markdown markdown={h.text} inline />
                             </TextLink>
