@@ -2,6 +2,7 @@ import Link from "next/link";
 import React from "react";
 import { allFonts } from "../fonts/fonts";
 import "./BasicPage.css";
+import { getInlineImage } from "../lib/fs/util";
 
 type HeaderLinkProps = {
     href: string;
@@ -26,18 +27,21 @@ function HeaderLink({ href, children, selected, className = "" }: HeaderLinkProp
 
 type HeaderLinks = "home" | "blog" | "projects";
 
-function Header({ selectedLink }: { selectedLink?: HeaderLinks }) {
+async function Header({ selectedLink }: { selectedLink?: HeaderLinks }) {
+    // inline the logo image, so it doesn't blink on page load
+    const logo = await getInlineImage("logo256_opaque.webp");
+
     return (
         <header className="bg-black">
             <nav className="z-10 mx-auto box-content flex max-w-[var(--page-narrow-width)] gap-1 p-4 align-middle">
                 <HeaderLink href="/" className="group pr-3" selected={selectedLink === "home"}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                        src="/favicon.ico"
-                        alt="logo"
+                        src={logo}
+                        alt="Logo"
                         width="32"
                         height="32"
-                        className="mr-2 inline h-full transition-transform duration-300 group-hover:rotate-[360deg] group-hover:scale-125"
+                        className="mr-2 rounded-full inline h-full transition-transform duration-300 group-hover:rotate-[360deg] group-hover:scale-125"
                     />
                     <span>Home</span>
                 </HeaderLink>
@@ -61,7 +65,11 @@ export interface BasicPageProps {
     selectedLink?: HeaderLinks;
     alwaysShowScrollBar?: boolean;
 }
-export default function BasicPage({ children, selectedLink, alwaysShowScrollBar }: BasicPageProps) {
+export default async function BasicPage({
+    children,
+    selectedLink,
+    alwaysShowScrollBar,
+}: BasicPageProps) {
     return (
         <body
             className={
