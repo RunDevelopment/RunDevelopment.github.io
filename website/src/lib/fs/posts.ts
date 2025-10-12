@@ -8,6 +8,7 @@ import { IS_DEV, POST_DIR, IMAGE_CACHE_DIR } from "./config";
 import sizeOf from "image-size";
 import { promisify } from "util";
 import sharp from "sharp";
+import { toBase64Image } from "./util";
 
 export const getPostsWithInternals = timedCached(2000, async () => {
     const postFiles = await fs.readdir(POST_DIR, {
@@ -200,8 +201,8 @@ async function inlineImagePreviewData(relativeTo: string, metadata: PostMetadata
     type ImageFormat = "webp" | "avif" | "jpeg";
     const FORMAT: ImageFormat = "avif";
     const MAX_QUALITY: Record<ImageFormat, number> = { webp: 75, avif: 50, jpeg: 80 };
-    const PREVIEW_HEIGHT = 160;
-    const PREVIEW_BYTES = 3000;
+    const PREVIEW_HEIGHT = 480;
+    const PREVIEW_BYTES = 8 * 1024;
     const COMPRESSOR: Record<ImageFormat, (image: sharp.Sharp, quality: number) => sharp.Sharp> = {
         webp: (image, quality) =>
             image.webp({
@@ -269,8 +270,7 @@ async function inlineImagePreviewData(relativeTo: string, metadata: PostMetadata
             imageBytes = tiny;
         }
 
-        const base64 = imageBytes.toString("base64");
-        metadata.imageInlinePreviewData = `data:image/${FORMAT};base64,${base64}`;
+        metadata.imageInlinePreviewData = toBase64Image(imageBytes, FORMAT);
     } catch (e) {
         console.error(`Error inlining image load for ${metadata.image}:`, e);
         metadata.imageInlinePreviewData = undefined;
