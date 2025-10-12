@@ -36,7 +36,8 @@ function AfterHeader({ meta }: { meta: PostMetadata }) {
 function BackgroundImage({ image, inlineData }: { image: string; inlineData?: string }) {
     return (
         <div
-            className="relative inset-x-0 z-0 -mx-4 overflow-hidden sm:absolute sm:mx-0"
+            className="relative inset-x-0 z-0 -mx-4 overflow-hidden sm:absolute sm:mx-0 bg-cover bg-center"
+            style={{ backgroundImage: inlineData ? `url('${inlineData}')` : undefined }}
             aria-hidden
         >
             <div
@@ -48,8 +49,7 @@ function BackgroundImage({ image, inlineData }: { image: string; inlineData?: st
             <img
                 src={image}
                 alt="Cover image"
-                className="mx-auto h-[var(--bg-image-height)] bg-cover bg-center object-cover"
-                style={{ backgroundImage: inlineData ? `url('${inlineData}')` : undefined }}
+                className="mx-auto h-[var(--bg-image-height)] object-cover"
             />
         </div>
     );
