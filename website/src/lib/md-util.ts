@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, type JSX } from "react";
 
 export type MdElement = NonNullable<import("hast-util-to-jsx-runtime").ExtraProps["node"]>;
 
