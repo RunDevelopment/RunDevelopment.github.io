@@ -97,7 +97,7 @@ function forcedMove(player: PlayerId, board: GameBoard): number | undefined {
                 const oppCellPos = board.tryDrop(move, opponent);
                 const win = oppCellPos && board.isWinningCell(...oppCellPos);
                 board.set(...playerCellPos, 0);
-                oppCellPos && board.set(...oppCellPos, 0);
+                if (oppCellPos) board.set(...oppCellPos, 0);
                 if (win) {
                     // opponent 1 would win if we make this move
                     continue;
@@ -113,7 +113,7 @@ function forcedMove(player: PlayerId, board: GameBoard): number | undefined {
             const opp2CellPos = board.tryDrop(move, opponent2);
             const win = opp2CellPos && board.isWinningCell(...opp2CellPos);
             board.set(...oppCellPos, 0);
-            opp2CellPos && board.set(...opp2CellPos, 0);
+            if (opp2CellPos) board.set(...opp2CellPos, 0);
             if (win) {
                 // opponent 2 would win if we don't make this move
                 return move;

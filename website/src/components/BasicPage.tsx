@@ -41,7 +41,7 @@ async function Header({ selectedLink }: { selectedLink?: HeaderLinks }) {
                         alt="Logo"
                         width="32"
                         height="32"
-                        className="mr-2 rounded-full inline h-full transition-transform duration-300 group-hover:rotate-[360deg] group-hover:scale-125"
+                        className="mr-2 inline h-full rounded-full transition-transform duration-300 group-hover:rotate-[360deg] group-hover:scale-125"
                     />
                     <span>Home</span>
                 </HeaderLink>

@@ -14,9 +14,9 @@ function AfterHeader({ meta }: { meta: PostMetadata }) {
                 <TagList tags={meta.tags} />
             </div>
 
-            <p className="xs:block mt-2 flex flex-col items-center justify-center text-center text-sm">
+            <p className="mt-2 flex flex-col items-center justify-center text-center text-sm xs:block">
                 <span className="whitespace-nowrap">Michael Schmidt</span>
-                <span className="xs:inline hidden px-2">{" / "}</span>
+                <span className="hidden px-2 xs:inline">{" / "}</span>
                 <span className="whitespace-nowrap">
                     {formatDateString(meta.datePublished)}
                     {meta.dateModified !== meta.datePublished && (
@@ -26,7 +26,7 @@ function AfterHeader({ meta }: { meta: PostMetadata }) {
                         </span>
                     )}
                 </span>
-                <span className="xs:inline hidden px-2">{" / "}</span>
+                <span className="hidden px-2 xs:inline">{" / "}</span>
                 <span className="whitespace-nowrap">{meta.minutesToRead} min read</span>
             </p>
         </div>
@@ -36,7 +36,7 @@ function AfterHeader({ meta }: { meta: PostMetadata }) {
 function BackgroundImage({ image, inlineData }: { image: string; inlineData?: string }) {
     return (
         <div
-            className="relative inset-x-0 z-0 -mx-4 overflow-hidden sm:absolute sm:mx-0 bg-center"
+            className="relative inset-x-0 z-0 -mx-4 overflow-hidden bg-center sm:absolute sm:mx-0"
             style={{
                 backgroundImage: inlineData ? `url('${inlineData}')` : undefined,
                 backgroundSize: "auto 100%",

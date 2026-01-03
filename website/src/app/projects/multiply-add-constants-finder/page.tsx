@@ -27,7 +27,7 @@ The multiply-add method speeds up integer division by a known constant divisor b
 const SECTION2 = `
 ### Usage
 
-This tool takes a *problem* (i.e. find the multiply-add constants for $\\lceil x \\cdot 3/7 \\rceil$ for $x$ in the range $[0, 255]$) and finds suitable constants.
+This tool takes a *problem* (i.e. find multiply-add constants for $\\lceil x \\cdot 3/7 \\rceil$ for $x$ in the range $[0, 255]$) and finds suitable constants.
 
 Specify the parameters below and let this tool find suitable constants.
 

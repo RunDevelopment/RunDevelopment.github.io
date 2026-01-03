@@ -5,8 +5,8 @@
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
         "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 
-    --page-width: 980px;
-    --page-narrow-width: 680px;
+    --page-width: 1024px;
+    --page-narrow-width: 720px;
 }
 
 body {

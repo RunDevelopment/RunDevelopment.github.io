@@ -5,6 +5,7 @@ export function useDevicePixelRatio(): number {
 
     useEffect(() => {
         const dpr = window.devicePixelRatio;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setDevicePixelRatio(dpr);
 
         let mediaMatcher = window.matchMedia(`screen and (resolution: ${dpr}dppx)`);

@@ -1,8 +1,10 @@
 import { memo } from "react";
 import { UnormConversion } from "../multiply-add/UnormConversion";
+import { Bc4ErrorVisualization } from "../bc4-error-vis";
 
 const knownComponents = {
     "unorm-conversion": UnormConversion,
+    "bc4-error-vis": Bc4ErrorVisualization,
 };
 
 export const CustomComponent = memo(({ json }: { json: string }) => {
