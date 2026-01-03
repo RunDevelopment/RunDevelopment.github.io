@@ -70,7 +70,7 @@ const TOC = memo(({ markdown }: TOCProps) => {
 
     return (
         <section className="narrow">
-            <h2 className="font-header mb-2 mt-12 text-xl text-white" id="contents">
+            <h2 className="mb-2 mt-12 font-header text-xl text-white" id="contents">
                 Contents
             </h2>
             <ul dir="auto">

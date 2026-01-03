@@ -379,11 +379,11 @@ export const ProblemInput = memo(({ problem, setProblem }: ProblemInputProps) =>
                 </div>
             </div>
 
-            <div className="narrow xs:flex mt-4">
-                <div className="xs:inline-block xs:w-32 xs:text-right mr-2 shrink-0 text-center leading-7 text-zinc-300">
+            <div className="narrow mt-4 xs:flex">
+                <div className="mr-2 shrink-0 text-center leading-7 text-zinc-300 xs:inline-block xs:w-32 xs:text-right">
                     The Problem:
                 </div>
-                <div className="xs:text-left text-center font-serif text-lg text-zinc-100">
+                <div className="text-center font-serif text-lg text-zinc-100 xs:text-left">
                     <label
                         className="cursor-text border-b-2 border-yellow-500 pb-0.5"
                         htmlFor="rounding"
@@ -456,11 +456,11 @@ const SolutionOutput = memo(({ optimal, best }: SolutionOutputProps) => {
 
     return (
         <>
-            <div className="narrow xs:flex my-8">
-                <div className="xs:inline-block xs:w-32 xs:text-right mr-2 shrink-0 text-center leading-6 text-zinc-300">
+            <div className="narrow my-8 xs:flex">
+                <div className="mr-2 shrink-0 text-center leading-6 text-zinc-300 xs:inline-block xs:w-32 xs:text-right">
                     Best Solution:
                 </div>
-                <div className="xs:text-left text-center font-serif text-lg leading-6 text-zinc-100">
+                <div className="text-center font-serif text-lg leading-6 text-zinc-100 xs:text-left">
                     {expression}
                     {!optimal && (
                         <span

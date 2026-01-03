@@ -196,14 +196,14 @@ const BlockInput = memo(({ block, setBlock, blockPrec, setBlockPrec }: BlockInpu
 
     return (
         <div
-            className="flex gap-4 flex-col md:flex-row"
+            className="flex flex-col gap-4 md:flex-row"
             style={{ flexWrap: showImage ? "wrap" : undefined }}
         >
-            <div className="shrink-0 grid grid-cols-4 w-64 h-64 self-center md:self-start">
+            <div className="grid size-64 shrink-0 grid-cols-4 self-center md:self-start">
                 {block.map((v, i) => (
                     <label
                         key={i}
-                        className="rounded-md flex items-center justify-center"
+                        className="flex items-center justify-center rounded-md"
                         htmlFor={"pixel" + i}
                         style={{
                             backgroundColor: `hsl(0 0 ${v * 100}%)`,
@@ -214,7 +214,7 @@ const BlockInput = memo(({ block, setBlock, blockPrec, setBlockPrec }: BlockInpu
                     </label>
                 ))}
             </div>
-            <div className="flex items-center flex-col md:flex-row md:items-start gap-x-4 gap-y-2">
+            <div className="flex flex-col items-center gap-x-4 gap-y-2 md:flex-row md:items-start">
                 <SmallCheckbox
                     checked={showImage}
                     onChange={setShowImage}
@@ -222,7 +222,7 @@ const BlockInput = memo(({ block, setBlock, blockPrec, setBlockPrec }: BlockInpu
                     className="whitespace-nowrap md:[writing-mode:vertical-lr]"
                 />
                 <div
-                    className="relative w-[320px] h-[256px] contain-layout"
+                    className="relative h-[256px] w-[320px] contain-layout"
                     style={{ display: showImage ? undefined : "none" }}
                 >
                     <img
@@ -238,7 +238,7 @@ const BlockInput = memo(({ block, setBlock, blockPrec, setBlockPrec }: BlockInpu
                     />
                     {blockXY && (
                         <span
-                            className="absolute outline-1 outline outline-red-600"
+                            className="absolute outline outline-1 outline-red-600"
                             style={{
                                 top: blockXY.y + "px",
                                 left: blockXY.x + "px",
@@ -265,7 +265,7 @@ const BlockInput = memo(({ block, setBlock, blockPrec, setBlockPrec }: BlockInpu
                     ))}
                 </div>
             </div>
-            <div className="flex-grow" style={{ flexBasis: showImage ? "100%" : undefined }}>
+            <div className="grow" style={{ flexBasis: showImage ? "100%" : undefined }}>
                 <div className="mb-4 flex flex-wrap gap-2">
                     <DownDown
                         value={blockPrec}
@@ -301,7 +301,7 @@ const BlockInput = memo(({ block, setBlock, blockPrec, setBlockPrec }: BlockInpu
                         Sort
                     </SmallButton>
                 </div>
-                <div className="flex-grow grid grid-cols-4 h-max gap-1 mb-4">
+                <div className="mb-4 grid h-max grow grid-cols-4 gap-1">
                     {block.map((v, i) => (
                         <SliderInput
                             value={v}
@@ -321,7 +321,7 @@ const BlockInput = memo(({ block, setBlock, blockPrec, setBlockPrec }: BlockInpu
                         />
                     ))}
                 </div>
-                <div className="grid grid-cols-1 xs:grid-cols-2 gap-1">
+                <div className="grid grid-cols-1 gap-1 xs:grid-cols-2">
                     {(
                         [
                             ["Min", min, setMinimum, "Minimum pixel value"],
@@ -332,7 +332,7 @@ const BlockInput = memo(({ block, setBlock, blockPrec, setBlockPrec }: BlockInpu
                     ).map(([label, value, setter, desc]) => (
                         <div key={label} className="flex gap-2">
                             <label
-                                className="w-20 shrink-0 inline-block text-right whitespace-nowrap"
+                                className="inline-block w-20 shrink-0 whitespace-nowrap text-right"
                                 htmlFor={"stat-" + label}
                                 title={desc}
                             >
@@ -434,7 +434,7 @@ const ErrorCanvas = memo(({ block }: { block: Block }) => {
             points.push(
                 <div
                     key={label}
-                    className="absolute z-20 size-[calc(min(2px,100%/256))] box-content -translate-x-1/2 -translate-y-1/2 hover:outline outline-1 outline-black"
+                    className="absolute z-20 box-content size-[calc(min(2px,100%/256))] -translate-x-1/2 -translate-y-1/2 outline-1 outline-black hover:outline"
                     style={{ left, top, border: "solid 1px " + color }}
                     title={desc}
                 ></div>,
@@ -494,22 +494,22 @@ const ErrorCanvas = memo(({ block }: { block: Block }) => {
     const isAtTopLeft = mousePos && mousePos[0] < 64 && mousePos[1] < 20;
 
     return (
-        <div className="flex flex-wrap items-start lg:mx-0 -mx-4 mt-4 justify-center">
+        <div className="-mx-4 mt-4 flex flex-wrap items-start justify-center lg:mx-0">
             <div
-                className="aspect-square max-w-[512px] w-full md:w-[512px] relative group"
+                className="group relative aspect-square w-full max-w-[512px] md:w-[512px]"
                 onMouseMove={(e) => {
-                    let rect = e.currentTarget.getBoundingClientRect();
-                    let size = rect.width;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const size = rect.width;
                     const toEndpoint = (v: number) => {
                         return Math.min(Math.max(Math.floor((v / size) * 256), 0), 255);
                     };
-                    let e0 = toEndpoint(e.clientX - rect.left);
-                    let e1 = toEndpoint(e.clientY - rect.top);
+                    const e0 = toEndpoint(e.clientX - rect.left);
+                    const e1 = toEndpoint(e.clientY - rect.top);
                     setMousePos([e0, e1]);
                 }}
             >
                 <canvas
-                    className="w-full h-full"
+                    className="size-full"
                     style={{ imageRendering: "pixelated" }}
                     ref={errorCanvasRef}
                     width="256"
@@ -518,7 +518,7 @@ const ErrorCanvas = memo(({ block }: { block: Block }) => {
                 {...pointsOfInterest}
                 {mousePos && psnrData && (
                     <span
-                        className="absolute top-1 hidden p-1 text-white group-hover:inline leading-none select-none pointer-events-none self-center"
+                        className="pointer-events-none absolute top-1 hidden select-none self-center p-1 leading-none text-white group-hover:inline"
                         style={{
                             left: isAtTopLeft ? "33%" : "0.25rem",
                             backgroundColor: "rgba(0 0 0 / 40%)",
@@ -528,7 +528,7 @@ const ErrorCanvas = memo(({ block }: { block: Block }) => {
                 )}
             </div>
             <canvas
-                className="max-w-[512px] w-full md:w-auto"
+                className="w-full max-w-[512px] md:w-auto"
                 style={{ imageRendering: "pixelated" }}
                 ref={derivativesCanvasRef}
                 width="256"
@@ -606,16 +606,16 @@ async function drawBlockErrorDerivative(
             let de0, de1;
 
             if (fastDerivatives) {
-                let psnrXm1 = psnrData.at(Math.max(0, x - 1), y);
-                let psnrXp1 = psnrData.at(Math.min(255, x + 1), y);
-                let psnrYm1 = psnrData.at(x, Math.max(0, y - 1));
-                let psnrYp1 = psnrData.at(x, Math.min(255, y + 1));
+                const psnrXm1 = psnrData.at(Math.max(0, x - 1), y);
+                const psnrXp1 = psnrData.at(Math.min(255, x + 1), y);
+                const psnrYm1 = psnrData.at(x, Math.max(0, y - 1));
+                const psnrYp1 = psnrData.at(x, Math.min(255, y + 1));
                 de0 = ((psnrXm1 - psnrXp1) * 255) / 2;
                 de1 = ((psnrYm1 - psnrYp1) * 255) / 2;
             } else {
-                let e0 = x / 255;
-                let e1 = y / 255;
-                let d = 1 / 512;
+                const e0 = x / 255;
+                const e1 = y / 255;
+                const d = 1 / 512;
                 const psnr = psnrData.at(x, y);
                 de0 = (psnr - psnrAt(e0 + d, e1)) / d;
                 de1 = (psnr - psnrAt(e0, e1 + d)) / d;
@@ -632,7 +632,7 @@ async function drawBlockErrorDerivative(
     await controller.throwIfAborted();
     console.time("Derivatives norm");
     const p99 = Math.round(0.02 * width * height);
-    let list = derivatives.slice().sort((a, b) => Math.abs(b) - Math.abs(a));
+    const list = derivatives.slice().sort((a, b) => Math.abs(b) - Math.abs(a));
     const norm = Math.abs(list[p99]);
     console.timeEnd("Derivatives norm");
     await controller.throwIfAborted();

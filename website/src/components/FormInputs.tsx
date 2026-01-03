@@ -268,7 +268,7 @@ export function SmallCheckbox({ checked, text, onChange, className }: SmallCheck
         >
             <input
                 type="checkbox"
-                className="cursor-pointer w-4 h-4"
+                className="size-4 cursor-pointer"
                 checked={checked}
                 readOnly={!onChange}
                 onChange={(e) => {
