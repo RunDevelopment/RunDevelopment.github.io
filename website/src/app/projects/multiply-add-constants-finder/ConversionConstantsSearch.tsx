@@ -36,7 +36,7 @@ function solve(desc: ProblemDesc): Result {
     let solver;
     try {
         solver = p.solve(desc.inputLimit);
-    } catch (e) {
+    } catch {
         // this means that we exceeded the input limit
         const primitive = p.simplify().primitiveSolution().original();
 

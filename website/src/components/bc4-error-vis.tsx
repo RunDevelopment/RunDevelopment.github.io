@@ -225,6 +225,7 @@ const BlockInput = memo(({ block, setBlock, blockPrec, setBlockPrec }: BlockInpu
                     className="relative h-[256px] w-[320px] contain-layout"
                     style={{ display: showImage ? undefined : "none" }}
                 >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={imageUrls[imageIndex]}
                         alt={imageTitles[imageIndex]}

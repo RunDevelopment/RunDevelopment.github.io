@@ -12,7 +12,6 @@ import { TextLink } from "./TextLink";
 import { Empty, ForwardChildren } from "../util";
 import { H1, H2, H3, H4 } from "./Headings";
 import { InlineCode } from "./InlineCode";
-import { identity } from "../../lib/util";
 import { ImageSize } from "../../lib/schema";
 import { TodoMarker } from "./TodoMarker";
 import { InfoBox } from "./InfoBox";
@@ -310,28 +309,20 @@ export const Markdown = memo(
         draft,
         inlineCodeLanguage,
     }: MarkdownProps) => {
-        const getImageUrlFn = useMemo(() => {
-            if (typeof getImageUrl === "function") {
-                return getImageUrl;
-            } else if (getImageUrl) {
-                return (url: string) => getImageUrl[url] || url;
-            } else {
-                return identity;
-            }
-        }, [getImageUrl]);
-        const getImageSize = useMemo(() => {
-            if (imageSizes) {
-                return (url: string) => imageSizes[url];
-            } else {
-                return () => undefined;
-            }
-        }, [imageSizes]);
+        const getImageUrlFn =
+            typeof getImageUrl === "function"
+                ? getImageUrl
+                : (url: string) => getImageUrl?.[url] || url;
         const codeMeta = useMemo(() => parseCodeMeta(markdown), [markdown]);
 
         const components: Partial<Components> = {
             ...staticComponents,
             img: (props) => (
-                <MdImage {...props} getImageUrl={getImageUrlFn} getImageSize={getImageSize} />
+                <MdImage
+                    {...props}
+                    getImageUrl={getImageUrlFn}
+                    getImageSize={(url) => imageSizes?.[url]}
+                />
             ),
             h1: noH1 ? Empty : staticComponents.h1,
             h2: (props) =>
