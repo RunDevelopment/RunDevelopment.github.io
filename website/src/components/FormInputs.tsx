@@ -71,6 +71,43 @@ export function NumberInput({
     );
 }
 
+interface SliderInputProps {
+    value: number;
+    onChange: (value: number) => void;
+    min: number;
+    max: number;
+    step?: number;
+    className?: string;
+    name?: string;
+    id?: string;
+}
+export function SliderInput({
+    value,
+    onChange,
+    min,
+    max,
+    step,
+    className,
+    name,
+    id,
+}: SliderInputProps) {
+    return (
+        <input
+            id={id}
+            name={name}
+            type="range"
+            className={(className || "") + ""}
+            min={min}
+            max={max}
+            step={step ?? "any"}
+            value={value}
+            onChange={(e) => {
+                onChange(Number(e.target.value));
+            }}
+        />
+    );
+}
+
 interface BigIntInputProps {
     value: bigint;
     onChange: (value: bigint) => void;
@@ -187,8 +224,16 @@ interface SmallButtonProps {
     children?: React.ReactNode;
     selected?: boolean;
     title?: string;
+    showActive?: boolean;
 }
-export function SmallButton({ onClick, className, children, selected, title }: SmallButtonProps) {
+export function SmallButton({
+    onClick,
+    className,
+    children,
+    selected,
+    title,
+    showActive,
+}: SmallButtonProps) {
     const bg = selected ? "bg-slate-800" : "bg-black";
     return (
         <button
@@ -196,12 +241,41 @@ export function SmallButton({ onClick, className, children, selected, title }: S
                 (className || "") +
                 " " +
                 bg +
-                " transition-colors cursor-pointer border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 rounded-md px-2 py-1 active:bg-slate-800 [&:not(:read-only)]:hover:text-white"
+                " transition-colors cursor-pointer border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 rounded-md px-2 py-1 active:bg-slate-800 data-[active]:bg-slate-800 [&:not(:read-only)]:hover:text-white"
             }
             onClick={onClick}
             title={title}
+            data-active={showActive ? "true" : undefined}
         >
             {children}
         </button>
+    );
+}
+
+interface SmallCheckboxProps {
+    checked: boolean;
+    text: string;
+    onChange?: (checked: boolean) => void;
+    className?: string;
+}
+export function SmallCheckbox({ checked, text, onChange, className }: SmallCheckboxProps) {
+    return (
+        <label
+            className={
+                (className || "") +
+                " select-none cursor-pointer flex items-center gap-2 transition-colors text-neutral-200 hover:text-white"
+            }
+        >
+            <input
+                type="checkbox"
+                className="cursor-pointer w-4 h-4"
+                checked={checked}
+                readOnly={!onChange}
+                onChange={(e) => {
+                    onChange?.(e.target.checked);
+                }}
+            />
+            <span>{text}</span>
+        </label>
     );
 }
