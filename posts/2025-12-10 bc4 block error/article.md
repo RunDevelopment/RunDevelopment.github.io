@@ -1,5 +1,5 @@
 ---
-datePublished: 2025-12-10
+datePublished: 2026-01-03
 description: A visualization of BC4 block compression error for all possible encodings
 inlineCodeLanguage: rust
 tags: compression bcn
