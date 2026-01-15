@@ -294,21 +294,12 @@ interface MarkdownProps {
     inline?: boolean;
     inlineCodeLanguage?: string;
     draft?: boolean;
-    noH1?: boolean;
     getImageUrl?: Record<string, string> | ((url: string) => string);
     imageSizes?: Record<string, ImageSize>;
 }
 
 export const Markdown = memo(
-    ({
-        markdown,
-        getImageUrl,
-        imageSizes,
-        noH1,
-        inline,
-        draft,
-        inlineCodeLanguage,
-    }: MarkdownProps) => {
+    ({ markdown, getImageUrl, imageSizes, inline, draft, inlineCodeLanguage }: MarkdownProps) => {
         const getImageUrlFn =
             typeof getImageUrl === "function"
                 ? getImageUrl
@@ -324,7 +315,6 @@ export const Markdown = memo(
                     getImageSize={(url) => imageSizes?.[url]}
                 />
             ),
-            h1: noH1 ? Empty : staticComponents.h1,
             h2: (props) =>
                 props.children === "Contents" ? <TOC markdown={markdown} /> : <H2 {...props} />,
             p: inline ? ForwardChildren : draft ? PWithDraft : P,

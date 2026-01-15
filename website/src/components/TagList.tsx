@@ -1,12 +1,11 @@
-interface TagViewProps {
+import Link from "next/link";
+
+interface TagButtonProps {
     tag: string;
-    onClick?: () => void;
-    selected?: boolean;
+    onClick: () => void;
+    selected: boolean;
 }
-export function TagView({ tag, onClick, selected = false }: TagViewProps) {
-    if (!onClick && !selected) {
-        return <span className="rounded bg-slate-800 px-2 py-1 text-blue-300">#{tag}</span>;
-    }
+export function TagButton({ tag, onClick, selected = false }: TagButtonProps) {
     return (
         <button
             className="cursor-pointer rounded bg-slate-800 px-2 py-1 text-blue-300 transition-colors hover:text-blue-100 data-[selected]:bg-slate-700 data-[selected]:text-blue-100"
@@ -18,14 +17,28 @@ export function TagView({ tag, onClick, selected = false }: TagViewProps) {
     );
 }
 
+interface TagLinkProps {
+    tag: string;
+}
+export function TagLink({ tag }: TagLinkProps) {
+    return (
+        <Link
+            className="rounded bg-slate-800 px-2 py-1 text-blue-300"
+            href={`/blog#${encodeURIComponent(tag)}`}
+        >
+            #{tag}
+        </Link>
+    );
+}
+
 interface TagListProps {
     tags: readonly string[];
 }
-export function TagList({ tags }: TagListProps) {
+export function TagLinkList({ tags }: TagListProps) {
     return (
         <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
-                <TagView key={tag} tag={tag} />
+                <TagLink key={tag} tag={tag} />
             ))}
         </div>
     );

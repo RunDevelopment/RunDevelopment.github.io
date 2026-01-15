@@ -2,6 +2,7 @@ import { memo } from "react";
 import { PostMetadata } from "../lib/schema";
 import Link from "next/link";
 import { formatDateString } from "../lib/util";
+import { FancyText } from "./FancyText";
 
 export interface PostCardProps {
     meta: PostMetadata;
@@ -33,7 +34,7 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
                         href={href}
                         className="line-clamp-2 text-lg leading-tight text-blue-300 transition-colors hover:text-blue-400 md:line-clamp-1"
                     >
-                        {meta.title}
+                        <FancyText text={meta.title} />
                         {meta.draft && " [DRAFT]"}
                     </Link>
                 </h3>

@@ -45,6 +45,16 @@ body {
     }
 }
 
+header nav[data-fancy] {
+    text-shadow: 1px 2px 1px black;
+}
+header nav a[data-selected] {
+    color: white;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset:  6px;
+}
+
 article p,
 article .normal-my {
     margin-top: 1rem;

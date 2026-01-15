@@ -95,6 +95,7 @@ const getImageSize = timedCached(2000, async (imagePath: string) => {
 
 interface FrontMatter {
     slug: string;
+    title: string;
     description: string;
     datePublished: string;
     dateModified: string;
@@ -104,6 +105,7 @@ interface FrontMatter {
     image: string;
     imageLoad: string;
     imageSmall: string;
+    imageFadeColor: string;
     color: string;
 }
 type PartialNull<T> = {
@@ -111,12 +113,13 @@ type PartialNull<T> = {
 };
 
 function getMetadata(frontMatter: PartialNull<FrontMatter>, markdown: string): PostMetadata {
-    const title = getMarkdownHeader(markdown);
+    const title = frontMatter.title ?? "Untitled Post";
+
     const slug =
         frontMatter.slug ??
         title
             .toLowerCase()
-            .replace(/[:'"()]/g, "")
+            .replace(/[:'"()$^<>]/g, "")
             .replace(/\s+/g, "-");
     const description = frontMatter.description ?? "No description found";
 
@@ -130,6 +133,7 @@ function getMetadata(frontMatter: PartialNull<FrontMatter>, markdown: string): P
     const color = frontMatter.color ?? getPostColor(slug);
     const image = frontMatter.image ?? undefined;
     const imageSmall = frontMatter.imageSmall ?? image?.replace(/\.(\w+)$/, "_small.$1");
+    const imageFadeColor = frontMatter.imageFadeColor ?? undefined;
 
     const tags = (frontMatter.tags ?? "")
         .split(/\s+/)
@@ -154,6 +158,7 @@ function getMetadata(frontMatter: PartialNull<FrontMatter>, markdown: string): P
         color,
         image,
         imageSmall,
+        imageFadeColor,
         minutesToRead,
     };
 }
@@ -296,11 +301,6 @@ async function getImageCacheKey(imagePath: string, other: Iterable<unknown> = []
 function getMinutesToRead(markdown: string): number {
     const words = markdown.split(/\s+/).length;
     return Math.ceil(words / 200);
-}
-
-function getMarkdownHeader(content: string): string {
-    const header = /^# (.+)/m.exec(content);
-    return header?.[1] ?? "No title found";
 }
 
 function getPostColor(slug: string): string {

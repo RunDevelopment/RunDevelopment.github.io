@@ -1,19 +1,19 @@
 ---
 datePublished: 2024-09-20
 dateModified: 2024-09-24
+title: Fast Unorm Conversions
 description: Optimizing the conversion of 5-bit unorms to 8-bit unorms in Rust.
 inlineCodeLanguage: rust
 tags: rust optimization unorm
 image: ./ds3-m32-2024-09-19.avif
 imageSmall: ./ds3-m32-2024-09-19_small.avif
+imageFadeColor: "#E6F3F4"
 color: "#55b0ed"
 ---
 
-# Fast Unorm Conversions
-
 I recently came across a problem where I needed to convert a 5-bit unorm to an 8-bit unorm. "Unorm" means **u**nsigned **norm**alized integer. The idea is to represent a real number 0 to 1 as an integer 0 to $2^n-1$, where $n$ is the number of bits used to represent the integer.
 
-Maybe the most widespread application of unorms is color in computer graphics. Image editing programs like Photoshop and Gimp typically show RGB color channels as values between 0 and 255. Those are 8-bit unorms. The same goes for colors on the web. E.g. the CSS color `rgb(255 128 0)` is the same color as `rgb(100% 50% 0%)`, and the hex color `#0099EE` (decimal: 0 153 238) is the same as `#09E` (decimal: 0 9 14).
+Maybe the most widespread application of unorms is color in computer graphics. Image editing programs like Photoshop and Gimp typically show RGB color channels as values between 0 and 255. Those are 8-bit unorms. The same goes for colors on the web. E.g. in CSS, `rgb(255 128 0)` is the same color as `rgb(100% 50% 0%)`, and the hex color `#0099EE` (decimal: 0 153 238) is the same as `#09E` (decimal: 0 9 14).
 
 Color is also where my problem originated. I wanted to decode images that store pixel color as `B5G5R5A1`. This is an RGBA format that encodes the RGB channels with 5 bits each and the alpha channel with 1 bit, for a total of 16 bits per pixel. I needed to convert all channels to 8-bit. This is easy for the 1-bit alpha channel (just multiply with 255), but the 5-bit unorms of the RGB channels are a bit (or four) more tricky.
 
@@ -353,7 +353,7 @@ Of course, if we had a different benchmark then we might have had to pay the ext
 
 ## Lookup tables
 
-Enough with the floating-point operations. Let's take a look at a different approach: lookup tables (LUT). A LUT can be very fast, especially when an operation is expensive and the input domain is small. Our operation isn't exactly expensive, but let's see!
+Enough with floating-point operations. Let's take a look at a different approach: lookup tables (LUT). A LUT can be very fast, especially when an operation is expensive and the input domain is small. Our operation isn't exactly expensive, but let's see!
 
 Since our input domain is only 32 values, we can easily create a LUT for the conversion.
 
