@@ -1,4 +1,4 @@
-import React, { memo, ReactNode, useMemo } from "react";
+import { memo, ReactNode, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
@@ -9,7 +9,7 @@ import { CustomComponent } from "./CustomComponents";
 import { Components, getAllHeadings } from "../../lib/md-util";
 import "katex/dist/katex.min.css";
 import { TextLink } from "./TextLink";
-import { Empty, ForwardChildren } from "../util";
+import { ForwardChildren } from "../util";
 import { H1, H2, H3, H4 } from "./Headings";
 import { InlineCode } from "./InlineCode";
 import { ImageSize } from "../../lib/schema";

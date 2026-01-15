@@ -39,12 +39,12 @@ async function Header({
 
     return (
         <header
-            className="bg-black md:data-[fancy]:bg-transparent md:data-[fancy]:absolute z-10 w-full"
+            className="z-10 w-full bg-black md:data-[fancy]:absolute md:data-[fancy]:bg-transparent"
             data-fancy={fancy ? "" : undefined}
         >
-            <div className="z-10 box-content mx-auto max-w-[calc(var(--page-narrow-width)+1.5rem)] p-1">
+            <div className="z-10 mx-auto box-content max-w-[calc(var(--page-narrow-width)+1.5rem)] p-1">
                 <nav
-                    className="box-content flex p-3 align-middle xs:text-lg bg-black/60 rounded-full md:data-[fancy]:backdrop-blur-md"
+                    className="box-content flex rounded-full bg-black/60 p-3 align-middle md:data-[fancy]:backdrop-blur-md xs:text-lg"
                     data-fancy={fancy ? "" : undefined}
                 >
                     <HeaderLink href="/" className="group pr-3" selected={selectedLink === "home"}>
@@ -58,7 +58,7 @@ async function Header({
                         />
                         <span>Home</span>
                     </HeaderLink>
-                    <span className="flex-grow" />
+                    <span className="grow" />
                     <HeaderLink href="/blog" className="px-3" selected={selectedLink === "blog"}>
                         Blog
                     </HeaderLink>

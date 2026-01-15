@@ -13,9 +13,10 @@ export default function PostsPage({ info }: { info: PostsInfo }) {
     useEffect(() => {
         const hash = decodeURIComponent(window.location.hash.slice(1));
         if (allTags.includes(hash)) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedTag(hash);
         }
-    }, []);
+    }, [allTags]);
 
     useEffect(() => {
         window.history.replaceState(

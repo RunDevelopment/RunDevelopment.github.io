@@ -11,8 +11,8 @@ import { BalanceBox } from "../../../components/BalanceBox";
 
 function AfterHeader({ meta }: { meta: PostMetadata }) {
     return (
-        <div className="mt-6 mb-8 sm:mt-8 text-sm text-zinc-400">
-            <p className="mb-2 text-center text-xs sm:text-sm block">
+        <div className="mb-8 mt-6 text-sm text-zinc-400 sm:mt-8">
+            <p className="mb-2 block text-center text-xs sm:text-sm">
                 <span className="whitespace-nowrap">Michael Schmidt</span>
                 <span className="px-2">{" / "}</span>
                 <span className="whitespace-nowrap">{meta.minutesToRead} min read</span>
@@ -98,7 +98,8 @@ export const Article = memo(({ post }: ArticleProps) => {
                 <div>
                     <span
                         id="bg-text"
-                        className="font-header balanced-box inline-block box-decoration-clone text-3xl md:text-4xl lg:text-5xl !leading-[1.125] text-balance text-center box-content relative z-10 my-0 px-5 py-2 md:py-3 backdrop-blur-md text-white bg-black/60"
+                        // eslint-disable-next-line tailwindcss/no-custom-classname
+                        className="balanced-box relative z-10 my-0 box-content inline-block text-balance bg-black/60 box-decoration-clone px-5 py-2 text-center font-header text-3xl !leading-[1.125] text-white backdrop-blur-md md:py-3 md:text-4xl lg:text-5xl"
                     >
                         <FancyText text={post.metadata.title} />
                     </span>
@@ -106,13 +107,13 @@ export const Article = memo(({ post }: ArticleProps) => {
                 </div>
             </div>
             <div
-                className="-mx-4 relative sm:mt-[-1px] z-10 h-1 sm:h-2 md:-mx-6 lg:mx-0 lg:rounded-xl"
+                className="relative z-10 -mx-4 h-1 sm:-mt-px sm:h-2 md:-mx-6 lg:mx-0 lg:rounded-xl"
                 style={{
                     background: post.metadata.color,
                 }}
             ></div>
-            <div className="narrow mt-8 mb-6 sm:my-0 h-auto print:h-auto sm:h-0 overflow-hidden sm:select-none">
-                <h1 className="font-header text-3xl text-balance text-center">
+            <div className="narrow mb-6 mt-8 h-auto overflow-hidden sm:my-0 sm:h-0 sm:select-none print:h-auto">
+                <h1 className="text-balance text-center font-header text-3xl">
                     <FancyText text={post.metadata.title} />
                 </h1>
             </div>
