@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { PostsInfo } from "../../lib/fs/posts-info";
-import { TagView } from "../../components/TagList";
+import { TagButton } from "../../components/TagList";
 import { PostCard } from "../../components/PostCard";
 import { H2 } from "../headings";
 
@@ -10,11 +10,27 @@ export default function PostsPage({ info }: { info: PostsInfo }) {
     const { allTags, byYear } = info;
     const [selectedTag, setSelectedTag] = useState<string | undefined>();
 
+    useEffect(() => {
+        const hash = decodeURIComponent(window.location.hash.slice(1));
+        if (allTags.includes(hash)) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setSelectedTag(hash);
+        }
+    }, [allTags]);
+
+    useEffect(() => {
+        window.history.replaceState(
+            null,
+            "",
+            selectedTag ? `#${encodeURIComponent(selectedTag)}` : window.location.pathname,
+        );
+    }, [selectedTag]);
+
     return (
         <div className="narrow-container py-8">
             <div className="narrow flex flex-wrap gap-2">
                 {allTags.map((tag) => (
-                    <TagView
+                    <TagButton
                         key={tag}
                         tag={tag}
                         selected={tag === selectedTag}

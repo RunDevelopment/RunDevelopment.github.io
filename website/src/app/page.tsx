@@ -20,7 +20,7 @@ async function getRecentPosts(topK: number) {
 }
 
 export default async function Home() {
-    const recentPosts = await getRecentPosts(3);
+    const recentPosts = await getRecentPosts(5);
 
     return (
         <BasicPage selectedLink="home">
@@ -39,7 +39,7 @@ export default async function Home() {
                     interesting.
                 </p>
 
-                <H2>Where you can find me</H2>
+                <H2>Where to find me</H2>
                 <p>
                     I&apos;m not big on social media of any kind and rarely post anything, if at
                     all. That said:

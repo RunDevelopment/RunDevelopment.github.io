@@ -14,10 +14,10 @@ function HeaderLink({ href, children, selected, className = "" }: HeaderLinkProp
     return (
         <Link
             href={href}
+            data-selected={selected ? "" : undefined}
             className={
                 className +
-                (selected ? " text-white" : " text-neutral-400") +
-                " flex h-8 items-center transition-colors hover:text-white"
+                " flex h-8 items-center transition-colors text-neutral-200 hover:text-white"
             }
         >
             {children}
@@ -27,35 +27,50 @@ function HeaderLink({ href, children, selected, className = "" }: HeaderLinkProp
 
 type HeaderLinks = "home" | "blog" | "projects";
 
-async function Header({ selectedLink }: { selectedLink?: HeaderLinks }) {
+async function Header({
+    selectedLink,
+    fancy = false,
+}: {
+    selectedLink?: HeaderLinks;
+    fancy?: boolean;
+}) {
     // inline the logo image, so it doesn't blink on page load
     const logo = await getInlineImage("logo256_opaque.webp");
 
     return (
-        <header className="bg-black">
-            <nav className="z-10 mx-auto box-content flex max-w-[var(--page-narrow-width)] gap-1 p-4 align-middle">
-                <HeaderLink href="/" className="group pr-3" selected={selectedLink === "home"}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src={logo}
-                        alt="Logo"
-                        width="32"
-                        height="32"
-                        className="mr-2 inline h-full rounded-full transition-transform duration-300 group-hover:rotate-[360deg] group-hover:scale-125"
-                    />
-                    <span>Home</span>
-                </HeaderLink>
-                <HeaderLink href="/blog" className="px-3" selected={selectedLink === "blog"}>
-                    Blog
-                </HeaderLink>
-                <HeaderLink
-                    href="/projects"
-                    className="px-3"
-                    selected={selectedLink === "projects"}
+        <header
+            className="z-10 w-full bg-black md:data-[fancy]:absolute md:data-[fancy]:bg-transparent"
+            data-fancy={fancy ? "" : undefined}
+        >
+            <div className="z-10 mx-auto box-content max-w-[calc(var(--page-narrow-width)+1.5rem)] p-1">
+                <nav
+                    className="box-content flex rounded-full bg-black/60 p-3 align-middle md:data-[fancy]:backdrop-blur-md xs:text-lg"
+                    data-fancy={fancy ? "" : undefined}
                 >
-                    Projects
-                </HeaderLink>
-            </nav>
+                    <HeaderLink href="/" className="group pr-3" selected={selectedLink === "home"}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={logo}
+                            alt="Logo"
+                            width="32"
+                            height="32"
+                            className="mr-3 inline h-full rounded-full transition-transform duration-[400ms] group-hover:rotate-[360deg] group-hover:scale-125"
+                        />
+                        <span>Home</span>
+                    </HeaderLink>
+                    <span className="grow" />
+                    <HeaderLink href="/blog" className="px-3" selected={selectedLink === "blog"}>
+                        Blog
+                    </HeaderLink>
+                    <HeaderLink
+                        href="/projects"
+                        className="px-3"
+                        selected={selectedLink === "projects"}
+                    >
+                        Projects
+                    </HeaderLink>
+                </nav>
+            </div>
         </header>
     );
 }
@@ -63,23 +78,12 @@ async function Header({ selectedLink }: { selectedLink?: HeaderLinks }) {
 export interface BasicPageProps {
     children: React.ReactNode;
     selectedLink?: HeaderLinks;
-    alwaysShowScrollBar?: boolean;
+    fancyHeader?: boolean;
 }
-export default async function BasicPage({
-    children,
-    selectedLink,
-    alwaysShowScrollBar,
-}: BasicPageProps) {
+export default async function BasicPage({ children, selectedLink, fancyHeader }: BasicPageProps) {
     return (
-        <body
-            className={
-                (alwaysShowScrollBar ? "overflow-y-scroll" : "") +
-                " " +
-                allFonts +
-                " font-sans bg-zinc-900 text-zinc-200"
-            }
-        >
-            <Header selectedLink={selectedLink} />
+        <body className={allFonts + " font-sans overflow-y-scroll bg-zinc-900 text-zinc-200"}>
+            <Header selectedLink={selectedLink} fancy={fancyHeader} />
             <main className="mx-auto box-content max-w-[var(--page-width)] px-4 pb-8 contain-size md:px-6">
                 {children}
             </main>

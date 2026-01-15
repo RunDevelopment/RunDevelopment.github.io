@@ -1,8 +1,9 @@
-import { Metadata } from "next";
 import React from "react";
+import { Metadata } from "next";
 import { Footer } from "./Footer";
 import { Article } from "./Article";
 import { getPostFromSlug, getPosts } from "../../../lib/fs/uptodate";
+import BasicPage from "../../../components/BasicPage";
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -16,10 +17,10 @@ export default async function Page(props: Props) {
     }
 
     return (
-        <>
+        <BasicPage selectedLink="blog" fancyHeader={!!post.metadata.image}>
             <Article post={post} />
             <Footer />
-        </>
+        </BasicPage>
     );
 }
 

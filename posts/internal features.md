@@ -1,13 +1,12 @@
 ---
 datePublished: 2024-06-08
 dateModified: 2024-08-08
+title: Features of all articles
 description: A list of all features supported by articles on this website.
 draft: true
 inlineCodeLanguage: rust
 tags: internal
 ---
-
-# Features of all articles
 
 This document shows and tests all features of the articles.
 

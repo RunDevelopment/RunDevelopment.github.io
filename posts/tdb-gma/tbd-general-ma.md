@@ -1,13 +1,13 @@
 ---
 datePublished: 2025-05-01
+title: Constant Fraction Unsigned Integer Multiplication
 draft: true
 tags: math optimization compilers
 inlineCodeLanguage: rust
 image: ./m34.avif
+imageFadeColor: "#0A0D18"
 color: "#9b0029"
 ---
-
-# Constant Fraction Unsigned Integer Multiplication
 
 Integer division by a constant has long been the subject of optimization by all major compilers. As division is a rather slow operation on modern CPUs, compilers employ strategies to replace division with cheaper operations producing equivalent results. One such strategy is the multiply-add method. It works as follows:
 

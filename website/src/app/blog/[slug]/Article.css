@@ -1,47 +1,32 @@
 :root {
-    --bg-image-height: 192px;
+    --bg-image-height: calc(min(400px, 35vw));
 }
 
-@media screen and (min-width: 480px) {
-    :root {
-        --bg-image-height: 240px;
-    }
-}
-
-@media screen and (min-width: 640px) {
-    :root {
-        --bg-image-height: 320px;
-    }
-}
-
-@media screen and (min-width: 1024px) {
-    :root {
-        --bg-image-height: 480px;
-    }
+#bg-img-container {
+    background-size: auto 100%;
+    background:
+        center / auto 100% var(--bg-inline) no-repeat,
+        var(--fade-color);
 }
 
 #bg-img-fade {
+    --offset: 1260px;
+    --width: 500px;
+
     background: radial-gradient(
-            500px 30% at 50% 100%,
-            rgb(0 0 0/50%),
-            rgb(0 0 0/40%) 50%,
-            rgb(0 0 0/5%) 90%,
+            var(--width) 1000px at calc(50% - var(--offset)) 50%,
+            var(--fade-color),
+            var(--fade-color),
             transparent
         ),
         radial-gradient(
-            1250px 700px at 50% 20%,
-            transparent,
-            rgb(24 24 27/0%) 75%,
-            rgb(24 24 27/8%) 80%,
-            rgb(24 24 27/20%) 85%,
-            rgb(24 24 27/35%) 90%,
-            rgb(24 24 27/45%) 92%,
-            rgb(24 24 27/92%) 98%,
-            rgb(24 24 27/97%) 99%,
-            rgb(24 24 27)
+            var(--width) 1000px at calc(50% + var(--offset)) 50%,
+            var(--fade-color),
+            var(--fade-color),
+            transparent
         );
 }
 
-#title-container > * {
-    text-box-trim: trim-none;
+#bg-text {
+    text-shadow: 1px 2px 1px black;
 }

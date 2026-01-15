@@ -1,4 +1,4 @@
-import React, { memo, ReactNode, useMemo } from "react";
+import { memo, ReactNode, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
@@ -9,7 +9,7 @@ import { CustomComponent } from "./CustomComponents";
 import { Components, getAllHeadings } from "../../lib/md-util";
 import "katex/dist/katex.min.css";
 import { TextLink } from "./TextLink";
-import { Empty, ForwardChildren } from "../util";
+import { ForwardChildren } from "../util";
 import { H1, H2, H3, H4 } from "./Headings";
 import { InlineCode } from "./InlineCode";
 import { ImageSize } from "../../lib/schema";
@@ -294,21 +294,12 @@ interface MarkdownProps {
     inline?: boolean;
     inlineCodeLanguage?: string;
     draft?: boolean;
-    noH1?: boolean;
     getImageUrl?: Record<string, string> | ((url: string) => string);
     imageSizes?: Record<string, ImageSize>;
 }
 
 export const Markdown = memo(
-    ({
-        markdown,
-        getImageUrl,
-        imageSizes,
-        noH1,
-        inline,
-        draft,
-        inlineCodeLanguage,
-    }: MarkdownProps) => {
+    ({ markdown, getImageUrl, imageSizes, inline, draft, inlineCodeLanguage }: MarkdownProps) => {
         const getImageUrlFn =
             typeof getImageUrl === "function"
                 ? getImageUrl
@@ -324,7 +315,6 @@ export const Markdown = memo(
                     getImageSize={(url) => imageSizes?.[url]}
                 />
             ),
-            h1: noH1 ? Empty : staticComponents.h1,
             h2: (props) =>
                 props.children === "Contents" ? <TOC markdown={markdown} /> : <H2 {...props} />,
             p: inline ? ForwardChildren : draft ? PWithDraft : P,

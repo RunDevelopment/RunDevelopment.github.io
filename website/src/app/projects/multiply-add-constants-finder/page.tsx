@@ -55,7 +55,7 @@ All solutions for the current problem can be viewed below. Solutions are given b
 
 export default function Page() {
     return (
-        <BasicPage selectedLink="projects" alwaysShowScrollBar>
+        <BasicPage selectedLink="projects">
             <div className="narrow-container py-8">
                 <BaseArticle>
                     <Markdown markdown={SECTION1} />
