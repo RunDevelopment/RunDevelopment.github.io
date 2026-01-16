@@ -4,7 +4,8 @@ title: BC4 Error Visualization
 description: A visualization of BC4 block compression error for all possible encodings
 inlineCodeLanguage: rust
 tags: compression bcn
-image: ./m31-whiteout.webp
+
+image: ./m31-whiteout-edit.avif
 imageSmall: ./m31-whiteout-small.avif
 imageFadeColor: "#10131E"
 color: "#d9552d"

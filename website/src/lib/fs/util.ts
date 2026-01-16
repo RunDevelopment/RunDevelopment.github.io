@@ -20,3 +20,26 @@ export async function getInlineImage(assetPath: `${string}.${KnownImageFormat}`)
     const ext = assetPath.split(".").pop()!;
     return toBase64Image(data, ext);
 }
+
+export async function fsExists(file: string): Promise<boolean> {
+    try {
+        await fs.access(file);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export class Mutex {
+    private _locked: boolean = false;
+
+    async lock(): Promise<() => void> {
+        while (this._locked) {
+            await new Promise((resolve) => setTimeout(resolve, 1));
+        }
+        this._locked = true;
+        return () => {
+            this._locked = false;
+        };
+    }
+}

@@ -4,7 +4,9 @@ title: Constant Fraction Unsigned Integer Multiplication
 draft: true
 tags: math optimization compilers
 inlineCodeLanguage: rust
-image: ./m34.avif
+
+image: ./m34 org.avif
+imageSmall: ./m34_small.webp
 imageFadeColor: "#0A0D18"
 color: "#9b0029"
 ---
