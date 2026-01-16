@@ -11,6 +11,8 @@ export interface PostCardProps {
 export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
     const href = `/blog/${meta.slug}`;
 
+    const modifiedSameYear = areSameYear(meta.datePublished, meta.dateModified) ?? false;
+
     return (
         <div className="my-4 flex h-24 flex-row gap-4 sm:h-20">
             <Link
@@ -43,7 +45,7 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
                     {meta.dateModified !== meta.datePublished && (
                         <span className="italic">
                             {" "}
-                            (updated {formatDateString(meta.dateModified)})
+                            (mod: {formatDateString(meta.dateModified, !modifiedSameYear)})
                         </span>
                     )}
                     <span className="px-2">-</span>
@@ -54,3 +56,13 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
         </div>
     );
 });
+
+function areSameYear(dateA: string, dateB: string): boolean | undefined {
+    const a = Date.parse(dateA);
+    const b = Date.parse(dateB);
+    if (Number.isNaN(a) || Number.isNaN(b)) {
+        return undefined;
+    }
+
+    return new Date(a).getFullYear() === new Date(b).getFullYear();
+}
