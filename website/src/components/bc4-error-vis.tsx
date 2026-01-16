@@ -495,7 +495,7 @@ const ErrorCanvas = memo(({ block }: { block: Block }) => {
     const isAtTopLeft = mousePos && mousePos[0] < 64 && mousePos[1] < 20;
 
     return (
-        <div className="-mx-4 mt-4 flex flex-wrap items-start justify-center lg:mx-0">
+        <div className="mt-4 flex flex-wrap items-start justify-center lg:mx-0">
             <div
                 className="group relative aspect-square w-full max-w-[512px] md:w-[512px]"
                 onMouseMove={(e) => {
