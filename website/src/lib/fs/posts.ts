@@ -4,11 +4,12 @@ import YAML from "yaml";
 import { ImageSize, InternalPostId, PostMetadata, PostWithInternals } from "../schema";
 import { timedCached } from "../util";
 import crypto from "crypto";
-import { IS_DEV, POST_DIR, IMAGE_CACHE_DIR } from "./config";
+import { IS_DEV, POST_DIR } from "./config";
 import sizeOf from "image-size";
 import { promisify } from "util";
 import sharp from "sharp";
-import { toBase64Image } from "./util";
+import { fsExists, toBase64Image } from "./util";
+import { cachedImageFile, toTinyImage } from "./image";
 
 export const getPostsWithInternals = timedCached(2000, async () => {
     const postFiles = await fs.readdir(POST_DIR, {
@@ -45,10 +46,16 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
 
     const metadata = getMetadata(frontMatter ?? {}, markdown);
 
-    // image URLs
-    await fixMetadataImagePaths(fileDir, metadata);
-    await inlineImagePreviewData(fileDir, metadata);
+    // generate cover image
+    if (metadata.image) {
+        const imagePath = path.join(fileDir, decodeURIComponent(metadata.image));
+        metadata.image = await generateCoverImage(imagePath);
+    }
+    if (metadata.image) {
+        metadata.imageInlinePreviewData = await generateInlineImagePreviewData(metadata.image);
+    }
 
+    // image URLs
     const imageUrls = getImageUrls(markdown);
     if (metadata.image) {
         imageUrls.push(metadata.image);
@@ -60,10 +67,16 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
     const imageUrlMapping: Record<string, string> = {};
     const referencedImageFiles: Record<string, string> = {};
     const imageSizes: Record<string, ImageSize> = {};
-    for (const url of imageUrls) {
-        const isRelative = /^(?:\.\.?\/|(?!http)\w)/.test(url);
-        if (isRelative) {
-            const imageFilePath = path.resolve(path.join(fileDir, decodeURIComponent(url)));
+    await Promise.all(
+        imageUrls.map(async (url) => {
+            // ignore absolute URLs
+            if (/^http/.test(url)) return;
+
+            const isFilePath = await fsExists(url);
+
+            const imageFilePath = isFilePath
+                ? url
+                : path.resolve(path.join(fileDir, decodeURIComponent(url)));
             const imageFileName = path.basename(imageFilePath).replace(/[^\w\-.]/g, "-");
             imageUrlMapping[url] = `/images/${imageFileName}`;
             referencedImageFiles[imageFilePath] = imageFileName;
@@ -76,8 +89,8 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
             } catch (e) {
                 console.error(`Error getting image size for ${imageFilePath}: ${e}`);
             }
-        }
-    }
+        }),
+    );
 
     if (metadata.image) {
         metadata.image = imageUrlMapping[metadata.image] || metadata.image;
@@ -163,139 +176,108 @@ function getMetadata(frontMatter: PartialNull<FrontMatter>, markdown: string): P
     };
 }
 
-async function fixMetadataImagePaths(relativeTo: string, metadata: PostMetadata) {
-    async function resolve(url: string | undefined): Promise<string | undefined> {
-        if (!url) return undefined;
-
-        const file = path.resolve(path.join(relativeTo, decodeURIComponent(url)));
-        if (await fsExists(file)) {
-            return url;
-        }
-
-        // try other extensions
-        const otherExtensions = [".avif", ".webp", ".jpg", ".jpeg", ".png", ".gif"];
-        for (const ext of otherExtensions) {
-            const newUrl = url.replace(/\.\w+$/, ext);
-            const newFile = path.resolve(path.join(relativeTo, decodeURIComponent(newUrl)));
-            if (await fsExists(newFile)) {
-                return newUrl;
-            }
-        }
-
-        return undefined;
-    }
-
-    await Promise.all([
-        resolve(metadata.image).then((url) => (metadata.image = url)),
-        resolve(metadata.imageSmall).then((url) => (metadata.imageSmall = url)),
-    ]);
-}
-
-async function fsExists(file: string): Promise<boolean> {
+async function generateCoverImage(imagePath: string): Promise<string | undefined> {
     try {
-        await fs.access(file);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-async function inlineImagePreviewData(relativeTo: string, metadata: PostMetadata): Promise<void> {
-    if (!metadata.image) return;
-
-    type ImageFormat = "webp" | "avif" | "jpeg";
-    const FORMAT: ImageFormat = "avif";
-    const MAX_QUALITY: Record<ImageFormat, number> = { webp: 75, avif: 50, jpeg: 80 };
-    const PREVIEW_HEIGHT = 240;
-    const PREVIEW_BYTES = 4 * 1024;
-    const COMPRESSOR: Record<ImageFormat, (image: sharp.Sharp, quality: number) => sharp.Sharp> = {
-        webp: (image, quality) =>
-            image.webp({
-                quality,
-                effort: 6,
-                smartDeblock: true,
-                smartSubsample: true,
-                preset: "photo",
-            }),
-        avif: (image, quality) => image.avif({ quality }),
-        jpeg: (image, quality) => image.jpeg({ quality }),
-    };
-
-    async function toTiny(image: sharp.Sharp, targetSize: number): Promise<Buffer> {
-        let best = undefined;
-
-        let low = 1;
-        let high = MAX_QUALITY[FORMAT] + 1;
-
-        while (low < high) {
-            const mid = Math.floor((low + high) / 2);
-            const tiny = await COMPRESSOR[FORMAT](image, mid).toBuffer();
-            if (tiny.length <= targetSize) {
-                low = mid + 1; // try higher quality
-            } else {
-                high = mid; // try lower quality
-            }
-            if (
-                !best ||
-                (tiny.length < best.length && best.length > targetSize) ||
-                (tiny.length > best.length && tiny.length <= targetSize)
-            ) {
-                best = [tiny, mid] as const;
-            }
+        // Just use the cover image as is if it's small enough.
+        // This is important for the Fast Unorm article.
+        const USE_AS_IS_HEURISTIC = 300 * 1024; // 300 KB
+        const stat = await fs.stat(imagePath);
+        if (stat.size <= USE_AS_IS_HEURISTIC) {
+            return imagePath;
         }
 
-        console.log(best![1], relativeTo);
+        // Resize the image and encode as AVIF.
+        const height = 800;
+        const width = 4096;
+        const quality = 80;
 
-        return best![0];
-    }
+        const name = path
+            .basename(imagePath)
+            .replace(/\.\w+$/, "")
+            .replace(/[^\w\-]/g, "-");
 
-    try {
-        const imagePath = path.join(relativeTo, decodeURIComponent(metadata.image));
-        const cachePath = path.join(
-            IMAGE_CACHE_DIR,
-            "preview-" +
-                (await getImageCacheKey(imagePath, [FORMAT, PREVIEW_HEIGHT, PREVIEW_BYTES])) +
-                "." +
-                FORMAT,
+        const cachePath = await cachedImageFile(
+            imagePath,
+            "cover-" + name + "-#.avif",
+            { height, width, quality },
+            async (image) => {
+                image = image.resize({ width, height, fit: "cover", withoutEnlargement: true });
+                return image.avif({ quality }).toBuffer();
+            },
         );
 
-        let imageBytes;
-        if (await fsExists(cachePath)) {
-            imageBytes = await fs.readFile(cachePath);
-        } else {
-            const img = sharp(imagePath);
-            const resizedImage = img.resize({
-                height: PREVIEW_HEIGHT,
-                fit: "outside",
-            });
-            const tiny = await toTiny(resizedImage, PREVIEW_BYTES);
-
-            await fs.mkdir(IMAGE_CACHE_DIR, { recursive: true });
-            await fs.writeFile(cachePath, tiny as never);
-
-            imageBytes = tiny;
-        }
-
-        metadata.imageInlinePreviewData = toBase64Image(imageBytes, FORMAT);
+        return cachePath;
     } catch (e) {
-        console.error(`Error inlining image load for ${metadata.image}:`, e);
-        metadata.imageInlinePreviewData = undefined;
+        console.error(`Error creating cover mage load for ${imagePath}:`, e);
+        return undefined;
     }
 }
-async function getImageCacheKey(imagePath: string, other: Iterable<unknown> = []): Promise<string> {
-    // I'm using the file size as a proxy for the content hash.
-    // Not perfect, but very fast.
-    const fileSize = await fs.stat(imagePath).then((stat) => stat.size);
 
-    const hash = crypto.createHash("sha256");
-    hash.update(fileSize.toString());
-    hash.update(";");
-    hash.update(imagePath);
-    for (const o of other) {
-        hash.update(";");
-        hash.update(String(o));
+async function generateInlineImagePreviewData(imagePath: string): Promise<string | undefined> {
+    try {
+        const format = "avif" as const;
+        const options: InlinePreviewOptions = {
+            height: 200,
+            maxBytes: 4 * 1024,
+            format,
+            maxQuality: 50,
+        };
+        const cachePath = await cachedImageFile(
+            imagePath,
+            "preview-#." + format,
+            options,
+            createInlineImagePreview,
+        );
+        const imageBytes = await fs.readFile(cachePath);
+
+        return toBase64Image(imageBytes, format);
+    } catch (e) {
+        console.error(`Error inlining image load for ${imagePath}:`, e);
+        return undefined;
     }
-    return hash.digest("hex").slice(0, 8);
+}
+
+type InlinePreviewOptions = {
+    height: number;
+    maxBytes: number;
+    format: "webp" | "avif" | "jpeg";
+    maxQuality: number;
+};
+async function createInlineImagePreview(
+    image: sharp.Sharp,
+    options: InlinePreviewOptions,
+): Promise<Buffer> {
+    async function toTiny(image: sharp.Sharp, targetSize: number): Promise<Buffer> {
+        const qualityRange = [1, options.maxQuality] as const;
+        const [tiny] = await toTinyImage(
+            image,
+            targetSize,
+            (image, quality) => {
+                switch (options.format) {
+                    case "webp":
+                        return image.webp({
+                            quality,
+                            effort: 6,
+                            smartDeblock: true,
+                            smartSubsample: true,
+                            preset: "photo",
+                        });
+                    case "avif":
+                        return image.avif({ quality, effort: 6 });
+                    case "jpeg":
+                        return image.jpeg({ quality });
+                }
+            },
+            qualityRange,
+        );
+        return tiny;
+    }
+
+    const resizedImage = image.resize({
+        height: options.height,
+        fit: "outside",
+    });
+    return toTiny(resizedImage, options.maxBytes);
 }
 
 function getMinutesToRead(markdown: string): number {

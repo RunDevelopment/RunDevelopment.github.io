@@ -58,8 +58,15 @@ function nasm(Prism: any) {
     };
 }
 nasm.displayName = "nasm";
-nasm.aliases = ["asm"];
 SyntaxHighlighter.registerLanguage("nasm", nasm);
+
+SyntaxHighlighter.alias({
+    rust: "rs",
+    python: "py",
+    yaml: "yml",
+    markdown: "md",
+    nasm: "asm",
+});
 
 interface SyntaxHighlightProps {
     code: string;

@@ -4,7 +4,7 @@ import deepEqual from "fast-deep-equal";
 import { Post, PostWithInternals } from "../schema";
 import { getPostsWithInternals } from "./posts";
 import { timedCached } from "../util";
-import { IMAGES_DIR } from "./config";
+import { IMAGES_DIR, IS_DEV } from "./config";
 
 let lastImageMapping: unknown = null;
 
@@ -66,7 +66,15 @@ export async function updateImageFiles(posts: readonly PostWithInternals[], igno
     await Promise.all(
         fileMapping.map(async ([file, name]) => {
             const dest = path.join(IMAGES_DIR, name);
-            await fs.copyFile(file, dest);
+            try {
+                await fs.copyFile(file, dest);
+            } catch (e) {
+                if (IS_DEV) {
+                    console.error(`Error copying image file ${file} to ${dest}:`, e);
+                } else {
+                    throw e;
+                }
+            }
         }),
     );
 }

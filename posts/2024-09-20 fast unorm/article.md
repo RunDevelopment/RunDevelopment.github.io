@@ -5,6 +5,7 @@ title: Fast Unorm Conversions
 description: Optimizing the conversion of 5-bit unorms to 8-bit unorms in Rust.
 inlineCodeLanguage: rust
 tags: rust optimization unorm
+
 image: ./ds3-m32-2024-09-19.avif
 imageSmall: ./ds3-m32-2024-09-19_small.avif
 imageFadeColor: "#E6F3F4"
@@ -43,7 +44,7 @@ fn u5_to_u8_naive(x: u8) -> u8 {
 
 <div class="info" data-title="Side note">
 
-Unfortunately, Rust doesn't have a `u5` type, so `x: u8` + `debug_assert!` will have to do. I yearn for the day when Rust allows me to express integer types if arbitrary bit width. (Or even better, arbitrary ranges like 0 to 100, but that day will likely never come...)
+Unfortunately, Rust doesn't have a `u5` type, so `x: u8` + `debug_assert!` will have to do. I yearn for the day when Rust allows me to express integer types of arbitrary bit width. (Or even better, arbitrary ranges like 0 to 100, but that day will likely never come...)
 
 </div>
 
