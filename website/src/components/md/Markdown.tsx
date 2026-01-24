@@ -236,8 +236,8 @@ const staticComponents = {
 
     table({ children }) {
         return (
-            <div className="justify-items-center">
-                <table className="table-auto">{children}</table>
+            <div className="-mx-4 my-4 max-w-[100%+2rem] overflow-x-auto px-4 md:mx-0 md:px-0">
+                <table className="mx-auto table-auto">{children}</table>
             </div>
         );
     },
@@ -262,6 +262,28 @@ const staticComponents = {
         return <tr className="group-[]:odd:bg-zinc-950">{children}</tr>;
     },
 
+    details({ children, ...props }) {
+        return (
+            <details
+                {...props}
+                className="group mb-6 mt-4 rounded-md outline outline-2 outline-offset-0 outline-white/10 transition-[outline-offset] duration-200 open:outline-offset-[0.5rem]"
+            >
+                {children}
+                <div className="mt-2 h-px" />
+            </details>
+        );
+    },
+    summary({ children, ...props }) {
+        return (
+            <summary
+                {...props}
+                className="cursor-pointer select-none rounded-md bg-black/40 px-3 py-1 text-white group-open:mb-4"
+            >
+                {children}
+            </summary>
+        );
+    },
+
     div(props) {
         if (props.className === "info" || props.className === "side-note") {
             const titleKey = "data-title";
@@ -279,7 +301,7 @@ const staticComponents = {
     span({ node: _node, ...props }) {
         if (props.className === "katex-display") {
             return (
-                <div className="-mx-4 -my-2 overflow-x-auto px-4 py-px md:-mx-6 md:px-6 lg:mx-0 lg:px-0">
+                <div className="-mx-4 -my-2 overflow-x-auto px-4 py-px md:-mx-6 md:px-6 lg:mx-0 lg:px-0 [&:has(span.katex-html:empty)]:hidden">
                     <span {...props} />
                 </div>
             );
@@ -328,7 +350,24 @@ export const Markdown = memo(
         return (
             <ReactMarkdown
                 components={components as never}
-                rehypePlugins={[rehypeRaw, rehypeKatex]}
+                rehypePlugins={[
+                    rehypeRaw,
+                    [
+                        rehypeKatex,
+                        {
+                            output: "html",
+                            strict: true,
+                            throwOnError: false,
+                            errorColor: "#f44",
+                            globalGroup: true,
+                            macros: {
+                                // FIXME: This is currently a hack to work
+                                // around the fact that global macros don't work.
+                                "\\round": "\\operatorname{round}",
+                            },
+                        },
+                    ],
+                ]}
                 remarkPlugins={[remarkGfm, remarkMath]}
             >
                 {markdown}

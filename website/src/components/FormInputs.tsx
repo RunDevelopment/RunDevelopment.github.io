@@ -29,6 +29,8 @@ export function NumberInput({
     }, [value]);
 
     const commit = (): void => {
+        if (readOnly) return;
+
         const newValue = parseInt(text, 10);
         if (Number.isNaN(newValue)) {
             // reset
@@ -188,6 +190,7 @@ interface DownDownProps<T extends string> {
     className?: string;
     name?: string;
     id?: string;
+    disabled?: boolean;
 }
 export function DownDown<T extends string>({
     value,
@@ -197,14 +200,16 @@ export function DownDown<T extends string>({
     className,
     name,
     id,
+    disabled,
 }: DownDownProps<T>) {
     return (
         <select
             id={id}
             name={name}
+            disabled={disabled}
             className={
                 (className || "") +
-                " transition-colors cursor-pointer border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 focus:border-zinc-300 bg-black rounded-md px-2 py-1 [&:not(:read-only)]:hover:text-white [&:not(:read-only)]:focus:text-white"
+                " transition-colors cursor-pointer border-2 text-neutral-200 border-zinc-700 [&:not(:disabled)]:hover:border-zinc-500 focus:border-zinc-300 bg-black rounded-md px-2 py-1 [&:not(:read-only)]:hover:text-white [&:not(:read-only)]:focus:text-white disabled:cursor-default disabled:text-neutral-500"
             }
             value={value}
             onChange={(e) => onChange(e.target.value as T)}
@@ -254,7 +259,7 @@ export function SmallButton({
 
 interface SmallCheckboxProps {
     checked: boolean;
-    text: string;
+    text: React.ReactNode;
     onChange?: (checked: boolean) => void;
     className?: string;
 }

@@ -26,7 +26,12 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
                     <img
                         src={meta.imageSmall}
                         alt="cover image"
-                        className="size-full object-cover contain-size"
+                        className="size-full bg-cover bg-center object-cover contain-size"
+                        style={
+                            meta.imageSmallInlinePreviewData
+                                ? { backgroundImage: `url(${meta.imageSmallInlinePreviewData})` }
+                                : undefined
+                        }
                     />
                 )}
             </Link>

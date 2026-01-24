@@ -12,6 +12,11 @@ imageFadeColor: "#E6F3F4"
 color: "#55b0ed"
 ---
 
+$$
+% global macro definitions
+\gdef\round{\operatorname{round}}
+$$
+
 I recently came across a problem where I needed to convert a 5-bit unorm to an 8-bit unorm. "Unorm" means **u**nsigned **norm**alized integer. The idea is to represent a real number 0 to 1 as an integer 0 to $2^n-1$, where $n$ is the number of bits used to represent the integer.
 
 Maybe the most widespread application of unorms is color in computer graphics. Image editing programs like Photoshop and Gimp typically show RGB color channels as values between 0 and 255. Those are 8-bit unorms. The same goes for colors on the web. E.g. in CSS, `rgb(255 128 0)` is the same color as `rgb(100% 50% 0%)`, and the hex color `#0099EE` (decimal: 0 153 238) is the same as `#09E` (decimal: 0 9 14).
@@ -21,7 +26,7 @@ Color is also where my problem originated. I wanted to decode images that store 
 The value of an $n$-bit unorm $x_n \in \set{0, ...,2^n-1}$ is calculated as $x_n / (2^n-1)$. So converting an $n$-bit unorm to an $m$-bit unorm can be done with this formula:
 
 $$
-x_m = round(x_n \cdot \frac{2^m - 1}{2^n - 1})
+x_m = \round(x_n \cdot \frac{2^m - 1}{2^n - 1})
 $$
 
 (Rounding is necessary to get the closest integer value.)
@@ -29,7 +34,7 @@ $$
 Plugging in the numbers for a 5-bit to 8-bit unorm conversion, we get:
 
 $$
-x_8 = round(x_5 \cdot \frac{255}{31})
+x_8 = \round(x_5 \cdot \frac{255}{31})
 $$
 
 Using floats, this translates very naturally into code. Here's a naive implementation of this formula in Rust:
@@ -90,9 +95,9 @@ fn decode(
 
 The full benchmark code can be found on [my GitHub](https://github.com/RunDevelopment/rounding-bench-rs). All benchmarks in this article were performed with [`criterion`](https://bheisler.github.io/criterion.rs/book/criterion_rs.html) on the following system:
 
--   OS: Windows 10
--   CPU: Intel® Core™ i7-8700K CPU @ 3.70GHz
--   Rust: 1.80.1
+- OS: Windows 10
+- CPU: Intel® Core™ i7-8700K CPU @ 3.70GHz
+- Rust: 1.80.1
 
 Here is the result for the naive implementation:
 
@@ -159,7 +164,7 @@ Since rounding results in a call to a function of unknown complexity, we'll star
 Mathematically speaking, rounding a real number $r \in \R$ to the nearest integer is defined as:
 
 $$
-round(r) = \begin{cases}
+\round(r) = \begin{cases}
     \lfloor r + 0.5 \rfloor & \text{if } r \ge 0 \\
     \lceil r - 0.5 \rceil & \text{otherwise}
 \end{cases}
@@ -194,7 +199,7 @@ So be always careful when implementing mathematical formulas when floating-point
 Since `u5_to_u8_naive` only rounds non-negative numbers, we can simplify the formula to remove the branch.
 
 $$
-round(r) = \lfloor r + 0.5 \rfloor, \space r\ge 0
+\round(r) = \lfloor r + 0.5 \rfloor, \space r\ge 0
 $$
 
 And now for the main trick: [`as u8` truncates](https://doc.rust-lang.org/reference/expressions/operator-expr.html#numeric-cast). Rust guarantees that floating-point numbers are turned into integers via truncation. Since $trunc(r) = \lfloor r \rfloor$ for all $r \ge 0$, we can replace `r.round() as u8` with `(r + 0.5) as u8` in our code:
@@ -411,7 +416,7 @@ Let's look at the math. For $a \in \N$ and $b\in\N,b>0$:
 
 $$
 \begin{split}
-round(\frac{a}{b}) &= \lfloor \frac{a}{b} + 0.5 \rfloor \\
+\round(\frac{a}{b}) &= \lfloor \frac{a}{b} + 0.5 \rfloor \\
  &= \lfloor \frac{a + b/2}{b} \rfloor \\
  &= \lfloor \frac{a +\lfloor b/2 \rfloor}{b} \rfloor \\
 \end{split}
@@ -522,7 +527,7 @@ You can think of the multiply-add method as a generalization of the old "replace
 
 As it turns out, the multiply-add method is not limited to floor division. We can also find constants for other rounding functions (e.g. `ceil` and `round`). We aren't even limited to division. Multiplication with arbitrary fractions $t/d$ can be done.
 
-Since our unorm conversion is just $round(x \cdot 255/31)$, we can use the multiply-add method to perform the whole conversion. **IF** we can find the right constants that is. I'll soon write a whole article on this topic, so let's just assume the constants were brute-forced for now. For $x\in\set{0,...,31}$, we find that $f=527$, $a=23$, and $s=6$ are the smallest constants that work. Unfortunately, there exist no constants with $a=0$ for this case.
+Since our unorm conversion is just $\round(x \cdot 255/31)$, we can use the multiply-add method to perform the whole conversion. **IF** we can find the right constants that is. I'll soon write a whole article on this topic, so let's just assume the constants were brute-forced for now. For $x\in\set{0,...,31}$, we find that $f=527$, $a=23$, and $s=6$ are the smallest constants that work. Unfortunately, there exist no constants with $a=0$ for this case.
 
 Putting this into code is very simple. The only pitfall is that $31 \cdot 527=16337$ doesn't fit into `u8`, so we need `u16` for the intermediate result again.
 
@@ -619,9 +624,9 @@ In case you need constants for other unorm conversions, here's a little tool. Gi
 
 <div class="info" data-title="Limitations">
 
--   This tool is limited to a maximum of 32 bits in either direction. (All constants were precomputed.)
+- This tool is limited to a maximum of 32 bits in either direction. (All constants were precomputed.)
 
--   The generated C code may not be standard conforming, due to the lack of a standardized 128-bit integer type. If the code uses the `uint128_t` type, replace it with the appropriate 128-bit integer type for your compiler. See [this Stack Overflow answer](https://stackoverflow.com/a/54815033/7595472) for more details.
+- The generated C code may not be standard conforming, due to the lack of a standardized 128-bit integer type. If the code uses the `uint128_t` type, replace it with the appropriate 128-bit integer type for your compiler. See [this Stack Overflow answer](https://stackoverflow.com/a/54815033/7595472) for more details.
 
 </div>
 
@@ -663,11 +668,11 @@ Try to find what the result of $(2^{kn}-1)/(2^n-1)$ is for a few values of $k$.
 
 We just need to (1) show that $(2^{kn}-1)/(2^n-1)$ is always an integer and (optionally), (2) find a nice form for the quotient. Let's start by solving $(2^{kn}-1)/(2^n-1)$ for a few values of $k$ and see if we can spot a pattern. I just used [Wolfram Alpha](https://www.wolframalpha.com/input?i=simplify+%282%5E%28kn%29-1%29%2F%282%5En-1%29%2C+k%3D4) for this:
 
--   $k=1$: $2^n-1 = (2^n-1)(1)$
--   $k=2$: $2^{2n}-1 = (2^n-1)(1 + 2^n)$
--   $k=3$: $2^{3n}-1 = (2^n-1)(1 + 2^n + 2^{2n})$
--   $k=4$: $2^{4n}-1 = (2^n-1)(1 + 2^n + 2^{2n} + 2^{3n})$
--   $k=5$: $2^{5n}-1 = (2^n-1)(1 + 2^n + 2^{2n} + 2^{3n} + 2^{4n})$
+- $k=1$: $2^n-1 = (2^n-1)(1)$
+- $k=2$: $2^{2n}-1 = (2^n-1)(1 + 2^n)$
+- $k=3$: $2^{3n}-1 = (2^n-1)(1 + 2^n + 2^{2n})$
+- $k=4$: $2^{4n}-1 = (2^n-1)(1 + 2^n + 2^{2n} + 2^{3n})$
+- $k=5$: $2^{5n}-1 = (2^n-1)(1 + 2^n + 2^{2n} + 2^{3n} + 2^{4n})$
 
 So the pattern seems to be:
 
@@ -690,8 +695,8 @@ We can now use this result and plug it into the conversion formula:
 
 $$
 \begin{split}
-x_{k n} &= round(x_n \cdot \frac{2^{k n} - 1}{2^n - 1}) \\
-x_{k n} &= round(\underbrace{x_n \cdot \sum_{i=0}^{k-1} 2^{in}}_{\text{obviously an integer}}) \\
+x_{k n} &= \round(x_n \cdot \frac{2^{k n} - 1}{2^n - 1}) \\
+x_{k n} &= \round(\underbrace{x_n \cdot \sum_{i=0}^{k-1} 2^{in}}_{\text{obviously an integer}}) \\
 x_{k n} &= x_n \cdot \sum_{i=0}^{k-1} 2^{in}
 \end{split}
 $$
