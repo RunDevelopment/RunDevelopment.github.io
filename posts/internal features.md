@@ -48,10 +48,10 @@ color: string | null = null
 
 Additional notes:
 
--   `description` will be used both for post cards and for the meta description.
--   `datePublished` and `dateModified` must be in the format `YYYY-MM-DD`.
--   `image`/`imageSmall` must be either a file path relative to the article's `.md` file or a URL.
--   `color` must be a valid CSS color and should ideally go together with `image`.
+- `description` will be used both for post cards and for the meta description.
+- `datePublished` and `dateModified` must be in the format `YYYY-MM-DD`.
+- `image`/`imageSmall` must be either a file path relative to the article's `.md` file or a URL.
+- `color` must be a valid CSS color and should ideally go together with `image`.
 
 Also, when an article is marked as draft, it will not be deployed to the website. Draft-mode also enables TODOs, which are highlighted in the text.
 
@@ -75,9 +75,9 @@ Heading 1-4 are supported and automatically get links. Header links also work fo
 
 Lists just work as expected:
 
--   One
--   Two
--   Three
+- One
+- Two
+- Three
 
 1. One
 2. Two
@@ -149,6 +149,14 @@ Hello!
 | They     | can   | have |
 | multiple | lines | too  |
 
+Very large tables will be horizontally scrollable on small displays:
+
+| Header 1 | Header 2 | Header 3 | Header 4 | Header 5 | Header 6 | Header 7 | Header 8 | Header 9 | Header 10 | Header 11 | Header 12 |
+| -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | --------- | --------- | --------- |
+| Data 1   | Data 2   | Data 3   | Data 4   | Data 5   | Data 6   | Data 7   | Data 8   | Data 9   | Data 10   | Data 11   | Data 12   |
+| Data 1   | Data 2   | Data 3   | Data 4   | Data 5   | Data 6   | Data 7   | Data 8   | Data 9   | Data 10   | Data 11   | Data 12   |
+| Data 1   | Data 2   | Data 3   | Data 4   | Data 5   | Data 6   | Data 7   | Data 8   | Data 9   | Data 10   | Data 11   | Data 12   |
+
 ### Images
 
 ![](https://i.kym-cdn.com/photos/images/newsfeed/001/401/347/312.jpg)
@@ -217,7 +225,7 @@ Math is rendered using [KaTeX](https://katex.org/docs/supported.html) can suppor
 
 $$
 \begin{aligned}
-    \text{gcd}(a, b) &= \text{gcd}(b, a \mod b) \\
+    \text{gcd}(a, b) &= \text{gcd}(b, a \bmod b) \\
     \text{gcd}(a, 0) &= a
 \end{aligned}
 $$
@@ -232,6 +240,12 @@ foo(x + y)
 = round(x \cdot y)
 = \lfloor x \cdot y + {1 \over 2} \rfloor
 \le x \cdot y + {1 \over 2} + \text{some long variable name}
+$$
+
+And invalid math gets displayed as is.
+
+$$
+a + b - \whatAmI
 $$
 
 ## Details

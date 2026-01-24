@@ -102,3 +102,10 @@ export function assert(condition: unknown, message?: string): asserts condition 
         throw new Error(message ?? "Assertion failed");
     }
 }
+
+export function capitalize(s: string): string {
+    if (s.length === 0) {
+        return s;
+    }
+    return s[0].toUpperCase() + s.slice(1);
+}

@@ -46,6 +46,8 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
 
     const metadata = getMetadata(frontMatter ?? {}, markdown);
 
+    // convert image URLs to paths
+
     // generate cover image
     if (metadata.image) {
         const imagePath = path.join(fileDir, decodeURIComponent(metadata.image));
@@ -53,6 +55,10 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
     }
     if (metadata.image) {
         metadata.imageInlinePreviewData = await generateInlineImagePreviewData(metadata.image);
+    }
+    if (metadata.imageSmall) {
+        const imagePath = path.join(fileDir, decodeURIComponent(metadata.imageSmall));
+        metadata.imageSmallInlinePreviewData = await generateInlineImageSmallPreviewData(imagePath);
     }
 
     // image URLs
@@ -237,8 +243,36 @@ async function generateInlineImagePreviewData(imagePath: string): Promise<string
     }
 }
 
+async function generateInlineImageSmallPreviewData(imagePath: string): Promise<string | undefined> {
+    try {
+        const format = "avif" as const;
+        const options: InlinePreviewOptions = {
+            height: 96,
+            width: 80,
+            fit: "cover",
+            maxBytes: 800,
+            format,
+            maxQuality: 80,
+        };
+        const cachePath = await cachedImageFile(
+            imagePath,
+            "preview-small-#." + format,
+            options,
+            createInlineImagePreview,
+        );
+        const imageBytes = await fs.readFile(cachePath);
+
+        return toBase64Image(imageBytes, format);
+    } catch (e) {
+        console.error(`Error inlining image small load for ${imagePath}:`, e);
+        return undefined;
+    }
+}
+
 type InlinePreviewOptions = {
     height: number;
+    width?: number;
+    fit?: "cover" | "contain" | "inside" | "outside";
     maxBytes: number;
     format: "webp" | "avif" | "jpeg";
     maxQuality: number;
@@ -275,7 +309,8 @@ async function createInlineImagePreview(
 
     const resizedImage = image.resize({
         height: options.height,
-        fit: "outside",
+        width: options.width,
+        fit: options.fit ?? "outside",
     });
     return toTiny(resizedImage, options.maxBytes);
 }
