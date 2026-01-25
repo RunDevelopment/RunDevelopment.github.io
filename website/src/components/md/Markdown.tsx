@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { CodeBlock } from "./CodeBlock";
 import { CustomComponent } from "./CustomComponents";
-import { Components, getAllHeadings } from "../../lib/md-util";
+import { Components, nodeTextContent, getAllHeadings } from "../../lib/md-util";
 import "katex/dist/katex.min.css";
 import { TextLink } from "./TextLink";
 import { ForwardChildren } from "../util";
@@ -297,14 +297,21 @@ const staticComponents = {
 
         return <div {...props} />;
     },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    span({ node: _node, ...props }) {
+    span({ node, ...props }) {
         if (props.className === "katex-display") {
             return (
                 <div className="-mx-4 -my-2 overflow-x-auto px-4 py-px md:-mx-6 md:px-6 lg:mx-0 lg:px-0 [&:has(span.katex-html:empty)]:hidden">
                     <span {...props} />
                 </div>
             );
+        }
+
+        // mark short math snippets
+        if (props.className === "katex" && node) {
+            const text = nodeTextContent(node);
+            if (text.length <= 16) {
+                props.className += " short-math";
+            }
         }
 
         return <span {...props} />;

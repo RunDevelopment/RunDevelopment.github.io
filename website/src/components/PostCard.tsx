@@ -56,7 +56,9 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
                     <span className="px-2">-</span>
                     <span>{meta.minutesToRead} min read</span>
                 </p>
-                <p className="mt-0.5 line-clamp-2 text-pretty leading-snug">{meta.description}</p>
+                <p className="mt-0.5 line-clamp-2 text-pretty leading-snug">
+                    <FancyText text={meta.description} />
+                </p>
             </div>
         </div>
     );

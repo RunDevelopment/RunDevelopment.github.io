@@ -17,28 +17,21 @@ export function getTextContent(children: React.ReactNode, node: MdElement | unde
     if (children == null) {
         return "";
     }
-
-    function getText(node: MdElement): string {
-        return node.children
-            .map((child) => {
-                if (child.type === "text" || child.type === "raw") {
-                    return child.value;
-                }
-                if (child.type === "element") {
-                    if (child.tagName === "math") {
-                        return "";
-                    }
-                    return getText(child);
-                }
-                return "";
-            })
-            .join("");
-    }
     if (node) {
-        return getText(node);
+        return nodeTextContent(node);
     }
 
     return String(children);
+}
+
+export function nodeTextContent(n: import("hast").ElementContent): string {
+    if (n.type === "text") {
+        return n.value;
+    }
+    if (n.type === "element") {
+        return n.children.map(nodeTextContent).join("");
+    }
+    return "";
 }
 
 export function getHeadingId(text: string): string {
