@@ -512,7 +512,7 @@ With this proven, 2 facts about $\delta_i$ are now known:
 1. $\delta_i \in \{-j_i-1,-j_i\}$.
 2. $k_i < c_i \implies \delta_i = -j_i$.
 
-Since $v=2^{in}+2^{n-1}-1$ corresponds to $a=\sum_{l=0}^{i-1} 2^{ln}=c_i$ and $b=0$, it follows from (2) that $a\in\set{0,...,c_i-1} \implies \delta_i=0$. This range of $a$ corresponds to inputs $v\in\set{2^{n-1},...,2^{in}+2^{n-1}-2}$. Together with the earlier result for $a=-1$, this proves that the approximation $R_i$ is correct for all inputs $v < 2^{in} + 2^{n-1} - 1$. $\square$
+Since $v=2^{in}+2^{n-1}-1$ corresponds to $a=\sum_{l=0}^{i-1} 2^{ln}=c_i$ and $b=0$, it follows from (2) that $a\in\set{0,...,c_i-1} \implies \delta_i=0$. This range of $a$ corresponds to inputs $v\in\set{2^{n-1},...,2^{in}+2^{n-1}-2}$. Together with the earlier result for $a=-1$, this proves that the approximation $R_i$ is exact for all inputs $v < 2^{in} + 2^{n-1} - 1$. $\square$
 
 ## Other rounding modes
 
