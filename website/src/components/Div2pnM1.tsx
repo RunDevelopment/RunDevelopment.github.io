@@ -268,22 +268,21 @@ function generateCode(
     // rounding
     const roundValue: Record<RoundingMode, string | number | bigint> = {
         floor: "1",
-        round: n === "variable" ? "(1 << (n - 1))" : 2n ** (BigInt(n) - 1n),
+        round: n === "variable" ? "1 << (n - 1)" : 2n ** (BigInt(n) - 1n),
         ceil: n === "variable" ? "(1 << n) - 1" : 2n ** BigInt(n) - 1n,
     };
     let roundExpr;
-    if (rounding === "variable") {
-        let round = String(roundValue.round);
-        if (n === "variable") {
-            round = round.slice(1, -1); // remove parentheses
-        }
-
+    if (n === "variable" || rounding === "variable") {
         code += "    let round = ";
-        code += "match mode {\n";
-        code += "        RoundingMode::Floor => " + roundValue.floor + ",\n";
-        code += "        RoundingMode::Round => " + round + ",\n";
-        code += "        RoundingMode::Ceil => " + roundValue.ceil + ",\n";
-        code += "    }";
+        if (rounding === "variable") {
+            code += "match mode {\n";
+            code += "        RoundingMode::Floor => " + roundValue.floor + ",\n";
+            code += "        RoundingMode::Round => " + roundValue.round + ",\n";
+            code += "        RoundingMode::Ceil => " + roundValue.ceil + ",\n";
+            code += "    }";
+        } else {
+            code += roundValue[rounding];
+        }
         code += ";\n";
         roundExpr = "round";
     } else {

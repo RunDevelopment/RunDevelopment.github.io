@@ -21,8 +21,8 @@ I recently found this code snippet in the source code of [`pic-scale-safe`](http
 ```rs
 fn div_round_by_1023(v: u32) -> u32 {
     let round = 1 << 9;
-    let v = v + round;
-    ((v >> 10) + v) >> 10
+    let w = v + round;
+    ((w >> 10) + w) >> 10
 }
 ```
 
@@ -35,8 +35,8 @@ As I hinted, this trick doesn't work just for division by 1023. In general, it w
 ```rs
 fn div_round_by_2pn_m1(v: u32, n: u32) -> u32 {
     let round = 1 << (n - 1);
-    let v = v + round;
-    ((v >> n) + v) >> n
+    let w = v + round;
+    ((w >> n) + w) >> n
 }
 ```
 
