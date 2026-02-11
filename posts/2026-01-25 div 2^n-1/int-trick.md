@@ -28,7 +28,7 @@ fn div_round_by_1023(v: u32) -> u32 {
 
 This function computes $\round(v / 1023)$ for inputs $v<2^{20}+2^9-1$ with just a few bit shifts and additions in 32-bit arithmetic. Quite efficient.
 
-But that's not all. This trick only 21 bits for the intermediate results. Other approaches like the multiply-add method require 31 bits for intermediate results to perform the same rounded division by 1023 in the range $v<2^{20}+2^9-1$. While not the case for division by 1023, in general this trick needs at most one additional bit, which can be the difference between being able to use 32-bit arithmetic or having to resort to 64-bit arithmetic. This is especially important in SIMD code and code the compiler is supposed to auto-vectorize.
+But that's not all. This trick only needs 21 bits for the intermediate results. Other approaches like the multiply-add method require 31 bits for intermediate results to perform the same rounded division by 1023 in the range $v<2^{20}+2^9-1$. While not the case for division by 1023, in general this trick needs at most one additional bit, which can be the difference between being able to use 32-bit arithmetic or having to resort to 64-bit arithmetic. This is especially important for auto-vectorization and manual SIMD code.
 
 As I hinted, this trick doesn't work just for division by 1023. In general, it works for any divisor of the form $2^n-1$ for inputs $v<2^{2n}+2^{n-1}-1$. Here is the generalized version:
 
