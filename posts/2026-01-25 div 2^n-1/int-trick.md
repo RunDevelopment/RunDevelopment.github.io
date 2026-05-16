@@ -28,9 +28,9 @@ fn div_round_by_1023(v: u32) -> u32 {
 
 This function computes $\round(v / 1023)$ for inputs $v<2^{20}+2^9-1$ with just a few bit shifts and additions in 32-bit arithmetic. Quite efficient.
 
-But that's not all. This trick only needs 21 bits for the intermediate results. Other approaches like the multiply-add method require 31 bits for intermediate results to perform the same rounded division by 1023 in the range $v<2^{20}+2^9-1$. While not the case for division by 1023, in general this trick needs at most one additional bit, which can be the difference between being able to use 32-bit arithmetic or having to resort to 64-bit arithmetic. This is especially important for auto-vectorization and manual SIMD code.
+But that's not all. This trick only needs 21 bits for the intermediate results. Other approaches like the multiply-add method require 31 bits for intermediate results to perform the same rounded division by 1023 in the range $v<2^{20}+2^9-1$. In general this trick needs at most **one additional bit**. This can be the difference between being able to use 32-bit arithmetic or having to resort to 64-bit arithmetic, which is especially important for auto-vectorization and manual SIMD code.
 
-As I hinted, this trick doesn't work just for division by 1023. In general, it works for any divisor of the form $2^n-1$ for inputs $v<2^{2n}+2^{n-1}-1$. Here is the generalized version:
+As I implied, this trick doesn't work for just division by 1023. In general, it works for any divisor of the form $2^n-1$ for inputs $v<2^{2n}+2^{n-1}-1$. Here is the generalized version:
 
 ```rs
 fn div_round_by_2pn_m1(v: u32, n: u32) -> u32 {
@@ -40,9 +40,9 @@ fn div_round_by_2pn_m1(v: u32, n: u32) -> u32 {
 }
 ```
 
-This function returns exactly $\round(v / (2^n-1))$ for all inputs $v < 2^{2n} + 2^{n-1} - 1$. For larger inputs, the results are typically close, but not exact. This makes it an approximation for rounded division by $2^n-1$.
+This function returns exactly $\round(v / (2^n-1))$ for all inputs $v < 2^{2n} + 2^{n-1} - 1$. For larger inputs, the results are relatively close but not exact. This makes it an approximation for rounded division by $2^n-1$.
 
-Unfortunately, it's not obvious at all why this approximation is exact for $v<2^{2n}+2^{n-1}-1$, and why it stops working at $v=2^{2n}+2^{n-1}-1$.
+Unfortunately, it's not obvious why this approximation is exact for $v<2^{2n}+2^{n-1}-1$, and why it stops working at $v=2^{2n}+2^{n-1}-1$.
 
 In this article, I will answer both questions and generalize the trick to (1) increase the input range and (2) support `floor` and `ceil` division as well.
 
@@ -89,13 +89,13 @@ Before I start with the derivations and proofs, here is a summary of the results
 
 These are _theoretical_ results. In practice, integer overflow has to be carefully considered in order to determine the true range of inputs for which a particular _implementation_ is exact.
 
-The below tool determines bounds for correctness automatically based on the given settings.
+The below tool automatically determines bounds for correctness based on the given settings.
 
 </div>
 
 ### Code Generation
 
-I also implemented a little code gen tool that uses these results to generate Rust code. You can set $n$, the iteration count, the rounding mode, and the integer type all operations will be performed in. Everything (except for the integer type) can also be made variable at runtime by checking the _Parameter_ box.
+I also implemented a little code gen tool that uses these results to generate Rust code. You can set $n$, the iteration count, the rounding mode, and the integer type all operations will be performed in. Everything (except for the integer type) can also be made variable at runtime by checking the _Parameter_ option.
 
 ```json:custom
 {
