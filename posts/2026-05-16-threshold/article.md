@@ -1,7 +1,7 @@
 ---
 datePublished: 2026-05-16
 title: Thresholding with Anti-Aliasing
-description: Performant and high-quality thresholding an image (binarization) with anti-aliasing.
+description: Performant and high-quality image thresholding (binarization) with anti-aliasing.
 inlineCodeLanguage: rust
 tags: rust anti-aliasing threshold math
 
