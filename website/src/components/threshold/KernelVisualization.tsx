@@ -51,7 +51,7 @@ export default function KernelVisualization({
 
     return (
         <div className="narrow">
-            <div className="grid grid-cols-2 sm:gap-y-2 gap-x-4 mt-4 mb-2">
+            <div className="mb-2 mt-4 grid grid-cols-2 gap-x-4 sm:gap-y-2">
                 <VInput v={v00} setV={setV00} label="v(0,0)" readonly={readonly} />
                 <VInput v={v10} setV={setV10} label="v(1,0)" readonly={readonly} />
                 <VInput v={v01} setV={setV01} label="v(0,1)" readonly={readonly} />
@@ -67,10 +67,10 @@ export default function KernelVisualization({
             </div>
             {showAbcd && <AbcdDisplay kernel={kernel} />}
 
-            <div className="flex gap-x-2 justify-center -mx-2">
+            <div className="-mx-2 flex justify-center gap-x-2">
                 <div className="w-[400px] max-w-full">
                     <ScreenCanvas
-                        className="w-full aspect-square"
+                        className="aspect-square w-full"
                         render={(ctx, info) => {
                             const image = ctx.createImageData(info.pixelWidth, info.pixelHeight);
                             // const start = performance.now();
@@ -94,15 +94,15 @@ export default function KernelVisualization({
                             }
                         }}
                     />
-                    <div className="text-center my-2">
+                    <div className="my-2 text-center">
                         Area above threshold:{" "}
-                        <span className="font-mono whitespace-pre font-bold">
+                        <span className="whitespace-pre font-mono font-bold">
                             {formatArea(exactArea).padStart(7)}
                         </span>
                     </div>
                 </div>
                 {!readonly && (
-                    <div className="w-min flex-shrink-0">
+                    <div className="w-min shrink-0">
                         {initial && (
                             <SmallButton
                                 title="Reset to default"
@@ -119,7 +119,7 @@ export default function KernelVisualization({
                                 <BiReset size={16} className="inline-block" />
                             </SmallButton>
                         )}
-                        <ButtonGroup className="mb-2 w-min inline-block" vertical>
+                        <ButtonGroup className="mb-2 inline-block w-min" vertical>
                             {PRESETS.map(({ icon: text, title, kernel: presetKernel }, i) => (
                                 <SmallButton
                                     key={i}
@@ -194,7 +194,7 @@ function VInput({
     if (readonly) {
         return (
             <span>
-                <span className="font-serif text-right inline-block italic mr-1 w-14 whitespace-nowrap">
+                <span className="mr-1 inline-block w-14 whitespace-nowrap text-right font-serif italic">
                     {label + " = "}
                 </span>
                 {v}
@@ -204,12 +204,12 @@ function VInput({
 
     const id = `input-${label.trim()}`;
     return (
-        <label htmlFor={id} className="flex items-center flex-wrap sm:flex-nowrap">
-            <span className="font-serif sm:text-right italic mr-1 w-full sm:w-14 whitespace-nowrap -mb-2 sm:mb-0 -z-10">
+        <label htmlFor={id} className="flex flex-wrap items-center sm:flex-nowrap">
+            <span className="-z-10 -mb-2 mr-1 w-full whitespace-nowrap font-serif italic sm:mb-0 sm:w-14 sm:text-right">
                 {label + " = "}
             </span>
             <NumberInput
-                className="pr-0 sm:pr-1 order-2 sm:order-1"
+                className="order-2 pr-0 sm:order-1 sm:pr-1"
                 id={id}
                 readOnly={readonly}
                 min={0}
@@ -218,7 +218,7 @@ function VInput({
                 onChange={(value) => setV(value / 100)}
             />
             <input
-                className="mr-1 sm:ml-1 flex-grow py-2 basis-0 min-w-0 order-1 sm:order-2"
+                className="order-1 mr-1 min-w-0 grow basis-0 py-2 sm:order-2 sm:ml-1"
                 type="range"
                 min={0}
                 max={100}
@@ -259,7 +259,7 @@ function AbcdDisplay({ kernel }: { kernel: Kernel }) {
     }
 
     return (
-        <div className="text-center my-2 font-serif">
+        <div className="my-2 text-center font-serif">
             <span className="inline-block w-16">a = {String(a)}</span>
             <span className="inline-block w-16">b = {String(b)}</span>
             <span className="inline-block w-16">c = {String(c)}</span>
@@ -299,7 +299,7 @@ function KernelEval({
     const selectedIndex = sampleAlgo && Math.round(Math.log2(sampleAlgo[1]));
 
     return (
-        <div className="flex gap-x-4 sm:gap-x-12 gap-y-2 justify-center flex-wrap -mx-2">
+        <div className="-mx-2 flex flex-wrap justify-center gap-x-4 gap-y-2 sm:gap-x-12">
             <div>
                 Point samples (grid):
                 <AreaResultsTable
@@ -372,7 +372,7 @@ function AreaResultsTable({
                             onMouseLeave={() => onMouseLeave(index)}
                             onClick={() => onClick(index)}
                         >
-                            <td className="text-right pr-2">{label}</td>
+                            <td className="pr-2 text-right">{label}</td>
                             <td>
                                 <AreaComparisonLabel exact={exact} approx={approx[index]} />
                             </td>
@@ -409,12 +409,12 @@ function AreaComparisonLabel({ exact, approx }: { exact: number; approx: number 
     const transfer = (x: number, offset = 10) => Math.log(x + offset) - Math.log(offset);
 
     return (
-        <span className="pb-1 inline-block sm:pb-0 whitespace-pre font-mono">
+        <span className="inline-block whitespace-pre pb-1 font-mono sm:pb-0">
             {formatArea(approx).padStart(7)}
             <span className={"sm:relative ml-2 sm:ml-0 " + diffColor}>
-                <span className="hidden sm:inline-block w-16 h-3 mx-1 relative">
+                <span className="relative mx-1 hidden h-3 w-16 sm:inline-block">
                     <span
-                        className="h-full block bg-current right-0 absolute"
+                        className="absolute right-0 block h-full bg-current"
                         style={{
                             width: `${Math.min(100, (transfer(diffMag) / transfer(50)) * 100)}%`,
                         }}
@@ -422,7 +422,7 @@ function AreaComparisonLabel({ exact, approx }: { exact: number; approx: number 
                 </span>
 
                 <span
-                    className="h-1 block sm:hidden bg-current right-0 absolute"
+                    className="absolute right-0 block h-1 bg-current sm:hidden"
                     style={{
                         width: `${Math.min(100, (transfer(diffMag) / transfer(50)) * 100)}%`,
                     }}
@@ -440,7 +440,7 @@ function drawKernel(image: ImageData, kernel: Kernel) {
     const w = image.width;
     const h = image.height;
 
-    const { v00, v10, v01, v11, t } = kernel;
+    const { v00, v10, v01, v11 } = kernel;
 
     const a = v11 - v10 - v01 + v00;
     const b = v10 - v00;
@@ -665,7 +665,7 @@ function drawSampleLines(
         }
         const rawX = (t - c * y - d) / dx;
         const x = Math.max(0, Math.min(1, rawX));
-        let area = x;
+        const area = x;
         // if (dx > 0) area = 1 - area;
         drawLine(y, area, atX0 >= t, atX1 >= t);
     }

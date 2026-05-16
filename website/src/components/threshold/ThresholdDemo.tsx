@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ButtonGroup, DownDown, NumberInput, SmallButton, SmallCheckbox } from "../FormInputs";
+import { ButtonGroup, DownDown, NumberInput, SmallButton } from "../FormInputs";
 import { Kernel, kernelAreaLineSampling, rotateForHorizontalLineSampling } from "./kernel";
 import { FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { MdGradient } from "react-icons/md";
@@ -108,8 +108,11 @@ export function ThresholdDemo() {
     return (
         <>
             <div
-                className="grid grid-cols-[auto_1fr] max-w-[400px] mx-auto gap-y-1"
-                style={{ opacity: applyThreshold ? "1" : "0.6", filter: applyThreshold ? "none" : "grayscale(50%)" }}
+                className="mx-auto grid max-w-[400px] grid-cols-[auto_1fr] gap-y-1"
+                style={{
+                    opacity: applyThreshold ? "1" : "0.6",
+                    filter: applyThreshold ? "none" : "grayscale(50%)",
+                }}
             >
                 <InputRow
                     label="Threshold"
@@ -133,10 +136,10 @@ export function ThresholdDemo() {
                 />
             </div>
 
-            <div className="flex items-center gap-2 justify-center my-2">
+            <div className="my-2 flex items-center justify-center gap-2">
                 <DownDown
                     value={String(imageIndex)}
-                    className="h-8 box-content !py-0"
+                    className="box-content h-8 !py-0"
                     options={Array.from({ length: IMAGES.length }, (_, i) => String(i))}
                     getLabel={(i) => IMAGES[Number(i)].name}
                     onChange={(i) => selectImage(Number(i))}
@@ -169,9 +172,9 @@ export function ThresholdDemo() {
                     {zoom ? <FiZoomOut size={16} /> : <FiZoomIn size={16} />}
                 </SmallButton>
             </div>
-            <div className="flex justify-center -mx-2 mb-4">
+            <div className="-mx-2 mb-4 flex justify-center">
                 <canvas
-                    className="w-full max-w-[480px] aspect-square"
+                    className="aspect-square w-full max-w-screen-xs"
                     style={{ imageRendering: "pixelated" }}
                     ref={canvasRef}
                     width={SIZE}
