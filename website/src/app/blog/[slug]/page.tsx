@@ -17,7 +17,11 @@ export default async function Page(props: Props) {
     }
 
     return (
-        <BasicPage selectedLink="blog" fancyHeader={!!post.metadata.image}>
+        <BasicPage
+            selectedLink="blog"
+            fancyHeader={!!post.metadata.image}
+            tint={post.metadata.color}
+        >
             <Article post={post} />
             <Footer />
         </BasicPage>
