@@ -2,11 +2,15 @@ import { memo } from "react";
 import { UnormConversion } from "../multiply-add/UnormConversion";
 import { Bc4ErrorVisualization } from "../bc4-error-vis";
 import { Div2pnM1 } from "../Div2pnM1";
+import KernelVisualization from "../threshold/KernelVisualization";
+import { ThresholdDemo } from "../threshold/ThresholdDemo";
 
 const knownComponents = {
     "unorm-conversion": UnormConversion,
     "bc4-error-vis": Bc4ErrorVisualization,
     "div-2pn-m1": Div2pnM1,
+    "kernel-visualization": KernelVisualization,
+    "threshold-demo": ThresholdDemo,
 };
 
 export const CustomComponent = memo(({ json }: { json: string }) => {

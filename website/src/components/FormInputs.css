@@ -1,0 +1,29 @@
+.ButtonGroupH > *:not(:first-child) {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    margin-left: -1px; /* Assumes a 2px border */
+}
+.ButtonGroupH > *:not(:last-child) {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin-right: -1px; /* Assumes a 2px border */
+}
+
+.ButtonGroupV > *:not(:first-child) {
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    margin-top: -1px; /* Assumes a 2px border */
+}
+.ButtonGroupV > *:not(:last-child) {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin-bottom: -1px; /* Assumes a 2px border */
+}
+
+.ButtonGroupH > *:hover,
+.ButtonGroupH > *:focus,
+.ButtonGroupV > *:hover,
+.ButtonGroupV > *:focus {
+    position: relative;
+    z-index: 1;
+}

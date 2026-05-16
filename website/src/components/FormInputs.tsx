@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import "./FormInputs.css";
 
 interface NumberInputProps {
     value: number;
     onChange: (value: number) => void;
     min: number;
     max: number;
+    step?: number;
     readOnly?: boolean;
     className?: string;
     name?: string;
@@ -17,12 +19,16 @@ export function NumberInput({
     onChange,
     min,
     max,
+    step,
     readOnly,
     className,
     name,
     id,
 }: NumberInputProps) {
     const [text, setText] = useState(value.toString());
+
+    const parse: (text: string) => number =
+        !step || Number.isInteger(step) ? (text) => parseInt(text, 10) : (text) => parseFloat(text);
 
     useEffect(() => {
         setText(value.toString());
@@ -31,7 +37,7 @@ export function NumberInput({
     const commit = (): void => {
         if (readOnly) return;
 
-        const newValue = parseInt(text, 10);
+        const newValue = parse(text);
         if (Number.isNaN(newValue)) {
             // reset
             setText(value.toString());
@@ -52,13 +58,14 @@ export function NumberInput({
                 " transition-colors border-2 text-neutral-200 border-zinc-700 hover:border-zinc-500 focus:border-zinc-300 bg-black rounded-md px-2 py-1 [&:not(:read-only)]:hover:text-white [&:not(:read-only)]:focus:text-white read-only:text-neutral-500"
             }
             min={min}
-            readOnly={readOnly}
             max={max}
+            step={step}
+            readOnly={readOnly}
             value={text}
             onChange={(e) => {
                 setText(e.target.value);
 
-                const number = parseInt(e.target.value, 10);
+                const number = parse(e.target.value);
                 if (String(number) === e.target.value && number >= min && number <= max) {
                     onChange(number);
                 }
@@ -254,6 +261,22 @@ export function SmallButton({
         >
             {children}
         </button>
+    );
+}
+
+export function ButtonGroup({
+    children,
+    className = "",
+    vertical = false,
+}: {
+    children: React.ReactNode;
+    className?: string;
+    vertical?: boolean;
+}) {
+    return (
+        <span className={(vertical ? " ButtonGroupV" : "ButtonGroupH") + " " + className}>
+            {children}
+        </span>
     );
 }
 
