@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+  xmlns:data="ApexChartsNS" width="600" height="400">
+  <g fill="#f6f7f8" font-family="Helvetica,Arial,sans-serif" font-size="11" font-weight="400" text-anchor="end">
+    <text x="42.36" y="33.67">120</text>
+    <text x="42.36" y="80.62">100</text>
+    <text x="42.36" y="127.57">80</text>
+    <text x="42.36" y="174.51">60</text>
+    <text x="42.36" y="221.46">40</text>
+    <text x="42.36" y="268.41">20</text>
+    <text x="42.36" y="315.36">0</text>
+    <text x="17.51" y="170.85" font-weight="900" transform="rotate(-90 -2.18 155.17)">PSNR (dB)</text>
+  </g>
+  <g transform="translate(52.36 30)">
+    <path stroke="#b6b6b6" stroke-dasharray="3" d="M0 0v281.7" />
+    <path stroke="#e0e0e0" d="M0 281.7v6m58.31-6v6m58.31-6v6m58.31-6v6m58.31-6v6m58.32-6v6m58.31-6v6m58.31-6v6m58.31-6v6m58.31-6v6"/>
+    <path stroke="#888" d="M0 46.95h524.8M0 93.9h524.8M0 140.85h524.8M0 187.8h524.8M0 234.75h524.8"/>
+    <path stroke="#888" d="M0 0h524.8"/>
+    <path stroke="#e0e0e0" d="M0 281.7h524.8M0 281.7h524.8"/>
+
+    <rect width="264.54" height="271.7" x="260.26" y="10" fill="#f40" stroke="#c2c2c2" stroke-dasharray="1" opacity=".2" rx="0" ry="0"/>
+
+    <path fill="rgba(0,143,251,0.85)" stroke="#008ffb" stroke-width="3" d="m17.56 248.68 8.57 8.57m-8.57 0 8.57-8.57m29.07-21.2 8.57 8.57m-8.57 0 8.57-8.57m19.15-21.22 8.57 8.57m-8.57 0 8.57-8.57m217.83-21.22 8.58 8.57m-8.58 0 8.58-8.57m197.46-21.01 8.57 8.57m-8.57 0 8.57-8.57"/>
+    <path fill="rgba(0,227,150,0.85)" stroke="#00e396" stroke-width="3" d="M80.35 210.8h10.72m-5.36-5.35v10.71m93.99-31.53h10.72m-5.35-5.36V190m36.63-31.45h10.72m-5.36-5.36v10.72m50.68-29.56h10.71m-5.35-5.36v10.71"/>
+    <g stroke="#fff" stroke-opacity=".9">
+      <path fill="#feb019" d="M258.27 33.43Z"/>
+      <path fill="rgba(254,176,25,0.85)" stroke-linecap="butt" d="m258.27 1.66 2.22 4.06 4.05 2.21-4.05 2.22-2.22 4.06-2.22-4.06L252 7.93l4.05-2.21z" />
+    </g>
+    <g stroke="#fff" opacity=".9">
+      <rect width="41.01" height="16" x="1.18" y="228.96" fill="#008ffb" rx="2" ry="2"/>
+      <rect width="46.69" height="16" x="31.48" y="207.77" fill="#008ffb" rx="2" ry="2"/>
+      <rect width="46.69" height="16" x="88.19" y="186.54" fill="#008ffb" rx="2" ry="2"/>
+      <rect width="53.36" height="16" x="287.26" y="165.32" fill="#008ffb" rx="2" ry="2"/>
+      <rect width="60.03" height="16" x="471.95" y="144.31" fill="#008ffb" rx="2" ry="2"/>
+      <rect width="37.67" height="16" x="48.7" y="186.8" fill="#00af6f" rx="2" ry="2"/>
+      <rect width="36.67" height="16" x="167.06" y="160.63" fill="#00af6f" rx="2" ry="2"/>
+      <rect width="43.35" height="16" x="205.72" y="134.55" fill="#00af6f" rx="2" ry="2"/>
+      <rect width="43.35" height="16" x="261.75" y="110.35" fill="#00af6f" rx="2" ry="2"/>
+      <rect width="41.03" height="16" x="238.26" y="-16.07" fill="#c47c00" rx="2" ry="2"/>
+    </g>
+    <g fill="#fff" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">
+      <text x="21.85" y="240.96">4 spp</text>
+      <text x="54.49" y="219.77">16 spp</text>
+      <text x="111.2" y="198.54">64 spp</text>
+      <text x="313.61" y="177.32">256 spp</text>
+      <text x="500.64" y="156.31">1024 spp</text>
+      <text x="67.71" y="198.8">4 lpp</text>
+      <text x="185.07" y="172.63">8 lpp</text>
+      <text x="227.06" y="146.55">16 lpp</text>
+      <text x="283.1" y="122.35">32 lpp</text>
+      <text x="258.27" y="-4.07">Exact</text>
+    </g>
+    <g fill="#f6f7f8" font-family="Helvetica,Arial,sans-serif" font-size="12" text-anchor="middle" font-weight="400">
+      <text y="305.7">2</text>
+      <text x="58.31" y="305.7">2.8</text>
+      <text x="116.62" y="305.7">4</text>
+      <text x="174.93" y="305.7">5.7</text>
+      <text x="233.24" y="305.7">8</text>
+      <text x="291.56" y="305.7">11.3</text>
+      <text x="349.87" y="305.7">16</text>
+      <text x="408.18" y="305.7">22.6</text>
+      <text x="466.49" y="305.7">32</text>
+      <text x="524.8" y="305.7">45.3</text>
+      <text x="262.4" y="335" font-weight="900">Time (ms)</text>
+    </g>
+    <text x="392" y="75" fill="#fff" font-family="Helvetica,Arial,sans-serif" font-size="13" font-style="italic" font-weight="400" opacity=".8" text-anchor="middle">Worse than Exact</text>
+  </g>
+
+
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="width:600px;height:400px">
+      <style type="text/css">
+        .apexcharts-legend{display:flex;overflow:auto;padding:0 10px}.apexcharts-legend.apx-legend-position-bottom{flex-wrap:wrap}.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center{justify-content:center;align-items:center}.apexcharts-legend-series{line-height:normal;display:flex;align-items:center}.apexcharts-legend-text{position:relative;font-size:14px}.apexcharts-legend-marker *,.apexcharts-legend-text *{pointer-events:none}.apexcharts-legend-marker{position:relative;display:flex;align-items:center;justify-content:center;margin-right:1px}
+      </style>
+
+      <div class="apexcharts-legend apexcharts-align-center apx-legend-position-bottom" style="right:0;position:absolute;left:0;top:371px;max-height:200px">
+        <div class="apexcharts-legend-series" style="margin:4px 5px">
+          <svg xmlns="http://www.w3.org/2000/svg" class="apexcharts-legend-marker" width="20" height="20">
+            <path cx="0" cy="0" fill="#008ffb" fill-opacity="1" stroke="#008ffb" stroke-linecap="butt" stroke-opacity="1" stroke-width="3" d="M-5-5 5 5M-5 5 5-5" shape="cross" style="transform:translate(50%,50%)"/>
+          </svg>
+          <span class="apexcharts-legend-text" style="color:#f6f7f8;font-size:12px;font-weight:400;font-family:Helvetica,Arial,sans-serif">
+              Point
+          </span>
+        </div>
+        <div class="apexcharts-legend-series" style="margin:4px 5px">
+          <svg xmlns="http://www.w3.org/2000/svg" class="apexcharts-legend-marker" width="20" height="20">
+            <path cx="0" cy="0" fill="#00e396" fill-opacity="1" stroke="#00e396" stroke-linecap="butt" stroke-opacity="1" stroke-width="3" d="M-6.25 0h12.5M0-6.25v12.5" shape="plus" style="transform:translate(50%,50%)"/>
+          </svg>
+          <span class="apexcharts-legend-text" style="color:#f6f7f8;font-size:12px;font-weight:400;font-family:Helvetica,Arial,sans-serif">
+              Line
+          </span>
+        </div>
+        <div class="apexcharts-legend-series" style="margin:4px 5px">
+          <svg xmlns="http://www.w3.org/2000/svg" class="apexcharts-legend-marker" width="16" height="16">
+            <path cx="0" cy="0" fill="#feb019" fill-opacity="1" stroke="#fff" stroke-linecap="butt" stroke-opacity=".9" stroke-width="1" d="m0-7.32 2.59 4.73L7.32 0 2.59 2.59 0 7.32l-2.59-4.73L-7.32 0l4.73-2.59z" shape="sparkle" style="transform:translate(50%,50%)"/>
+          </svg>
+          <span class="apexcharts-legend-text" style="color:#f6f7f8;font-size:12px;font-weight:400;font-family:Helvetica,Arial,sans-serif">
+              Exact
+          </span>
+        </div>
+      </div>
+    </div>
+  </foreignObject>
+</svg>
