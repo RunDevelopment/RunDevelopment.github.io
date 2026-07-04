@@ -7,14 +7,15 @@ import { FancyText } from "./FancyText";
 export interface PostCardProps {
     meta: PostMetadata;
     showYear?: boolean;
+    showTags?: boolean;
 }
-export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
+export const PostCard = memo(({ meta, showYear = false, showTags = false }: PostCardProps) => {
     const href = `/blog/${meta.slug}`;
 
     return (
-        <div className="my-4 flex flex-row gap-4 -mr-1">
+        <div className="my-6 -mr-1 flex flex-row gap-4">
             <span
-                className="block w-4 shrink-0 rounded-xl -my-0.5"
+                className="-my-0.5 block w-4 shrink-0 rounded-xl"
                 tabIndex={-1}
                 style={{ background: meta.color }}
             />
@@ -22,18 +23,24 @@ export const PostCard = memo(({ meta, showYear = false }: PostCardProps) => {
                 <h3>
                     <Link
                         href={href}
-                        className="line-clamp-2 text-lg leading-tight text-blue-300 transition-colors hover:text-blue-400 md:line-clamp-1"
+                        className="-mt-1 line-clamp-2 py-1 text-lg leading-tight text-blue-300 transition-colors hover:text-blue-400 md:line-clamp-1"
                     >
                         <FancyText text={meta.title} />
                         {meta.draft && " [DRAFT]"}
                     </Link>
                 </h3>
-                <p className="mt-1 text-sm text-zinc-400">
+                <p className="line-clamp-1 text-xs text-zinc-400 xs:text-sm">
                     <span>{formatDateString(meta.datePublished, showYear)}</span>
-                    <span className="px-2">-</span>
+                    <span className="px-1 opacity-50">{" / "}</span>
                     <span>{meta.minutesToRead} min read</span>
+                    {showTags && (
+                        <>
+                            <span className="px-1 opacity-50">{" / "}</span>
+                            <span>{meta.tags.map((t) => "#" + t).join(" ")}</span>
+                        </>
+                    )}
                 </p>
-                <p className="mt-0.5 line-clamp-3 text-pretty leading-snug">
+                <p className="mt-1 line-clamp-3 text-pretty leading-snug">
                     <FancyText text={meta.description} />
                 </p>
             </div>

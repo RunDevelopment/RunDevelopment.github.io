@@ -33,7 +33,8 @@ export default async function Home() {
                 <p className="my-4">
                     Pretty much everything I do is open source and can be found on{" "}
                     <TextLink href="https://github.com/RunDevelopment">my Github</TextLink>, but
-                    some of my projects are also <TextLink href="/projects">here on this website</TextLink>.
+                    some of my projects are also{" "}
+                    <TextLink href="/projects">here on this website</TextLink>.
                 </p>
                 <p className="my-4">
                     Sometimes <TextLink href="/blog">I write about things</TextLink> I find

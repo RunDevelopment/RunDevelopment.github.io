@@ -2,10 +2,11 @@ import Link from "next/link";
 
 interface TagButtonProps {
     tag: string;
+    count?: number;
     onClick: () => void;
     selected: boolean;
 }
-export function TagButton({ tag, onClick, selected = false }: TagButtonProps) {
+export function TagButton({ tag, count, onClick, selected = false }: TagButtonProps) {
     return (
         <button
             className="cursor-pointer rounded bg-slate-800 px-2 py-1 text-blue-300 transition-colors hover:text-blue-100 data-[selected]:bg-slate-700 data-[selected]:text-blue-100"
@@ -13,6 +14,7 @@ export function TagButton({ tag, onClick, selected = false }: TagButtonProps) {
             data-selected={selected || undefined}
         >
             #{tag}
+            {count !== undefined && <span className="ml-1 text-sm text-zinc-400">({count})</span>}
         </button>
     );
 }

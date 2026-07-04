@@ -17,9 +17,18 @@ export const metadata: Metadata = {
 export default async function Page() {
     const info = await getPostsInfo();
 
+    const tagCounts: Record<string, number> = {};
+    for (const [, posts] of info.byYear) {
+        for (const post of posts) {
+            for (const tag of post.tags) {
+                tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
+            }
+        }
+    }
+
     return (
         <BasicPage selectedLink="blog">
-            <BlogPage info={info} />
+            <BlogPage info={info} tagCounts={tagCounts} />
         </BasicPage>
     );
 }

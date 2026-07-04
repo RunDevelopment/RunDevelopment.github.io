@@ -6,7 +6,13 @@ import { TagButton } from "../../components/TagList";
 import { PostCard } from "../../components/PostCard";
 import { H2 } from "../headings";
 
-export default function PostsPage({ info }: { info: PostsInfo }) {
+export default function PostsPage({
+    info,
+    tagCounts,
+}: {
+    info: PostsInfo;
+    tagCounts: Record<string, number>;
+}) {
     const { allTags, byYear } = info;
     const [selectedTag, setSelectedTag] = useState<string | undefined>();
 
@@ -33,6 +39,7 @@ export default function PostsPage({ info }: { info: PostsInfo }) {
                     <TagButton
                         key={tag}
                         tag={tag}
+                        count={tagCounts[tag]}
                         selected={tag === selectedTag}
                         onClick={() => {
                             setSelectedTag(tag === selectedTag ? undefined : tag);
@@ -53,7 +60,7 @@ export default function PostsPage({ info }: { info: PostsInfo }) {
                         <H2>{year}</H2>
                         <div className="narrow">
                             {posts.map((post) => (
-                                <PostCard key={post.slug} meta={post} />
+                                <PostCard key={post.slug} meta={post} showTags />
                             ))}
                         </div>
                     </React.Fragment>
