@@ -56,18 +56,11 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
     if (metadata.image) {
         metadata.imageInlinePreviewData = await generateInlineImagePreviewData(metadata.image);
     }
-    if (metadata.imageSmall) {
-        const imagePath = path.join(fileDir, decodeURIComponent(metadata.imageSmall));
-        metadata.imageSmallInlinePreviewData = await generateInlineImageSmallPreviewData(imagePath);
-    }
 
     // image URLs
     const imageUrls = getImageUrls(markdown);
     if (metadata.image) {
         imageUrls.push(metadata.image);
-    }
-    if (metadata.imageSmall) {
-        imageUrls.push(metadata.imageSmall);
     }
 
     const imageUrlMapping: Record<string, string> = {};
@@ -101,9 +94,6 @@ const getPost = timedCached(2000, async (id: InternalPostId): Promise<PostWithIn
     if (metadata.image) {
         metadata.image = imageUrlMapping[metadata.image] || metadata.image;
     }
-    if (metadata.imageSmall) {
-        metadata.imageSmall = imageUrlMapping[metadata.imageSmall] || metadata.imageSmall;
-    }
 
     return { post: { metadata, markdown, imageUrlMapping, imageSizes }, id, referencedImageFiles };
 });
@@ -123,7 +113,6 @@ interface FrontMatter {
     tags: string;
     image: string;
     imageLoad: string;
-    imageSmall: string;
     imageFadeColor: string;
     color: string;
 }
@@ -151,7 +140,6 @@ function getMetadata(frontMatter: PartialNull<FrontMatter>, markdown: string): P
 
     const color = frontMatter.color ?? getPostColor(slug);
     const image = frontMatter.image ?? undefined;
-    const imageSmall = frontMatter.imageSmall ?? image?.replace(/\.(\w+)$/, "_small.$1");
     const imageFadeColor = frontMatter.imageFadeColor ?? undefined;
 
     const tags = (frontMatter.tags ?? "")
@@ -176,7 +164,6 @@ function getMetadata(frontMatter: PartialNull<FrontMatter>, markdown: string): P
         tags,
         color,
         image,
-        imageSmall,
         imageFadeColor,
         minutesToRead,
     };
@@ -239,32 +226,6 @@ async function generateInlineImagePreviewData(imagePath: string): Promise<string
         return toBase64Image(imageBytes, format);
     } catch (e) {
         console.error(`Error inlining image load for ${imagePath}:`, e);
-        return undefined;
-    }
-}
-
-async function generateInlineImageSmallPreviewData(imagePath: string): Promise<string | undefined> {
-    try {
-        const format = "avif" as const;
-        const options: InlinePreviewOptions = {
-            height: 96,
-            width: 80,
-            fit: "cover",
-            maxBytes: 800,
-            format,
-            maxQuality: 80,
-        };
-        const cachePath = await cachedImageFile(
-            imagePath,
-            "preview-small-#." + format,
-            options,
-            createInlineImagePreview,
-        );
-        const imageBytes = await fs.readFile(cachePath);
-
-        return toBase64Image(imageBytes, format);
-    } catch (e) {
-        console.error(`Error inlining image small load for ${imagePath}:`, e);
         return undefined;
     }
 }

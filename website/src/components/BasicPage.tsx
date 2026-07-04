@@ -56,7 +56,7 @@ async function Header({
                             height="32"
                             className="mr-3 inline h-full rounded-full transition-transform duration-[400ms] group-hover:rotate-[360deg] group-hover:scale-125"
                         />
-                        <span>Home</span>
+                        <span>About</span>
                     </HeaderLink>
                     <span className="grow" />
                     <HeaderLink href="/blog" className="px-3" selected={selectedLink === "blog"}>

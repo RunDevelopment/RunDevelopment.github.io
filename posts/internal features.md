@@ -20,6 +20,8 @@ Articles have YAML frontmatter to specify metadata. The following fields are sup
 ---
 # required
 
+# Title of the article
+title: string
 # The date the article was published.
 datePublished: YYYY-MM-DD
 # A single sentence describing the article.
@@ -37,12 +39,12 @@ inlineCodeLanguage: string | null = null
 slug: string | null = null
 # A space-separated list of tags. E.g. "rust math".
 tags: string = ""
-# The cover image of the article. E.g. "./images/cover.jpg".
-image: string | null = null
-# The small image shows as the article's thumbnail. E.g. "./images/cover_small.jpg".
-imageSmall: string | null = null
 # The cover color of the article. E.g. "#f0f0f0". If no color is given, a random color will be generated.
 color: string | null = null
+# The cover image of the article. E.g. "./images/cover.jpg".
+image: string | null = null
+# The color the image will fade out to. E.g. "#000". If `image` is specified, this should also be specified
+imageFadeColor: string | null = null
 ---
 ```
 
@@ -50,8 +52,8 @@ Additional notes:
 
 - `description` will be used both for post cards and for the meta description.
 - `datePublished` and `dateModified` must be in the format `YYYY-MM-DD`.
-- `image`/`imageSmall` must be either a file path relative to the article's `.md` file or a URL.
-- `color` must be a valid CSS color and should ideally go together with `image`.
+- `image` must be either a file path relative to the article's `.md` file or a URL.
+- `color` and `imageFadeColor` must be a valid CSS color and should ideally go together with `image`.
 
 Also, when an article is marked as draft, it will not be deployed to the website. Draft-mode also enables TODOs, which are highlighted in the text.
 

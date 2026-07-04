@@ -26,9 +26,6 @@ export interface PostMetadata {
     image?: string;
     /** A data URL containing a tiny version of `image` */
     imageInlinePreviewData?: string;
-    imageSmall?: string;
-    /** A data URL containing a tiny version of `imageSmall` */
-    imageSmallInlinePreviewData?: string;
     imageFadeColor?: string;
     minutesToRead: number;
 }

@@ -5,10 +5,9 @@ description: A visualization of BC4 block compression error for all possible enc
 inlineCodeLanguage: rust
 tags: compression bcn
 
-image: ./m31-whiteout-edit.avif
-imageSmall: ./m31-whiteout-small.avif
-imageFadeColor: "#10131E"
 color: "#d9552d"
+image: ./m31-whiteout-edit.avif
+imageFadeColor: "#10131E"
 ---
 
 [BC4](https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-block-compression#bc4) is a single-channel compressed image format. It divides the image into 4×4 pixel blocks and compresses each block independently. Block compression works by selecting two 8-bit endpoints and interpolating between them to create a palette of 8 values. Finally, each pixel in a block is represented by the closest value in the palette.
