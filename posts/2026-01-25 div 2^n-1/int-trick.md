@@ -5,10 +5,9 @@ description: Fast methods for division by 2^n-1 with different rounding for unsi
 inlineCodeLanguage: rust
 tags: optimization math division
 
-image: ./m38_2026-01-25.avif
-imageSmall: ./m38_2026-01-25_small.avif
-imageFadeColor: "#070B11"
 color: "#e8a47d"
+image: ./m38_2026-01-25.avif
+imageFadeColor: "#070B11"
 ---
 
 $$

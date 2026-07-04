@@ -5,10 +5,9 @@ draft: true
 tags: math optimization compilers
 inlineCodeLanguage: rust
 
-image: ./m34 org.avif
-imageSmall: ./m34_small.webp
-imageFadeColor: "#0A0D18"
 color: "#9b0029"
+image: ./m34 org.avif
+imageFadeColor: "#0A0D18"
 ---
 
 Integer division by a constant has long been the subject of optimization by all major compilers. As division is a rather slow operation on modern CPUs, compilers employ strategies to replace division with cheaper operations producing equivalent results. One such strategy is the multiply-add method. It works as follows:

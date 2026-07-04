@@ -5,9 +5,9 @@ description: Performant and high-quality image thresholding (binarization) with 
 inlineCodeLanguage: rust
 tags: rust anti-aliasing threshold math
 
-image: "m31.avif"
-imageSmall: "m31_small.webp"
 color: "#418289"
+image: "m31.avif"
+imageFadeColor: "#0A0D18"
 ---
 
 I had a problem some time ago: I wanted to apply a threshold to an image to get a black-and-white version. This is easy enough in most image-editing programs and image libraries (like OpenCV). For example, here's a threshold applied to a masterful artwork:

@@ -6,10 +6,9 @@ description: Optimizing the conversion of 5-bit unorms to 8-bit unorms in Rust.
 inlineCodeLanguage: rust
 tags: rust optimization unorm
 
-image: ./ds3-m32-2024-09-19.avif
-imageSmall: ./ds3-m32-2024-09-19_small.avif
-imageFadeColor: "#E6F3F4"
 color: "#55b0ed"
+image: ./ds3-m32-2024-09-19.avif
+imageFadeColor: "#E6F3F4"
 ---
 
 $$
