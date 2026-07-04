@@ -10,17 +10,17 @@ imageSmall: "m31_small.webp"
 color: "#418289"
 ---
 
-A while ago, I had a problem: I wanted to apply a threshold filter to an image, to get a black-and-white version of it. This is easy enough in most image-editing programs and image libraries (e.g. OpenCV). Example:
+I had a problem some time ago: I wanted to apply a threshold to an image to get a black-and-white version. This is easy enough in most image-editing programs and image libraries (like OpenCV). For example, here's a threshold applied to a masterful artwork:
 
 ![Bold and Brash](./threshold-47p.webp)
 
-However, they all produce images that are _only_ pure black and pure white:
+However, all pixels in the thresholded image are _only_ pure black or pure white:
 
 ![Bold and Brash](./threshold-47p-zoom.webp)
 
-The once smooth lines of the original image have been replaced by a series of black-and-white steps. Of course, that's to be expected. Regular thresholding produces pixels that are either pure black or pure white. No in-betweens. Sometimes that's desirable, sometimes not.
+The once smooth lines of the original have been replaced by a series of black-and-white steps. Of course, that's to be expected. It's what regular thresholding does. Pure black and white with no in-betweens. Sometimes that's desirable, sometimes not.
 
-In my case, I wanted to keep the smooth lines of the original in the thresholded image. In other words, I needed anti-aliasing.
+In my case, I wanted to keep the smooth lines and sub-pixel details of the original in the thresholded image. In other words, I needed anti-aliasing.
 
 ## Contents
 
@@ -28,7 +28,7 @@ In my case, I wanted to keep the smooth lines of the original in the thresholded
 
 Since aliasing is ([somewhat definitionally](https://en.wikipedia.org/wiki/Aliasing)) caused by insufficient samples, the simplest way to reduce aliasing is to increase the number of samples.
 
-One extremely simple way to do this is to resize the image to a larger size, apply the threshold, and then resize it back to the original size. Like this:
+One extremely simple way of doing this is to resize the image to a larger size, apply the threshold, and then resize it back down to its original size. Like so:
 
 1. Scale up the image by 800% (with linear interpolation).
 2. Threshold the scaled up image.
@@ -42,9 +42,11 @@ Note that smooth lines aren't all we get. Lines have cleaner edges, which makes 
 
 ![Bold and Brash](./thin-detail-compare.webp)
 
+Nice!
+
 ### Why does this work?
 
-The trick is that scaling up the image before thresholding it gives us multiple thresholding samples per pixel. A kind of [supersampling anti-aliasing](https://en.wikipedia.org/wiki/Supersampling) (SSAA) in a sense.
+Scaling up the image before thresholding it gives multiple thresholding samples per pixel. A kind of [supersampling anti-aliasing](https://en.wikipedia.org/wiki/Supersampling) (SSAA) in a sense.
 
 To talk a bit more about the details: The problem with regular thresholding is that rasterized images only have a finite resolution. A pixel (typically) represents the _average_ signal strength of the area it covers (usually light intensity). Applying a threshold to this average will give a different result than applying the same threshold to the original signal and then averaging.
 
@@ -58,7 +60,7 @@ So for thresholding with anti-aliasing, we ideally want to apply the threshold t
 
 Unfortunately, this is impossible. The original signal (generally) cannot be reconstructed from a rasterized image. To get around this, we (crudely) approximate the original signal by scaling up the rasterized image. Far from perfect, but this is as closest as we can get to the original signal (in reasonable time).
 
-I used linear interpolation because it's simple, fast, and gives similar results to more sophisticated filters such as Lanczos. Other methods, such as upscaling based on neural networks, can give better results but are significantly more expensive to compute. Linear interpolation also has certain nice properties that I will use later on.
+I used linear interpolation because it's simple, fast, and gives similar results to more sophisticated filters such as Lanczos. Other methods, such as upscaling based on neural networks, can give better results but are significantly more expensive to compute. Linear interpolation also has certain nice properties that come in handy later
 
 ## Performance
 
@@ -74,7 +76,7 @@ The benchmark measures all operations using an in-memory image. The original ima
 
 <div class="info">
 
-I used the above image, because it has a lot of details, clearly visible dark and bright areas, and a mix of low-frequency and high-frequency features.
+I used the above image, because it has lots of details, clearly visible dark and bright areas, and a mix of low-frequency and high-frequency features.
 
 The [original image](https://pxhere.com/en/photo/1118987) is CC0 by an unknown author. I converted it to grayscale and resized it to 1000×1000 pixels.
 
@@ -91,7 +93,7 @@ Here are the results:
 
 Look at those units. Thresholding with 800% upscaling is over 1000x slower than regular thresholding. This is somewhat expected since regular thresholding is extremely SIMD-friendly, cache-friendly, and only does one pass over the image. So not only is the resizing method for anti-aliasing slow, regular thresholding is also very fast, causing the huge performance difference we see.
 
-While there is no chance of getting close to the performance of regular thresholding, we can do a lot better than 1000x slower.
+While there is no chance of getting close to the performance of regular thresholding, we can do better than 1000x slower.
 
 ## Interpolation without resizing
 
@@ -125,7 +127,7 @@ Unfortunately, there's a slight issue. When interpolating an image, we generally
 
 ![3×3 image with bilinear interpolation](./3x3-interpolation.svg)
 
-Consequently, one bilinear kernel is not sufficient. To get samples for a one pixel cell, we need to consider 4 bilinear kernels derived from the 3×3 neighborhood of the pixel. More precisely, only the part of each kernel that intersects the pixel cell is to be considered. Each intersection is exactly one quadrant of a kernel, so the full pixel cell is covered by the 4 quadrants (Q1-Q4) from the 4 kernels.
+Consequently, one bilinear kernel is not sufficient. We need to consider the 4 bilinear kernels in the 3×3 neighborhood around the pixel. And of these 4 kernels, only the parts that intersect the pixel cell are relevant. Each intersection is exactly one quadrant of a kernel, so the full pixel cell is covered by 4 quadrants (Q1-Q4) from the 4 kernels.
 
 ![3×3 image with 4 quadrants for the center pixel](./3x3-quadrants.svg)
 
@@ -139,7 +141,7 @@ In general, any rectangle inside a bilinear kernel is itself a bilinear kernel.
 
 Sampling is rather simple. I use a regular N×N sample grid per quadrant for a total of N×N×4 samples per pixel. Simply count the samples above the threshold and divide by the number of sample to get the percentage of samples above the threshold.
 
-For now, I will use 4×4 samples per quadrant (64 samples per pixel) since it's the same number of samples as upscaling by 800%. Consequently, the scaling method and this new interpolation method produce equivalent results (ignoring minor rounding differences). However, the interpolation method is faster and uses no additional memory.
+For now, I will use 4×4 samples per quadrant (64 samples per pixel) since it's the same number of samples as upscaling by 800%. Consequently, the resize method and this new interpolation method produce equivalent results (ignoring minor rounding differences). However, the interpolation method is faster and uses no additional memory.
 
 | Method         | Time      | Relative | Additional memory  |
 | -------------- | --------- | -------- | ------------------ |
@@ -147,7 +149,7 @@ For now, I will use 4×4 samples per quadrant (64 samples per pixel) since it's 
 | `resize 800%`  | 44.613 ms | 1280x    | 64 bytes per pixel |
 | `interp 4x4x4` | 24.217 ms | 695x     | 0                  |
 
-Around 2x faster, but there is low-hanging fruit.
+Around 2x faster, but there is more low-hanging fruit.
 
 ### Skipping pixels
 
