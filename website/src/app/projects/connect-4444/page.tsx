@@ -1,6 +1,7 @@
 import React from "react";
 import { Metadata } from "next";
 import { GamePage } from "./Board";
+import PageSettings from "../../../components/PageSettings";
 
 export const metadata: Metadata = {
     title: "Connect 4444",
@@ -14,5 +15,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-    return <GamePage />;
+    return (
+        <>
+            <PageSettings noHeader pageBg="black" />
+            <GamePage />
+        </>
+    );
 }
