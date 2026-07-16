@@ -1,16 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
-const MAX_PARTICLES = 100;
+const PARTICLE_COUNT = 200;
 const BOX_SIZE = 100; // How many units the box of universe is large
 const MAX_SPEED = 20; // units per second
 
 const START_SPEED = [0.1, 1]; // units per second, min and max
 
 export default function Particles() {
-    const [particles, setParticles] = useState<Particle[]>(() =>
-        Array.from({ length: MAX_PARTICLES }, () => {
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const SIZE_FACTOR = 0.2;
+
+    useEffect(() => {
+        // initialize particles
+        let particles = Array.from({ length: PARTICLE_COUNT }, () => {
             const x = Math.random() * BOX_SIZE;
             const y = Math.random() * BOX_SIZE;
             const vx =
@@ -20,48 +25,62 @@ export default function Particles() {
             const p = new Particle(x, y, vx, vy);
             p.size = Math.random() + 1;
             return p;
-        }),
-    );
+        });
 
-    // ticks
-    useEffect(() => {
-        let last: number | undefined = undefined;
-        let stop = false;
+        const renderParticles = () => {
+            const container = containerRef.current;
+            if (!container) return;
+
+            // create particle elements
+            while (container.children.length < particles.length) {
+                const p = particles[container.children.length];
+                const el = document.createElement("span");
+                el.style.width = `calc(max(2px, ${p.size * SIZE_FACTOR}vmin))`;
+                el.style.height = `calc(max(2px, ${p.size * SIZE_FACTOR}vmin))`;
+                el.style.left = `50vw`;
+                el.style.top = `50vh`;
+                container.appendChild(el);
+            }
+            if (container.children.length > particles.length) {
+                while (container.children.length > particles.length) {
+                    container.removeChild(container.lastChild!);
+                }
+            }
+
+            // const vw = window.innerWidth;
+            // const vh = window.innerHeight;
+            // const vmax = Math.max(vw, vh) / 100;
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                const el = container.children[i] as HTMLSpanElement;
+                if (!el) continue;
+                el.style.transform = `translate3d(${p.x - 50}vmax, ${p.y - 50}vmax, 0)`;
+            }
+        };
+
+        // update loop
+        let frameId: number;
+        let lastTimestamp: number | undefined = undefined;
+
         const step = (timestamp: number) => {
-            if (stop) return;
-            const dt = (timestamp - (last ?? timestamp)) / 1000;
-            last = timestamp;
-            setParticles((particles) => {
-                return updateParticles(particles, Math.min(dt, 0.05)); // don't go below 20 FPS
-            });
-            requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
+            const dt = (timestamp - (lastTimestamp ?? timestamp)) / 1000;
+            lastTimestamp = timestamp;
 
-        return () => {
-            stop = true;
+            particles = updateParticles(particles, Math.min(dt, 0.05)); // don't go below 20 FPS
+            renderParticles();
+
+            frameId = requestAnimationFrame(step);
         };
+        frameId = requestAnimationFrame(step);
+
+        return () => cancelAnimationFrame(frameId);
     }, []);
 
-    const SIZE_FACTOR = 0.2;
-
     return (
-        <div>
-            {particles.map((p, i) => {
-                return (
-                    <span
-                        key={i}
-                        className="absolute rounded-full bg-white opacity-50"
-                        style={{
-                            width: `calc(max(2px, ${p.size * SIZE_FACTOR}vmin))`,
-                            height: `calc(max(2px, ${p.size * SIZE_FACTOR}vmin))`,
-                            left: `calc(50vw + ${p.x - 50}vmax)`,
-                            top: `calc(50vh + ${p.y - 50}vmax)`,
-                        }}
-                    ></span>
-                );
-            })}
-        </div>
+        <>
+            <style>{`#particles > span { position: absolute; background: white; opacity: 0.5; border-radius: 100%; }`}</style>
+            <div ref={containerRef} id="particles" className="contain-layout" />
+        </>
     );
 }
 
@@ -90,7 +109,7 @@ function updateParticles(particles: readonly Particle[], dt: number): Particle[]
         p = p.clone();
 
         // particles are attracted to each other
-        const ATTRACTION = 1;
+        const ATTRACTION = 100 / PARTICLE_COUNT;
         for (const other of particles) {
             if (other === p) continue;
             const dx = other.x - p.x;
