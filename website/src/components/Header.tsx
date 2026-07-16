@@ -35,7 +35,7 @@ export default async function Header() {
 
     return (
         <header className="z-10 w-full bg-black">
-            <div className="z-10 mx-auto box-content max-w-[calc(var(--page-narrow-width)+1.5rem)] p-1">
+            <div className="z-10 mx-auto box-content max-w-[calc(var(--header-width)+1.5rem)] p-1">
                 <nav className="box-content flex rounded-full bg-black/60 p-3 align-middle xs:text-lg">
                     <HeaderLink href="/" className="group pr-3" kind="home">
                         {/* eslint-disable-next-line @next/next/no-img-element */}

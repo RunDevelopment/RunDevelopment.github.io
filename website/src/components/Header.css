@@ -1,3 +1,8 @@
+:root {
+    --header-width: var(--page-width, 720px);
+    --header-height: 64px;
+}
+
 @media print {
     header {
         display: none;
