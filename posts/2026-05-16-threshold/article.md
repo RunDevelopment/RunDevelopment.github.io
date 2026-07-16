@@ -479,46 +479,47 @@ Note: These constants are similar to the ones defined before for $v$, but $d$ ha
 Solving $s(x,y) = axy + bx + cy + d=0$ for $y$ gives a new function in $x$, which describes the edge between the area above and below the threshold:
 
 $$
-f(x) = -(xb + d) / (xa + c)
+f(x) = -\frac{xb + d}{xa + c}
 $$
 
 <div class="info" data-title="Edge case: $a=0$">
 
-With $a=0$, $f(x)$ simplifies to a linear function, integration of which is easy. I will not cover this case. Suffices to say that both $c=0$ and $b=0$ are inconvenient but not difficult to handle.
+With $a=0$, $f(x)$ simplifies to a linear function, integration of which is relatively easy. I will not cover this case. Suffices to say that both $c=0$ and $b=0$ are inconvenient but not difficult to handle.
+
+From now on, assume $a\ne 0$.
 
 </div>
 
-Next, [integrating $dx$](https://www.wolframalpha.com/input?i=integrate+-%28xb+%2B+d%29+%2F+%28xa+%2B+c%29+dx) gives:
-
-$$
-F(x) = \frac{(bc - ad) \cdot \ln(ax + c) - abx}{a^2} + \text{constant}
-$$
-
-Define constants $p=b/a$ and $q=(bc - ad)/a^2$ to simply:
-
-$$
-F(x) = q \ln(ax + c) - px + \text{constant}
-$$
-
-Then the area $A$ under the curve $f$ from $x_0$ to $x_1$ is:
-
-$$
-\begin{split}
-A(x_0,x_1) &= F(x_1) - F(x_0) \\
-&= q (\ln(ax_1+c) - \ln(ax_0+c)) - p(x_1-x_0) \\
-&= q \ln\frac{ax_1+c}{ax_0+c} - p(x_1-x_0)
-\end{split}
-$$
-
-Note that $\ln$ in $F$ is [the (principal) complex-valued logarithm](https://en.wikipedia.org/wiki/Complex_logarithm). Since $A(x_0,x_1)$ is to be a real number, we require $(ax_1+c)/(ax_0+c)>0$. This is the case when $ax_0+c$ and $ax_1+c$ are non-zero and have the same sign, which is the case iff $\lnot(x_0 \le -c/a \le x_1)$.
-
-The value $-c/a$ comes from the fact that $f$ has a pole at $x=-c/a$. This is easy to see by rewriting $f$ as:
+Before moving on to integration, I want to analyze $f$ a bit more. The function can be rewritten with the constants $p=b/a$ and $q=(bc - ad)/a^2$ $f$ like so:
 
 $$
 f(x) = \frac{q}{x+c/a}-p
 $$
 
-This form also reveals the true nature of $f$: it's the standard $1/x$ hyperbola, just translated and scaled.
+This form reveals a few interesting properties:
+
+1. $f$ is the standard 1/x hyperbola, just shifted and scaled.
+2. $f$ has a vertical pole at $x = -c/a$. _(This will be important.)_
+3. $f$ has a horizontal pole at $y = -b/a$.
+
+Moving on to [integrating $dx$](https://www.wolframalpha.com/input?i=integrate+-%28xb+%2B+d%29+%2F+%28xa+%2B+c%29+dx):
+
+$$
+F(x) := \int f(x) \, dx \ = \ q \ln(ax + c) - px + \text{constant}
+$$
+
+Let $A(x_0,x_1)$ be the area under the curve $f$ from $x_0$ to $x_1$:
+
+$$
+\begin{split}
+A(x_0,x_1) &= \int_{x_0}^{x_1} f(x) \, dx \\
+&= F(x_1) - F(x_0) \\
+&= q (\ln(ax_1+c) - \ln(ax_0+c)) - p(x_1-x_0) \\
+&= q \ln\frac{ax_1+c}{ax_0+c} - p(x_1-x_0)
+\end{split}
+$$
+
+Note that $\ln$ in $F$ is [the (principal) complex-valued logarithm](https://en.wikipedia.org/wiki/Complex_logarithm). Since $A(x_0,x_1)$ must be a real number, we require $(ax_1+c)/(ax_0+c)>0$. This is the case iff $-c/a\notin[x_0,x_1]$. In other words, the interval $[x_0,x_1]$ must not contain the vertical pole of $f$.
 
 ### Splitting the hyperbola
 
@@ -552,7 +553,7 @@ To determine the area of the default kernel visualized above, simply split the k
 ![](./kernel-split3.webp)
 
 1. Section 1 covers the range $x \in [0,0.4]$. The area above the threshold is $A(0, 0.4)\approx 0.28047$.
-2. Section 2 covers the range $x \in [0.4,0.6]$. Since this section contains the pole x=0.5, $A$ cannot be used. However, this section is fully above the threshold, so the area above the threshold is simply $0.2$.
+2. Section 2 covers the range $x \in [0.4,0.6]$. Since this section contains the pole $x=0.5$, $A$ cannot be used. However, this section is fully above the threshold, so the area above the threshold is simply $0.2$.
 3. Section 3 covers the range $x \in [0.6,1]$. The area above the threshold is $(1 - 0.6) - A(0.6, 1)\approx 0.28047$.
 
 Together, the area of all three sections is around 0.76094 or 76.094%. Just like the interactive visualization says.
@@ -582,7 +583,9 @@ Example:
 }
 ```
 
-This special case can either be handled separately, or by careful implementation of $A$. Only the $ln$ term inside $A$ is undefined (or imaginary) for such kernels, but since $q=0$ "removes" the $ln$ term, $A$ can still be implemented in a way that it works for $q=0$ kernels without any special handling.
+This special case can either be handled separately or by careful implementation of $A$.
+
+From now on, assume $q \ne 0$.
 
 </div>
 
@@ -594,7 +597,6 @@ $$
 \begin{split}
 i_0 &= \frac q p - \frac c a = -\frac d b \\
 i_1 &= \frac q {p + 1} - \frac c a = -\frac {c+d} {a+b}
-
 \end{split}
 $$
 
@@ -611,7 +613,7 @@ The area above the threshold of a section $S_j = [x_0, x_1]$ where $0 \le x_0 < 
 - Case 1: The section is fully above or fully below the threshold.
 
     This is the case if either
-    - $x_0 < -c/a < x_1$ (the sections the (vertical) pole),
+    - $-c/a \in(x_0,x_1)$ (the section contains the vertical pole),
     - $s(x_m,0) \le 0 \land s(x_m,0) \le 0$, or
     - $s(x_m,0) \ge 0 \land s(x_m,0) \ge 0$.
 
