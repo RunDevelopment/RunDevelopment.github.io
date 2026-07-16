@@ -8,6 +8,11 @@ const MAX_SPEED = 20; // units per second
 
 const START_SPEED = [0.1, 1]; // units per second, min and max
 
+// How this is fast:
+// 1. DOM nodes are managed manually. No React.
+// 2. Use `transform: translate3d` instead of top/left to avoid page layout reflows.
+// 3. Use `will-change: transform` to hint the browser to optimize for transforms.
+
 export default function Particles() {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -78,7 +83,7 @@ export default function Particles() {
 
     return (
         <>
-            <style>{`#particles > span { position: absolute; background: white; opacity: 0.5; border-radius: 100%; }`}</style>
+            <style>{`#particles > span { position: absolute; background: white; opacity: 0.5; border-radius: 100%; will-change: transform; }`}</style>
             <div ref={containerRef} id="particles" className="contain-layout" />
         </>
     );
