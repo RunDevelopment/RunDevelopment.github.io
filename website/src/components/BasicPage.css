@@ -1,6 +1,7 @@
 :root {
     --page-width: 1024px;
     --page-narrow-width: 720px;
+    --header-width: var(--page-narrow-width);
 }
 
 @media print {
