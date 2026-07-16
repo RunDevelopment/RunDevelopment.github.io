@@ -39,13 +39,9 @@
     scrollbar-color: rgb(160 160 160) var(--page-bg);
 
     --page-bg: rgb(24 24 27);
-
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 }
 
 body {
-    font-family: var(--font-sans);
     background: var(--page-bg);
     overflow-y: scroll;
 }
