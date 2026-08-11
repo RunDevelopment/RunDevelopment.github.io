@@ -1,0 +1,13 @@
+---
+import BasicLayout from "../../layouts/BasicLayout.astro";
+import Metadata from "../../layouts/Metadata.astro";
+import { SolutionVisualizer } from "../../react/test/vis";
+---
+
+<BasicLayout headerSelected="projects">
+    <Metadata title="Test" author="Michael Schmidt" slot="meta" />
+
+    <div class="py-8" data-narrow-container>
+        <SolutionVisualizer client:load />
+    </div>
+</BasicLayout>

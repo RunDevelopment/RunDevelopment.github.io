@@ -1,0 +1,72 @@
+<script>
+    function updateMarkers() {
+        let container = document.getElementById("marker-container");
+        if (!container) {
+            container = document.createElement("div");
+            container.id = "marker-container";
+            document.body.appendChild(container);
+        }
+
+        const todoElements = gatherTodoElements();
+        // console.log(todoElements);
+        const tops = todoElements.map((el) => {
+            const docHeight = document.documentElement.scrollHeight;
+            const spanPos = document.documentElement.scrollTop + el.getBoundingClientRect().top;
+            return (spanPos / docHeight) * 100 + "%";
+        });
+
+        for (let i = 0; i < tops.length; i++) {
+            const el = todoElements[i];
+            el.dataset.todoMarked = "";
+            let span = container.children[i] as HTMLElement | undefined;
+            if (!span) {
+                span = document.createElement("span");
+                container.appendChild(span);
+            }
+            span.style.top = tops[i];
+            span.onclick = () => {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+            };
+        }
+
+        while (container.children.length > tops.length) {
+            container.removeChild(container.lastChild!);
+        }
+    }
+
+    function gatherTodoElements() {
+        return [...document.querySelectorAll("p")].filter(
+            (p) => p.textContent.startsWith("TODO") && p.offsetParent !== null,
+        );
+    }
+
+    updateMarkers();
+    setInterval(updateMarkers, 500);
+</script>
+<style is:global>
+    #marker-container {
+        position: fixed;
+        top: 0;
+        right: 0;
+        z-index: 9999;
+        container: layout;
+        overflow: visible;
+    }
+
+    #marker-container > span {
+        position: fixed;
+        right: 0;
+        width: 20px;
+        height: 8px;
+        display: inline-block;
+        background: red;
+        border: 1px solid black;
+        cursor: pointer;
+    }
+
+    [data-todo-marked] {
+        outline: 4px solid red;
+        outline-offset: 0.5rem;
+        background: rgba(255, 0, 0, 0.1);
+    }
+</style>

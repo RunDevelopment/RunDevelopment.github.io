@@ -1,0 +1,45 @@
+---
+export interface Props {
+    title: string;
+    description?: string;
+    keywords?: string;
+    author?: string;
+    article?: {
+        pubDate: string;
+        modDate?: string;
+    };
+    robots?: string;
+}
+
+const { title, description, keywords, author, article, robots } = Astro.props;
+---
+
+<title>{title}</title>
+<meta name="title" content={title} />
+{description && <meta name="description" content={description} />}
+{keywords && <meta name="keywords" content={keywords} />}
+{author && <meta name="author" content={author} />}
+{robots && <meta name="robots" content={robots} />}
+
+{
+    article && (
+        <>
+            <meta name="og:title" content={title} />
+            {description && <meta name="og:description" content={description} />}
+            <meta name="og:type" content="article" />
+            <meta name="article:published_time" content={article.pubDate} />
+            {article.modDate && <meta name="article:modified_time" content={article.modDate} />}
+            {author && <meta name="article:author" content={author} />}
+        </>
+    )
+}
+
+{
+    title && description && (
+        <>
+            <meta name="twitter:card" content="summary" />
+            <meta name="twitter:title" content={title} />
+            <meta name="twitter:description" content={description} />
+        </>
+    )
+}

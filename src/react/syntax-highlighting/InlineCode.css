@@ -1,0 +1,33 @@
+/* specificity hack to override theme.css */
+code.InlineCode.InlineCode {
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.375rem;
+
+    &[data-short] {
+        white-space: pre;
+    }
+    @media (width >= 768px) {
+        white-space: pre;
+    }
+
+    .InlineColor {
+        display: inline-block;
+        width: 0.7em;
+        height: 0.7em;
+        margin-right: 0.25rem;
+        outline: 1px solid white;
+
+        --c1: white;
+        --c2: black;
+        background:
+            linear-gradient(to right, var(--color), var(--color)),
+            repeating-conic-gradient(
+                from 45deg,
+                var(--c1) 0deg 44deg,
+                var(--c2) 46deg 134deg,
+                var(--c1) 136deg 224deg,
+                var(--c2) 226deg 314deg,
+                var(--c1) 316deg 360deg
+            );
+    }
+}

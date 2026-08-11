@@ -1,0 +1,61 @@
+div.Info {
+    position: relative;
+    background-color: var(--color-gray-800);
+    padding: 1px var(--page-px);
+    font-size: 95%;
+    line-height: 1.5;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+
+    @media (width < 768px) {
+        margin: 1.5rem calc(0px - var(--page-px)) !important;
+        max-width: unset !important;
+    }
+
+    & > span {
+        position: absolute;
+        background-color: var(--color-slate-500);
+        opacity: 0.4;
+        display: inline-block;
+        z-index: 1000;
+
+        &.h {
+            height: 4px;
+            width: calc(min(16rem, 70%));
+        }
+        &.v {
+            width: 4px;
+            height: calc(min(10rem, 70%));
+        }
+
+        @media (width < 768px) {
+            &.v {
+                display: none;
+            }
+        }
+    }
+
+    & > .Title {
+        text-box-trim: trim-end;
+        font-family: var(--font-heading);
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    & > .Title + * {
+        margin-top: 0;
+    }
+
+    &::after {
+        /* this element makes sure that there's always 1rem margin between the last element and the end of the container */
+        content: "";
+        display: block;
+        height: 1px;
+        margin-top: 1rem;
+    }
+
+    & > p {
+        /* give text a little more space */
+        margin-right: -0.25rem;
+    }
+}

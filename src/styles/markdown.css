@@ -1,0 +1,375 @@
+article,
+[data-markdown] {
+    @layer components {
+        p {
+            margin: 1rem 0;
+        }
+    }
+
+    strong {
+        font-weight: 700;
+    }
+    em {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 105%; /* make it slightly bigger */
+    }
+    del {
+        text-decoration: line-through;
+        opacity: 0.5;
+    }
+    :not(a) > strong,
+    :not(a) > em {
+        color: white;
+    }
+
+    ol {
+        margin: 1rem 0;
+        list-style: decimal;
+        padding-left: 2.5rem;
+    }
+    ul {
+        margin: 1rem 0;
+        list-style: disc;
+        padding-left: 2.5rem;
+    }
+
+    /* tables */
+
+    div.TableWrapper {
+        overflow-x: auto;
+        margin: 1rem calc(0px - var(--page-px));
+        padding: 0 var(--page-px);
+
+        table {
+            table-layout: auto;
+            margin: 0 auto;
+        }
+        th {
+            color: white;
+            background: var(--color-zinc-950);
+            padding: 0.5rem;
+        }
+        td {
+            padding: 0.25rem 0.5rem;
+        }
+        th,
+        td {
+            border: 2px solid var(--color-zinc-700);
+        }
+        tr:nth-child(even) {
+            background: var(--color-zinc-950);
+        }
+    }
+
+    /* Headings */
+
+    h1 {
+        margin: 0.5rem 0 2.5rem 0;
+        max-width: unset !important;
+
+        font-family: var(--font-heading);
+        font-size: 30px;
+        line-height: 2.5rem;
+        letter-spacing: -2%;
+        text-align: center;
+        text-wrap: balance;
+        color: white;
+
+        @media (width >= 640px) {
+            margin-bottom: 3rem;
+
+            font-size: 2.5rem;
+            line-height: 3rem;
+        }
+    }
+    h2:not(#contents) {
+        margin: 2.5rem 0 2rem 0;
+        padding-top: 2rem;
+        max-width: unset !important;
+
+        font-family: var(--font-heading);
+        font-weight: 500;
+        font-size: 26px;
+        letter-spacing: -3%;
+        color: white;
+        line-height: 1.25;
+        text-align: center;
+        border-bottom: 2px solid var(--color-neutral-400);
+
+        @media (width >= 640px) {
+            font-weight: 400;
+            font-size: 2.25rem;
+            line-height: 1.15;
+        }
+    }
+    h3 {
+        margin-top: 3rem;
+        margin-bottom: 1.125rem;
+        border-bottom: 2px dashed var(--color-neutral-400);
+
+        font-family: var(--font-heading);
+        font-weight: 500;
+        font-size: 1.25rem;
+        line-height: 1.75rem;
+
+        color: white;
+
+        @media (width >= 640px) {
+            font-size: 28px;
+            line-height: 1.25;
+        }
+    }
+    h4 {
+        margin-top: 3rem;
+        margin-bottom: 1rem;
+        border-bottom: 2px dotted var(--color-neutral-400);
+
+        font-family: var(--font-heading);
+        font-weight: 500;
+        font-size: 1.125rem;
+        line-height: 1.5;
+
+        color: white;
+
+        @media (width >= 640px) {
+            font-size: 1.25rem;
+            line-height: 1.4;
+        }
+    }
+    h5 {
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        border-bottom: 2px dotted var(--color-neutral-600);
+
+        font-family: var(--font-heading);
+        font-weight: bold;
+        line-height: 1.4;
+
+        color: white;
+    }
+    h6 {
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+
+        font-family: var(--font-heading);
+        font-weight: bold;
+        font-size: 95%;
+        line-height: 1.4;
+
+        color: white;
+    }
+
+    h2:not(#contents),
+    h3,
+    h4,
+    h5,
+    h6 {
+        a {
+            cursor: pointer;
+            color: inherit;
+            position: relative;
+        }
+        a::after {
+            content: "#";
+            padding-left: 0.6em;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        a:hover::after {
+            opacity: 0.75;
+        }
+    }
+
+    /* TOC */
+
+    h2#contents {
+        margin-top: 3rem;
+        margin-bottom: 0.5rem;
+        font-family: var(--font-heading);
+        font-size: 1.25rem;
+        line-height: 1.5rem;
+        color: white;
+    }
+    h2#contents + ul {
+        top: 0;
+
+        &,
+        & ul {
+            margin-top: 0;
+            margin-bottom: 0;
+            list-style: none;
+            padding-left: 0;
+        }
+        & > li {
+            padding-top: 0.25rem;
+        }
+        & ul {
+            padding-left: 1.5rem;
+        }
+
+        a {
+            /* padding-bottom: 2px; */
+            color: var(--color-blue-400);
+            border: none !important;
+        }
+        a:hover,
+        a:focus {
+            border-bottom: 1px solid currentColor;
+            color: var(--color-blue-300);
+        }
+
+        & > li > ul > li > ul:has(ul) {
+            /* a small line to help the eye with deep headings */
+            border-left: 1px dashed rgb(255 255 255 / 0.15);
+        }
+    }
+
+    /* details */
+
+    details.WideDetails {
+        margin: 1rem 0 1.5rem 0;
+        outline: 2px solid rgba(255, 255, 255, 0.1);
+        outline-offset: 0;
+        transition: outline-offset 0.2s ease-in-out;
+        border-radius: 0.375rem;
+
+        &:open {
+            outline-offset: 0.5rem;
+
+            &::after {
+                content: "";
+                display: block;
+                height: 1px;
+                margin-top: 0.5rem;
+            }
+        }
+
+        & > summary {
+            cursor: pointer;
+            user-select: none;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.25rem calc(max(0.75rem, (100% - var(--page-width)) / 2));
+            border-radius: 0.375rem;
+            color: white;
+            font-weight: 500;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            max-width: unset !important;
+        }
+        &:open > summary {
+            margin-bottom: 1rem;
+        }
+    }
+
+    /* block quotes */
+    blockquote {
+        /* pl-4 text-zinc-300 */
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        border-left: 0.25rem solid var(--color-gray-400);
+        border-radius: 0.5rem 0 0 0.5rem;
+        padding: 0.5rem 0 0.5rem var(--page-px);
+        background: linear-gradient(to right, oklch(70.7% 0.022 261.325 / 15%), transparent);
+        position: relative;
+
+        @media (width >= 768px) {
+            &::before {
+                content: "“";
+                font-size: 2rem;
+                font-family: var(--font-serif);
+                position: absolute;
+                opacity: 0.5;
+                line-height: 1;
+                left: 0.5rem;
+            }
+        }
+
+        & > *:first-child {
+            margin-top: 0;
+        }
+        & > *:last-child {
+            margin-bottom: 0;
+        }
+
+        .SourceLine {
+            text-align: right;
+            font-size: 0.875rem;
+            color: var(--color-gray-400);
+            margin-top: 0.5rem;
+
+            a {
+                color: var(--color-gray-400);
+                border-bottom: 1px dotted currentColor;
+
+                &:hover,
+                &:focus {
+                    color: var(--color-gray-300);
+                    border-bottom: 1px solid currentColor;
+                }
+            }
+        }
+    }
+
+    /* Math */
+
+    .MathWrapper:has(> .katex-display) {
+        margin: -0.5rem calc(0px - var(--page-px));
+        padding: 1px var(--page-px);
+        overflow-x: auto;
+        scrollbar-width: thin;
+
+        /* make sure the padding is applied correctly when scrolling */
+        display: flex;
+        &::after,
+        &::before {
+            content: "";
+            flex-grow: 1;
+        }
+
+        /* hide empty math blocks (e.g. macro declarations) */
+        &:has(span.katex-html:empty) {
+            display: none;
+        }
+    }
+
+    .katex-display {
+        font-size: 105%;
+        margin: 0.5rem 0 !important;
+        padding: 0.125rem 0;
+    }
+
+    /* Make sure short inline math doesn't wrap */
+    :not(.katex-display) > span.katex.short-math {
+        white-space: nowrap;
+    }
+    @media (width >= 640px) {
+        :not(.katex-display) > span.katex {
+            white-space: nowrap;
+        }
+    }
+
+    /* No script fallback for interactive components */
+
+    noscript.NoScriptMessage {
+        display: block;
+        background: var(--color-gray-700);
+        padding: 1.5rem 0.5rem;
+        padding-left: 5rem;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: clip;
+
+        &::before {
+            content: "!";
+            position: absolute;
+            left: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            font-size: 5em;
+            opacity: 0.5;
+        }
+    }
+}
