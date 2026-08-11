@@ -1,7 +1,0 @@
-export function H2({ children }: { children: React.ReactNode }) {
-    return (
-        <h2 className="mb-6 mt-12 font-header text-2xl text-white first:mt-0 xs:text-3xl">
-            {children}
-        </h2>
-    );
-}

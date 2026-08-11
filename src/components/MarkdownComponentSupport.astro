@@ -1,0 +1,55 @@
+---
+import path from "node:path";
+import type { AstroInstance } from "astro";
+import { getComponents } from "../react/markdown/md-util";
+
+type Props = { markdown: string; source: string };
+
+export const INSERT_FUNCTION_NAME = "componentPoolTake";
+
+const requestedComponents = getComponents(Astro.props.markdown);
+
+// search for custom components
+const allComponents: AstroInstance[] = Object.values(
+    import.meta.glob("./markdown-components/*.astro", { eager: true }),
+);
+const byType = new Map<string, AstroInstance>(
+    allComponents.map((c) => [path.basename(c.file, ".astro"), c]),
+);
+---
+
+<div id="component-pool" aria-hidden="true" style="display:none">
+    {
+        requestedComponents.map(({ type, props }) => {
+            const component = byType.get(type);
+            if (!component) {
+                console.warn(`Component ${type} not found for ${Astro.props.source}`);
+                return (
+                    <div>
+                        <p>
+                            TODO: Component <code class="language-text">{type}</code> not found.{" "}
+                            <br />
+                            Available components:{" "}
+                            {Array.from(byType.keys())
+                                .map((name) => <code class="language-text">{name}</code>)
+                                .reduce((prev, curr) => [prev, ", ", curr])}
+                        </p>
+                    </div>
+                );
+            }
+            return (
+                <div>
+                    <component.default {...props} />
+                </div>
+            );
+        })
+    }
+</div>
+<script is:inline>
+    function componentPoolTake(into) {
+        const wrapper = document.getElementById("component-pool")?.firstElementChild;
+        if (!wrapper) return;
+        into.replaceWith(...wrapper.childNodes);
+        wrapper.remove();
+    }
+</script>

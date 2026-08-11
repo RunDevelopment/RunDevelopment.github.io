@@ -1,0 +1,16 @@
+---
+import BasicLayout from "../../layouts/BasicLayout.astro";
+import Metadata from "../../layouts/Metadata.astro";
+import { GamePage } from "../../react/connect-4444/Board";
+---
+
+<BasicLayout headerHidden pageBg="black">
+    <Metadata
+        title="Connect 4444"
+        description="Play Connect Four against AI or other players."
+        author="Michael Schmidt"
+        slot="meta"
+    />
+
+    <GamePage client:load />
+</BasicLayout>

@@ -1,0 +1,97 @@
+---
+import BasicLayout from "../../layouts/BasicLayout.astro";
+import Metadata from "../../layouts/Metadata.astro";
+import { H2 } from "../../react/headings";
+import { PostCard } from "../../react/PostCard";
+import { getBlogPosts } from "../../lib/blog/posts";
+
+const { byYear, tags } = await getBlogPosts();
+---
+
+<BasicLayout headerSelected="blog">
+    <Metadata title="Blog posts by RunDev" author="Michael Schmidt" slot="meta" />
+
+    <div class="py-8" data-narrow-container>
+        <div class="flex flex-wrap gap-2" id="tag-list">
+            {
+                Array.from(tags.keys()).map((tag) => (
+                    <button
+                        class="cursor-pointer rounded bg-slate-800 px-2 py-1 text-blue-300 transition-colors hover:text-blue-100 data-selected:bg-slate-700 data-selected:text-blue-100"
+                        onclick={`toggleTag('${tag}')`}
+                        data-tag={tag}
+                    >
+                        #{tag}
+                        <span class="ml-1 text-sm text-zinc-400">({tags.get(tag)})</span>
+                    </button>
+                ))
+            }
+            <script is:inline>
+                function toggleTag(tag = "") {
+                    if (!document.querySelector("#tag-list > button[data-tag='" + tag + "']")) {
+                        // invalid tag
+                        return;
+                    }
+
+                    const tagButtons = document.querySelectorAll("#tag-list > button");
+
+                    const prevSelected = document.body.dataset.selectedTag;
+                    if (tag === prevSelected) {
+                        // deselect the tag
+                        delete document.body.dataset.selectedTag;
+                        if (location.hash.startsWith("#tag=")) {
+                            history.replaceState(null, "", location.pathname + location.search);
+                        }
+
+                        for (const button of tagButtons) {
+                            button.removeAttribute("data-selected");
+                        }
+                    } else {
+                        document.body.dataset.selectedTag = tag;
+                        history.replaceState(null, "", `#tag=${tag}`);
+
+                        for (const button of tagButtons) {
+                            button.removeAttribute("data-selected");
+                            if (button.getAttribute("data-tag") === tag) {
+                                button.setAttribute("data-selected", "true");
+                            }
+                        }
+                    }
+                }
+
+                if (location.hash.startsWith("#tag=")) {
+                    const tag = location.hash.substring("#tag=".length);
+                    toggleTag(tag);
+                }
+
+                globalThis.toggleTag = toggleTag;
+            </script>
+        </div>
+
+        {
+            byYear.map(([year, posts]) => {
+                const css = (selector: string, tags: readonly string[]): string => {
+                    return `body[data-selected-tag]{${selector}{display:none}}${tags.map((tag) => `body[data-selected-tag="${tag}"]`).join(",")}{${selector}{display:block}}`;
+                };
+                const id = `year-${year}`;
+                const allTags = Array.from(new Set(posts.flatMap((post) => post.tags)));
+                return (
+                    <>
+                        <style is:inline set:html={css(`#${id},#${id}+div`, allTags)} />
+                        <H2 id={id}>{year}</H2>
+                        <div>
+                            {posts.map(function (meta, i) {
+                                const id = `post-${year}-${i}`;
+                                return (
+                                    <div id={id}>
+                                        <style is:inline set:html={css(`#${id}`, meta.tags)} />
+                                        <PostCard meta={meta} showTags />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
+                );
+            })
+        }
+    </div>
+</BasicLayout>

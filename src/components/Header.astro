@@ -1,0 +1,95 @@
+---
+import fs from "node:fs";
+import path from "node:path";
+
+const imagePath = path.resolve("src/assets/logo256_opaque.webp");
+const logo = fs.readFileSync(imagePath, "base64");
+
+export type HeaderLink = "home" | "blog" | "projects";
+
+export interface Props {
+    fancy?: boolean;
+    selected?: HeaderLink;
+}
+---
+
+<header class="z-10 w-full bg-black" data-type={Astro.props.fancy ? "fancy" : "normal"}>
+    <div class="mx-auto p-1 box-content z-10">
+        <nav
+            class="box-content flex rounded-full bg-black/60 p-3 xs:text-lg text-neutral-200 transition-colors"
+        >
+            <a href="/" class="pr-3" data-selected={Astro.props.selected === "home"}>
+                <img
+                    src={`data:image/webp;base64,${logo}`}
+                    alt="RunDev Logo"
+                    width="32"
+                    height="32"
+                    class="mr-3 inline h-full rounded-full transition-transform duration-400"
+                />
+                <span>About</span>
+            </a>
+
+            <span class="grow"></span>
+
+            <a href="/blog" class="px-3" data-selected={Astro.props.selected === "blog"}>Blog</a>
+            <a href="/projects" class="px-3" data-selected={Astro.props.selected === "projects"}>
+                Projects
+            </a>
+        </nav>
+    </div>
+</header>
+
+<style is:global>
+    :root {
+        --header-width: var(--page-width, 720px);
+        --header-height: 64px;
+        --fancy-header-overlap: 0px;
+    }
+
+    header > div {
+        max-width: calc(var(--header-width) + 1.5rem);
+    }
+
+    header a {
+        display: flex;
+        height: 2rem;
+        align-items: center;
+    }
+    header a:hover {
+        color: white;
+    }
+    header a:hover > img {
+        transform: rotate(360deg) scale(1.25);
+    }
+    /* header a:not([data-selected="true"]):hover > img {
+        transform: rotate(360deg) scale(1.25);
+    }
+    header a[data-selected="true"] > img {
+        transform: scale(1.25);
+    } */
+
+    header a[data-selected="true"] {
+        color: white;
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-underline-offset: 6px;
+    }
+
+    /* fancy header */
+    /* used to be 768px */
+    @media (width >= 768px) {
+        :root {
+            --fancy-header-overlap: var(--header-height);
+        }
+
+        header[data-type="fancy"] {
+            position: absolute;
+            background: transparent;
+
+            nav {
+                backdrop-filter: blur(12px);
+                text-shadow: 1px 2px 1px black;
+            }
+        }
+    }
+</style>

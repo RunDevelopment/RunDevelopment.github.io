@@ -1,0 +1,12 @@
+div.ImageWrapper {
+    margin: 1rem calc(-1 * var(--page-px));
+    text-align: center;
+
+    img {
+        display: inline-block;
+        max-width: calc(min(100%, var(--max-width, 100%)));
+        height: auto;
+
+        border-radius: 0.375rem;
+    }
+}

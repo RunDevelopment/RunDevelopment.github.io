@@ -1,0 +1,75 @@
+---
+import type { CollectionEntry } from "astro:content";
+import Metadata from "../../layouts/Metadata.astro";
+import BasicLayout from "../../layouts/BasicLayout.astro";
+import BaseArticle from "../../components/BaseArticle.astro";
+import { getBlogPosts } from "../../lib/blog/posts";
+import type { PostMetadata } from "../../lib/blog/schema";
+import BlogHeading from "../../components/BlogHeading.astro";
+import { Markdown } from "../../react/markdown/Markdown";
+import { IS_DEV } from "../../lib/config";
+import TodoMarkers from "../../components/TodoMarkers.astro";
+import MarkdownComponentSupport, {
+    INSERT_FUNCTION_NAME,
+} from "../../components/MarkdownComponentSupport.astro";
+import {
+    resolveBlogImage,
+    resolveBlogCoverImage,
+    type CoverImageInfo,
+} from "../../lib/blog/images";
+
+export async function getStaticPaths() {
+    const { collectionEntries, posts } = await getBlogPosts();
+    return posts.map((meta, i) => ({
+        params: { slug: meta.slug },
+        props: { meta, entry: collectionEntries[i] },
+    }));
+}
+
+type Props = { entry: CollectionEntry<"blog">; meta: PostMetadata };
+
+const { entry, meta } = Astro.props;
+
+let cover: CoverImageInfo | undefined;
+if (meta.image) {
+    try {
+        cover = await resolveBlogCoverImage(meta.image, entry.filePath!);
+    } catch (e) {
+        console.error(`Failed to resolve cover image for ${meta.slug}:`, e);
+        cover = { src: meta.image, width: 0, height: 0, inlineSrc: "" };
+    }
+}
+---
+
+<BasicLayout headerSelected="blog" tint={meta.color} headerFancy={!!cover}>
+    <Metadata
+        title={`${meta.title} - RunDev`}
+        description={meta.description}
+        keywords={meta.tags.join(", ")}
+        author="Michael Schmidt"
+        article={{
+            pubDate: meta.datePublished,
+            modDate: meta.dateModified,
+        }}
+        slot="meta"
+    />
+
+    <BaseArticle>
+        <BlogHeading meta={meta} cover={cover} />
+
+        <MarkdownComponentSupport markdown={entry.body!} source={"blog post " + meta.slug} />
+
+        <Markdown
+            markdown={entry.body!}
+            inlineCodeLanguage={meta.inlineCodeLanguage}
+            componentInsertFunction={INSERT_FUNCTION_NAME}
+            getImage={(url) => resolveBlogImage(url, entry.filePath!)}
+        />
+
+        {IS_DEV && <TodoMarkers />}
+    </BaseArticle>
+
+    <footer class="mt-8 border-t border-zinc-700 py-8 text-sm text-zinc-400">
+        This page is licensed under CC-BY-4.0.
+    </footer>
+</BasicLayout>

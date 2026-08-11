@@ -1,0 +1,42 @@
+---
+import BasicLayout from "../layouts/BasicLayout.astro";
+import Metadata from "../layouts/Metadata.astro";
+import { getBlogPosts } from "../lib/blog/posts";
+import { H2 } from "../react/headings";
+import { PostCard } from "../react/PostCard";
+import { TextLink } from "../react/TextLink";
+
+const { posts } = await getBlogPosts();
+const recent = posts.slice(0, 5); // latest K posts
+---
+
+<BasicLayout headerSelected="home">
+    <Metadata title="RunDev" author="Michael Schmidt" slot="meta" />
+
+    <div class="py-8" data-narrow-container>
+        <H2>About me</H2>
+        <p class="my-4">
+            Hi! I&apos;m Michael, also known as RunDev or RunDevelopment throughout the internet.
+            I&apos;m a software developer from Germany with many interests.
+        </p>
+        <p class="my-4">
+            Pretty much everything I do is open source and can be found on{" "}
+            <TextLink href="https://github.com/RunDevelopment">my Github</TextLink>, but some of my
+            projects are also{" "}
+            <TextLink href="/projects">here on this website</TextLink>.
+        </p>
+        <p class="my-4">
+            Sometimes <TextLink href="/blog">I write about things</TextLink> I find interesting.
+        </p>
+
+        <H2>Recent blog posts</H2>
+        <div class="narrow">
+            {recent.map((post) => <PostCard meta={post} showYear />)}
+            <p class="my-6 text-center text-lg">
+                <a href="/blog" class="text-blue-300 hover:text-blue-400">
+                    Show all blog posts...
+                </a>
+            </p>
+        </div>
+    </div>
+</BasicLayout>

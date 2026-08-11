@@ -1,0 +1,246 @@
+---
+import type { CoverImageInfo } from "../lib/blog/images";
+import type { PostMetadata } from "../lib/blog/schema";
+import { formatDateString } from "../lib/util";
+import { FancyText } from "../react/FancyText";
+import BalanceBox from "./BalanceBox.astro";
+
+export type Props = { meta: PostMetadata; cover?: CoverImageInfo };
+const { meta, cover } = Astro.props;
+---
+
+{
+    cover && (
+        <>
+            <div
+                data-wide
+                style={
+                    {
+                        "--bg-inline": cover.inlineSrc ? `url('${cover.inlineSrc}')` : "none",
+                        "--fade-color": meta.imageFadeColor || "black",
+                    } as React.CSSProperties
+                }
+                aria-hidden
+                id="bg-img-container"
+            >
+                <div id="bg-img-fade" />
+                <img src={cover.src} alt="Cover image" width={cover.width} height={cover.height} />
+            </div>
+
+            {/* Fancy Title */}
+            <div id="bg-text-wrapper" data-wide aria-hidden>
+                <div>
+                    <span
+                        id="bg-text"
+                        class="balanced-box"
+                        style={{ "--color": meta.color } as never}
+                    >
+                        <FancyText text={meta.title} />
+                    </span>
+                    <BalanceBox />
+                </div>
+            </div>
+        </>
+    )
+}
+
+<!-- Color bar -->
+<div class={"ColorBar " + (cover ? "" : "FullWidth")} data-wide style={{ background: meta.color }}>
+</div>
+
+<!-- Header -->
+<h1 class="BlogH1">
+    <FancyText text={meta.title} />
+</h1>
+
+<!-- Some Metadata -->
+<div class="mb-8 mt-6 text-sm text-zinc-400 sm:mt-8">
+    <p class="mb-2 block text-center text-xs sm:text-sm">
+        <span class="whitespace-nowrap">Michael Schmidt</span>
+        <span class="px-2">{" / "}</span>
+        <span class="whitespace-nowrap">{meta.minutesToRead} min read</span>
+        <span class="px-2">{" / "}</span>
+        <span class="whitespace-nowrap">
+            {formatDateString(meta.datePublished)}
+            {
+                meta.dateModified !== meta.datePublished && (
+                    <span class="italic"> (mod: {formatDateString(meta.dateModified)})</span>
+                )
+            }
+        </span>
+    </p>
+
+    <div class="flex justify-center flex-wrap gap-2">
+        {
+            meta.tags.map((tag) => (
+                <a
+                    class="rounded bg-slate-800 px-2 py-1 text-blue-300"
+                    href={`/blog#tag=${encodeURIComponent(tag)}`}
+                >
+                    #{tag}
+                </a>
+            ))
+        }
+    </div>
+</div>
+
+<style is:global>
+    :root {
+        --bg-image-height: calc(min(400px, 35vw));
+    }
+
+    #bg-img-container {
+        position: relative;
+        inset-inline: 0;
+        z-index: 0;
+        overflow: clip;
+        background-size: auto 100%;
+        background:
+            center / auto 100% var(--bg-inline) no-repeat,
+            var(--fade-color);
+        margin-left: calc(0px - var(--page-px));
+        margin-right: calc(0px - var(--page-px));
+
+        @media (width >= 640px) {
+            position: absolute;
+            margin: 0;
+        }
+
+        #bg-img-fade {
+            pointer-events: none;
+            position: absolute;
+            display: none;
+            width: 100%;
+            height: 100%;
+            inset: 0;
+
+            @media (width >= 1024px) {
+                display: block;
+            }
+
+            --offset: 1260px;
+            --width: 500px;
+
+            background:
+                radial-gradient(
+                    var(--width) 1000px at calc(50% - var(--offset)) 50%,
+                    var(--fade-color),
+                    var(--fade-color),
+                    transparent
+                ),
+                radial-gradient(
+                    var(--width) 1000px at calc(50% + var(--offset)) 50%,
+                    var(--fade-color),
+                    var(--fade-color),
+                    transparent
+                );
+        }
+
+        img {
+            height: var(--bg-image-height);
+            width: auto;
+            object-fit: cover;
+            margin: 0 auto;
+        }
+    }
+
+    #bg-text-wrapper {
+        position: relative;
+        z-index: 0;
+        overflow: clip;
+        margin-left: calc(0px - var(--page-px));
+        margin-right: calc(0px - var(--page-px));
+        padding-left: var(--page-px);
+        padding-right: var(--page-px);
+        height: var(--bg-image-height);
+
+        display: none;
+        flex-direction: column;
+        justify-content: flex-end;
+        @media (width >= 640px) {
+            display: flex;
+        }
+
+        --height-offset: 0px;
+        height: calc(var(--bg-image-height) + var(--height-offset));
+        @media (width >= 1024px) {
+            /* we offset by half the color bar's height, when the color bar isn't full screen */
+            --height-offset: -0.25rem;
+        }
+
+        text-align: center;
+
+        #bg-text {
+            /* --font-relative-to: var(--bg-image-height); */
+            --font-relative-to: calc(min(400px, 40vw));
+
+            color: white;
+            font-family: var(--font-heading);
+            font-size: calc(0.12 * var(--font-relative-to));
+            line-height: 1.125;
+            font-weight: 450;
+            letter-spacing: -3%;
+            text-align: center;
+            text-wrap: balance;
+            padding: 0.25em 0.4em;
+            box-sizing: content-box;
+            display: inline-block;
+            position: relative;
+            z-index: 10;
+
+            -webkit-box-decoration-break: clone;
+            box-decoration-break: clone;
+
+            /* This causes a 1px overdraw with the color line, which is necessary, because *some* browsers draw a 1px gap between them. Not naming names, but Chrome. */
+            margin-bottom: -1px;
+
+            background-color: color-mix(in srgb, rgb(0 0 0 / 40%), var(--color, black) 10%);
+            backdrop-filter: blur(12px);
+
+            /* poor man's stroke */
+            text-shadow:
+                1px 1px 1px black,
+                1px 2px 5px black;
+        }
+    }
+
+    .ColorBar {
+        position: relative;
+        z-index: 10;
+        margin-left: calc(0px - var(--page-px));
+        margin-right: calc(0px - var(--page-px));
+        height: 0.25rem;
+
+        @media (width >= 640px) {
+            height: 0.5rem;
+        }
+        @media (width >= 1024px) {
+            border-radius: 0.75rem;
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        &.FullWidth {
+            position: absolute;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            width: 100vw;
+            right: 0;
+            top: var(--header-height);
+            border-radius: 0;
+        }
+    }
+
+    h1.BlogH1.BlogH1 {
+        margin-top: 2.25rem;
+        margin-bottom: 1.5rem;
+    }
+    @media (width >= 640px) {
+        :root:has(#bg-img-container) h1.BlogH1.BlogH1 {
+            display: none;
+        }
+    }
+    /* drop-shadow(1px 1px 0.6px black)  drop-shadow(2px 2px 2px black) drop-shadow(0 .2em .75em black) drop-shadow(0 0.2em .5em #0009) */
+
+    /* drop-shadow(.5px .5px #000f) drop-shadow(1px 1px #000f) drop-shadow(2px 2px .5px #0008) drop-shadow(4px 4px 1px #0004) drop-shadow(8px 8px 2px #0002) drop-shadow(16px 16px 4px #0001) */
+</style>

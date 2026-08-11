@@ -1,0 +1,106 @@
+---
+import "../styles/global.css";
+import Fonts from "../components/Fonts.astro";
+import Header, { type HeaderLink } from "../components/Header.astro";
+import { Rgb } from "../lib/color";
+
+export interface Props {
+    headerFancy?: boolean;
+    headerSelected?: HeaderLink;
+    headerHidden?: boolean;
+    tint?: string;
+    pageBg?: string;
+}
+
+function tintBackground(baseColor: Rgb, tintColor: Rgb): Rgb {
+    // over-saturate the tint color to make different tints more consistent
+    tintColor = tintColor.saturateHsv(4);
+
+    const MAX_SATURATION = 0.03;
+    const newColor = tintColor.mul(MAX_SATURATION);
+    return newColor.add(-newColor.luma + baseColor.luma).clamp();
+}
+
+const baseColor = Rgb.fromRgb8(24, 24, 27);
+const tintColor = Astro.props.tint ? Rgb.parse(Astro.props.tint) : null;
+const bgColor = (tintColor ? tintBackground(baseColor, tintColor) : baseColor).toCss();
+const pageBg = Astro.props.pageBg ?? bgColor;
+---
+
+<html lang="en" style={`--page-bg: ${pageBg}`}>
+    <head>
+        <meta charset="utf-8" /><meta
+            name="viewport"
+            content="width=device-width, initial-scale=1"
+        />
+        <link rel="icon" href="/favicon.ico" />
+        <slot name="meta" />
+        <Fonts />
+        <slot name="head" />
+    </head>
+    <body class="font-sans text-zinc-200">
+        {
+            !Astro.props.headerHidden && (
+                <Header
+                    transition:persist
+                    fancy={Astro.props.headerFancy}
+                    selected={Astro.props.headerSelected}
+                />
+            )
+        }
+        <main>
+            <slot />
+        </main>
+    </body>
+</html>
+
+<style is:global>
+    :root {
+        --page-width: 720px;
+        --page-width-wide: 1024px;
+        --header-width: var(--page-width);
+        --page-px: 1rem;
+
+        color-scheme: only dark;
+        scrollbar-color: rgb(160 160 160) var(--page-bg);
+    }
+
+    @media (width >= 48rem) {
+        :root {
+            --page-px: 1.5rem;
+        }
+    }
+
+    html,
+    body {
+        margin: 0;
+    }
+
+    body {
+        background: var(--page-bg);
+        overflow-y: scroll;
+    }
+
+    body > main {
+        max-width: var(--page-width-wide);
+        margin: 0 auto;
+        box-sizing: content-box;
+        padding: 0 var(--page-px);
+    }
+
+    @media print {
+        :root {
+            --page-width: var(--page-width-wide);
+        }
+        header {
+            display: none;
+        }
+    }
+
+    [data-narrow-container] > *:not([data-wide]),
+    [data-narrow-container] > astro-island > *:not([data-wide]) {
+        max-width: var(--page-width);
+        margin-left: auto;
+        margin-right: auto;
+    }
+</style>
