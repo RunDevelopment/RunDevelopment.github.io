@@ -23,7 +23,7 @@ export default defineConfig({
 
   integrations: [
     react(),
-    minify(), // IMPORTANT: Must be last
+    // minify(), // IMPORTANT: Must be last
   ],
 
   vite: {
