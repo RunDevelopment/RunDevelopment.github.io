@@ -983,18 +983,20 @@ function matchGrammar(text, tokenList, grammar, startNode, startPos, rematch) {
  * @template T
  * @private
  */
-function LinkedList() {
-    /** @type {LinkedListNode<T>} */
-    var head = { value: null, prev: null, next: null };
-    /** @type {LinkedListNode<T>} */
-    var tail = { value: null, prev: head, next: null };
-    head.next = tail;
+class LinkedList {
+    constructor() {
+        /** @type {LinkedListNode<T>} */
+        var head = { value: null, prev: null, next: null };
+        /** @type {LinkedListNode<T>} */
+        var tail = { value: null, prev: head, next: null };
+        head.next = tail;
 
-    /** @type {LinkedListNode<T>} */
-    this.head = head;
-    /** @type {LinkedListNode<T>} */
-    this.tail = tail;
-    this.length = 0;
+        /** @type {LinkedListNode<T>} */
+        this.head = head;
+        /** @type {LinkedListNode<T>} */
+        this.tail = tail;
+        this.length = 0;
+    }
 }
 
 /**

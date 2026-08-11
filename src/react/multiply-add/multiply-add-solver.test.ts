@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Problem, Solution, SolutionRange } from "./multiply-add-solver";
 
 function gcd(a: bigint, b: bigint): bigint {

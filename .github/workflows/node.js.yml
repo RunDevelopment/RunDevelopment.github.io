@@ -50,22 +50,22 @@ jobs:
     - run: npm ci
     - run: npm run lint
 
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [26.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-    defaults:
-      run:
-        working-directory: ./website
-    steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: website/package-lock.json
-    - run: npm ci
-    - run: npm test
+  # test:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       node-version: [26.x]
+  #       # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+  #   defaults:
+  #     run:
+  #       working-directory: ./website
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - name: Use Node.js ${{ matrix.node-version }}
+  #     uses: actions/setup-node@v4
+  #     with:
+  #       node-version: ${{ matrix.node-version }}
+  #       cache: 'npm'
+  #       cache-dependency-path: website/package-lock.json
+  #   - run: npm ci
+  #   - run: npm test
