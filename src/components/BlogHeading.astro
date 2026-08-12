@@ -7,6 +7,11 @@ import BalanceBox from "./BalanceBox.astro";
 
 export type Props = { meta: PostMetadata; cover?: CoverImageInfo };
 const { meta, cover } = Astro.props;
+
+let srcSet;
+if (cover?.srcLow) {
+    srcSet = `${cover.srcLow} 1x, ${cover.src} 2x`;
+}
 ---
 
 {
@@ -24,7 +29,13 @@ const { meta, cover } = Astro.props;
                 id="bg-img-container"
             >
                 <div id="bg-img-fade" />
-                <img src={cover.src} alt="Cover image" width={cover.width} height={cover.height} />
+                <img
+                    src={cover.src}
+                    srcset={srcSet}
+                    alt="Cover image"
+                    width={cover.width}
+                    height={cover.height}
+                />
             </div>
 
             {/* Fancy Title */}

@@ -36,7 +36,7 @@ export async function resolveBlogImage(url: string, postFilePath: string): Promi
         const file = path.join(PUBLIC_DIR, decodeURIComponent(url.replace(/\/public\//i, "/").slice(1)));
         let metadata;
         try {
-            metadata = await sharp(file).metadata();
+            metadata = await openImage(file).metadata();
         } catch (err) {
             console.error(`Error reading image metadata for ${file}:`, err);
         }
@@ -60,6 +60,7 @@ const COVER_CACHE = path.join(PROJECT_DIR, ".cover-cache");
 
 export interface CoverImageInfo {
     src: string;
+    srcLow?: string;
     inlineSrc: string;
     width?: number;
     height?: number;
@@ -69,21 +70,33 @@ export async function resolveBlogCoverImage(url: string, postFilePath: string): 
     const postDir = path.resolve(PROJECT_DIR, path.dirname(postFilePath));
     const imagePath = path.resolve(postDir, decodeURIComponent(url));
 
+    const COVER_WIDTH = 4096;
+    const COVER_HEIGHT = 800;
 
-    const coverPath = await generateCoverImage(imagePath);
+    const name = getCleanBasename(imagePath);
+    const coverPath = await generateCoverImage(imagePath, name, { width: COVER_WIDTH, height: COVER_HEIGHT, quality: 80 });
     const inlineSrc = await generateInlineImagePreviewData(coverPath);
 
     const postId = createHash("sha256").update(postFilePath).digest("hex").slice(0, 8);
     const blogCoverFile = path.join(BLOG_COVERS_DIR, `cover-${postId}${path.extname(coverPath)}`);
-    try {
-        const stat1 = await fs.stat(blogCoverFile);
-        const stat2 = await fs.stat(coverPath);
-        if (stat1.size !== stat2.size) {
-            throw new Error()
+    await syncFile(coverPath, blogCoverFile);
+
+    const coverMeta = await openImage(blogCoverFile).metadata();
+    let srcLow;
+    if (coverMeta.width === COVER_WIDTH && coverMeta.height === COVER_HEIGHT) {
+        const coverLowPath = await generateCoverImage(blogCoverFile, name, {
+            width: COVER_WIDTH / 2,
+            height: COVER_HEIGHT / 2,
+            quality: 85
+
+        });
+        const blogCoverLowFile = path.join(BLOG_COVERS_DIR, `cover-lowRes-${postId}${path.extname(coverLowPath)}`);
+        await syncFile(coverLowPath, blogCoverLowFile);
+
+        const coverImport = images.get(blogCoverLowFile);
+        if (coverImport) {
+            srcLow = (await getImage({ src: coverImport() })).src;
         }
-    } catch {
-        await fs.mkdir(BLOG_COVERS_DIR, { recursive: true });
-        await fs.copyFile(coverPath, blogCoverFile);
     }
 
     const coverImport = images.get(blogCoverFile);
@@ -93,28 +106,38 @@ export async function resolveBlogCoverImage(url: string, postFilePath: string): 
     }
     const imageData = await getImage({ src: coverImport() });
     const { width, height } = imageData.options;
-    return { src: imageData.src, inlineSrc, width, height };
+
+    return { src: imageData.src, srcLow, inlineSrc, width, height };
 }
 
-async function generateCoverImage(imagePath: string): Promise<string> {
+async function syncFile(src: string, dest: string): Promise<void> {
     try {
-        // Just use the cover image as is if it's small enough.
-        // This is important for the Fast Unorm article.
-        const USE_AS_IS_HEURISTIC = 300 * 1024; // 300 KB
-        const stat = await fs.stat(imagePath);
-        if (stat.size <= USE_AS_IS_HEURISTIC) {
-            return imagePath;
+        const stat1 = await fs.stat(src);
+        const stat2 = await fs.stat(dest);
+        if (stat1.size !== stat2.size) {
+            throw new Error()
+        }
+    } catch {
+        await fs.mkdir(path.dirname(dest), { recursive: true });
+        await fs.copyFile(src, dest);
+    }
+
+}
+
+async function generateCoverImage(imagePath: string, name: string, options: { width: number, height: number, quality: number }): Promise<string> {
+    try {
+        // Use the image directly if it is small enough and AVIF. See the Fast Unorm article
+        if (imagePath.endsWith(".avif")) {
+            const org = await openImage(imagePath).metadata();
+            const size = (await fs.stat(imagePath)).size;
+            const maxBytesPerPixel = 0.175; // must be high compression
+            if (org.height <= options.height && size < org.width * org.height * maxBytesPerPixel) {
+                return imagePath;
+            }
         }
 
         // Resize the image and encode as AVIF.
-        const height = 800;
-        const width = 4096;
-        const quality = 80;
-
-        const name = path
-            .basename(imagePath)
-            .replace(/\.\w+$/, "")
-            .replace(/[^\w\-]/g, "-");
+        const { width, height, quality } = options;
 
         const cachePath = await cachedImageFile(
             imagePath,
@@ -130,6 +153,10 @@ async function generateCoverImage(imagePath: string): Promise<string> {
     } catch (cause) {
         throw new Error(`Failed to generate cover image for ${imagePath}`, { cause });
     }
+}
+
+function getCleanBasename(filePath: string): string {
+    return path.basename(filePath).replace(/\.\w+$/, "").replace(/[^\w\-]/g, "-");
 }
 
 
@@ -270,7 +297,7 @@ async function cachedImageFile<T>(
     try {
         if (!(await fsExists(cachePath))) {
             console.info(`cache: Creating "${destName}" for ${srcImagePath}`);
-            const buffer = await encode(await openImage(srcImagePath), options);
+            const buffer = await encode(openImage(srcImagePath), options);
 
             await fs.mkdir(COVER_CACHE, { recursive: true });
             await fs.writeFile(cachePath, buffer as never);
@@ -284,7 +311,7 @@ async function cachedImageFile<T>(
 /**
  * A wrapper around `sharp` to work around a bug with AVIF images.
  */
-export async function openImage(path: string): Promise<Sharp> {
+export function openImage(path: string): Sharp {
     // https://github.com/immich-app/immich/issues/29574
     return sharp(path, { unlimited: true });
 }
