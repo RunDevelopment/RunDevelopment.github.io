@@ -9,7 +9,8 @@
         "dev": "astro dev",
         "build": "astro build",
         "preview": "astro preview",
-        "lint": "astro check",
+        "lint": "biome check && astro check",
+        "lint:fix": "biome check --write",
         "format": "biome format --write",
         "astro": "astro"
     },
