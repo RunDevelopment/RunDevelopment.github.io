@@ -1,11 +1,11 @@
 import { memo, useCallback, useEffect, useState } from "react";
-import { DownDown, SmallButton, BigIntInput } from "../FormInputs";
-import { ConversionCode } from "./CodeGen";
 import { groupBy } from "../../lib/util";
+import { BigIntInput, DownDown, SmallButton } from "../FormInputs";
+import { ConversionCode } from "./CodeGen";
 import {
     Bits,
     Problem,
-    Range,
+    type Range,
     type RoundingMode,
     Solution,
     SolutionRange,
@@ -124,7 +124,7 @@ function advanceSolutionIter(
     if (iter.finished) return;
 
     const start = performance.now();
-    let stopS = undefined;
+    let stopS;
 
     iter.addWhile((item) => {
         // check time
@@ -198,9 +198,9 @@ function updateFromUrlHash(old: ProblemDesc): ProblemDesc {
     try {
         const hash = new URLSearchParams(window.location.hash.slice(1));
         const rounding = parseRounding(hash.get("r"));
-        const t = parseInt(hash.get("t"));
-        const d = parseInt(hash.get("d"));
-        const u = parseInt(hash.get("u"));
+        const t = parseInt(hash.get("t"), 10);
+        const d = parseInt(hash.get("d"), 10);
+        const u = parseInt(hash.get("u"), 10);
 
         return {
             ...old,

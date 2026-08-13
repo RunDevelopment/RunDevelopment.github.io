@@ -1,4 +1,4 @@
-import { Prism, Token, type TokenStream } from "./vendor-prism/core";
+import { Prism, type Token, type TokenStream } from "./vendor-prism/core";
 
 // Only import components as needed
 import "./vendor-prism/c";

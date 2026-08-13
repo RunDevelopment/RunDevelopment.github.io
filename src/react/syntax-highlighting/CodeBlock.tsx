@@ -47,9 +47,11 @@ export function CodeBlock({ code, lang, langTitle, wide = "auto", links = [] }: 
                 </div>
             )}
 
+            {/** biome-ignore lint/a11y/noNoninteractiveTabindex: focus is necessary for scrolling */}
             <pre tabIndex={0} className={`language-${lang}`}>
                 <code
                     className={`language-${lang}`}
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: that's how PrimsJS works
                     dangerouslySetInnerHTML={{ __html: highlight(code, lang) }}
                 />
             </pre>

@@ -1,10 +1,9 @@
 import { useState } from "react";
-import ScreenCanvas, { CanvasInfo } from "../ScreenCanvas";
-import { ButtonGroup, NumberInput, SmallButton, SmallCheckbox } from "../FormInputs";
-import { GiDiceSixFacesFive } from "react-icons/gi";
 import { BiReset } from "react-icons/bi";
+import { GiDiceSixFacesFive } from "react-icons/gi";
+import { ButtonGroup, NumberInput, SmallButton, SmallCheckbox } from "../FormInputs";
 import { useMatchesMedia } from "../hooks/useMatchesMedia";
-import { PRESETS } from "./presets";
+import ScreenCanvas, { type CanvasInfo } from "../ScreenCanvas";
 import {
     type Kernel,
     kernelAreaLineSampling,
@@ -13,6 +12,7 @@ import {
     rotateForHorizontalLineSampling,
     shouldRotateHeuristicCPD,
 } from "./kernel";
+import { PRESETS } from "./presets";
 
 type SampleAlgo = ["point", number] | ["line", number];
 
@@ -452,7 +452,7 @@ function drawKernel(image: ImageData, kernel: Kernel) {
         return Math.sqrt(c1 * c1 * blend + c0 * c0 * (1 - blend));
     };
 
-    const BAYER_4x4 = [
+    const _BAYER_4x4 = [
         0 / 16,
         8 / 16,
         2 / 16,
@@ -536,7 +536,7 @@ function drawKernelThresholded(image: ImageData, kernel: Kernel) {
             image.data[index + 3] = 255;
 
             const dist = distances.dist(x, y) * image.width;
-            if (dist < 0.707) {
+            if (dist < Math.SQRT1_2) {
                 let sum = color;
                 const samples = offsets.length + 1;
 

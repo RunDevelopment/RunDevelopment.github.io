@@ -1,4 +1,4 @@
-import { type PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
 import { getDomain } from "../lib/util";
 import "./TextLink.css";
 

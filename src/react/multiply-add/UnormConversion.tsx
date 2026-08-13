@@ -2,8 +2,8 @@ import { useState } from "react";
 import { NumberInput } from "../FormInputs";
 import { InlineCode } from "../syntax-highlighting/InlineCode";
 import { ConversionCode } from "./CodeGen";
-import precomputed from "./unorm-constants.json";
 import { Problem, Solution } from "./multiply-add-solver";
+import precomputed from "./unorm-constants.json";
 
 const MAX_KNOWN_CONVERSION = Math.sqrt(precomputed.length);
 

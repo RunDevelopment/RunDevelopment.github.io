@@ -1,7 +1,7 @@
 import { type CollectionEntry, getCollection } from "astro:content";
-import { toPostMetadata, type PostMetadata } from "./schema";
-import { groupBy } from "../util";
 import { IS_DEV } from "../config";
+import { groupBy } from "../util";
+import { type PostMetadata, toPostMetadata } from "./schema";
 
 export interface BlogPosts {
     posts: readonly PostMetadata[];

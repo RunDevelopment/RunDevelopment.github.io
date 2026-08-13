@@ -1,3 +1,5 @@
+// biome-ignore-all lint: research code
+
 function roundDiv1023(v: number): number {
     let x = v + 512;
     return ((x >> 10) + x) >> 10;

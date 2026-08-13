@@ -211,7 +211,7 @@ function scoreBoardHeuristic(player: PlayerId, board: GameBoard): number {
     let score = scoreSingle(player, true) * (board.playerCount - 1);
     for (
         let opponent = getOpponent(player, board);
-        opponent != player;
+        opponent !== player;
         opponent = getOpponent(opponent, board)
     ) {
         score -= scoreSingle(opponent, false);

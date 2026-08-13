@@ -1,8 +1,9 @@
 // @ts-check
-import { defineConfig, passthroughImageService } from "astro/config";
+
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
-import minify from "astro-minify-html-swc";
+import { defineConfig, passthroughImageService } from "astro/config";
+// import minify from "astro-minify-html-swc";
 
 // https://astro.build/config
 export default defineConfig({

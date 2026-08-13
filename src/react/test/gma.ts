@@ -1,5 +1,5 @@
-import type { RoundingMode } from "../multiply-add/multiply-add-solver";
 import type { ProblemDesc } from "../multiply-add/ConversionConstantsSearch";
+import type { RoundingMode } from "../multiply-add/multiply-add-solver";
 
 interface ProblemLike {
     readonly inputRange: number;
@@ -50,7 +50,7 @@ export class GmaProblem implements ProblemLike {
         );
     }
 
-    forNecessaryInputs<T>(fn: (x: number) => void | T): T | undefined {
+    forNecessaryInputs<T>(fn: (x: number) => undefined | T): T | undefined {
         const { d, inputRange } = this;
 
         let output;
@@ -154,7 +154,7 @@ export class GmaProblem implements ProblemLike {
         const maxStepSize = 1 / this.d;
 
         // Step 1: find any n that is a solution
-        let middleN: number | undefined = undefined;
+        let middleN: number | undefined;
         for (let stepSize = 0; stepSize <= 10; stepSize++) {
             const steps = 1 << stepSize;
             for (let i = 0; i < steps; i++) {

@@ -27,7 +27,7 @@ export function lazy<T extends NonNullable<unknown> | null>(fn: () => T): () => 
     let lazyFn = lazyCache.get(fn) as (() => T) | undefined;
 
     if (lazyFn === undefined) {
-        let value: T | undefined = undefined;
+        let value: T | undefined;
         lazyFn = () => {
             if (value === undefined) {
                 value = fn();

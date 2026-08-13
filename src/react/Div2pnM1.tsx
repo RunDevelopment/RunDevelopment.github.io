@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { CodeBlock } from "./syntax-highlighting/CodeBlock";
-import { DownDown, NumberInput, SmallCheckbox } from "./FormInputs";
 import { capitalize } from "../lib/util";
+import { DownDown, NumberInput, SmallCheckbox } from "./FormInputs";
+import { CodeBlock } from "./syntax-highlighting/CodeBlock";
 
 type RoundingMode = "round" | "floor" | "ceil";
 type OrVariable<T> = T | "variable";

@@ -23,14 +23,10 @@ export class Rgb {
     }
 
     srgbToLinear(): Rgb {
-        return new Rgb(Math.pow(this.r, 2.2), Math.pow(this.g, 2.2), Math.pow(this.b, 2.2));
+        return new Rgb(this.r ** 2.2, this.g ** 2.2, this.b ** 2.2);
     }
     linearToSrgb(): Rgb {
-        return new Rgb(
-            Math.pow(this.r, 1 / 2.2),
-            Math.pow(this.g, 1 / 2.2),
-            Math.pow(this.b, 1 / 2.2),
-        );
+        return new Rgb(this.r ** (1 / 2.2), this.g ** (1 / 2.2), this.b ** (1 / 2.2));
     }
 
     toArray(): [number, number, number] {
@@ -86,9 +82,9 @@ export class Rgb {
         const matchRgb = color.match(/^rgb\((\d+)[,\s]\s*(\d+)[,\s]\s*(\d+)\)$/);
         if (matchRgb)
             return new Rgb(
-                parseInt(matchRgb[1]) / 255,
-                parseInt(matchRgb[2]) / 255,
-                parseInt(matchRgb[3]) / 255,
+                parseInt(matchRgb[1], 10) / 255,
+                parseInt(matchRgb[2], 10) / 255,
+                parseInt(matchRgb[3], 10) / 255,
             );
 
         const matchHex2 = color.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
@@ -141,8 +137,8 @@ function rgbToHsv(r: number, g: number, b: number): Hsv {
     const delta = max - min;
 
     let h = 0;
-    let s = max === 0 ? 0 : delta / max;
-    let v = max;
+    const s = max === 0 ? 0 : delta / max;
+    const v = max;
 
     if (delta !== 0) {
         if (max === r) {

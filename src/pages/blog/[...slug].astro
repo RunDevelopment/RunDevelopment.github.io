@@ -1,22 +1,22 @@
 ---
 import type { CollectionEntry } from "astro:content";
-import Metadata from "../../layouts/Metadata.astro";
-import BasicLayout from "../../layouts/BasicLayout.astro";
 import BaseArticle from "../../components/BaseArticle.astro";
-import { getBlogPosts } from "../../lib/blog/posts";
-import type { PostMetadata } from "../../lib/blog/schema";
 import BlogHeading from "../../components/BlogHeading.astro";
-import { Markdown } from "../../react/markdown/Markdown";
-import { IS_DEV } from "../../lib/config";
-import TodoMarkers from "../../components/TodoMarkers.astro";
 import MarkdownComponentSupport, {
     INSERT_FUNCTION_NAME,
 } from "../../components/MarkdownComponentSupport.astro";
+import TodoMarkers from "../../components/TodoMarkers.astro";
+import BasicLayout from "../../layouts/BasicLayout.astro";
+import Metadata from "../../layouts/Metadata.astro";
 import {
-    resolveBlogImage,
-    resolveBlogCoverImage,
     type CoverImageInfo,
+    resolveBlogCoverImage,
+    resolveBlogImage,
 } from "../../lib/blog/images";
+import { getBlogPosts } from "../../lib/blog/posts";
+import type { PostMetadata } from "../../lib/blog/schema";
+import { IS_DEV } from "../../lib/config";
+import { Markdown } from "../../react/markdown/Markdown";
 
 export async function getStaticPaths() {
     const { collectionEntries, posts } = await getBlogPosts();

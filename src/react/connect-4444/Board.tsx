@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { easyAiNextMove, hardAiNextMove, mediumAiNextMove } from "./ai";
 import {
     type BoardSettings,
-    type GameResult,
-    type PlayerId,
-    type ReadonlyGameBoard,
     FIRST_PLAYER,
     GameBoard,
+    type GameResult,
     getNextPlayer,
     ONGOING,
+    type PlayerId,
+    type ReadonlyGameBoard,
 } from "./game";
-import { easyAiNextMove, hardAiNextMove, mediumAiNextMove } from "./ai";
 
 const HUMAN_SYMBOL = "🧠";
 const AI_SYMBOL = "🤖";

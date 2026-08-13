@@ -6,10 +6,11 @@
         "useIgnoreFile": true
     },
     "files": {
-        "includes": ["**", "!!**/dist", "!!**/vendor-prism", "!!**/.vscode"]
+        "includes": ["**", "!!**/dist", "!!**/vendor-prism", "!!**/.vscode", "!!**/*.svg"]
     },
     "formatter": {
         "enabled": true,
+        "formatWithErrors": true,
         "indentStyle": "space",
         "indentWidth": 4,
         "lineWidth": 100
@@ -17,12 +18,28 @@
     "linter": {
         "enabled": true,
         "rules": {
-            "preset": "recommended"
+            "preset": "recommended",
+            "complexity": {
+                "useLiteralKeys": "off",
+                "noImportantStyles": "off"
+            },
+            "suspicious": {
+                "noImplicitAnyLet": "off",
+                "noArrayIndexKey": "off"
+            },
+            "style": {
+                "useTemplate": "off"
+            }
         }
     },
     "javascript": {
         "formatter": {
             "quoteStyle": "double"
+        }
+    },
+    "css": {
+        "parser": {
+            "tailwindDirectives": true
         }
     },
     "assist": {
@@ -32,5 +49,18 @@
                 "organizeImports": "on"
             }
         }
-    }
+    },
+    "overrides": [
+        {
+            "includes": ["**/*.astro"],
+            "linter": {
+                "rules": {
+                    "correctness": {
+                        "noUnusedVariables": "off",
+                        "noUnusedImports": "off"
+                    }
+                }
+            }
+        }
+    ]
 }

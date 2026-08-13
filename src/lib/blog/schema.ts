@@ -1,5 +1,5 @@
 import type { CollectionEntry } from "astro:content";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { Rgb } from "../color";
 
 export type BlogCollectionEntry = CollectionEntry<"blog">;

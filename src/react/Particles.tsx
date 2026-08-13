@@ -63,7 +63,7 @@ export function Particles() {
 
         // update loop
         let frameId: number;
-        let lastTimestamp: number | undefined = undefined;
+        let lastTimestamp: number | undefined;
 
         const step = (timestamp: number) => {
             const dt = (timestamp - (lastTimestamp ?? timestamp)) / 1000;

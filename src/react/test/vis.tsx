@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type ProblemDesc, ProblemInput } from "../multiply-add/ConversionConstantsSearch";
-import { useDevicePixelRatio } from "../hooks/useDevicePixelRatio";
 import { DownDown, SmallButton } from "../FormInputs";
+import { useDevicePixelRatio } from "../hooks/useDevicePixelRatio";
+import { type ProblemDesc, ProblemInput } from "../multiply-add/ConversionConstantsSearch";
 import { GmaProblem } from "./gma";
 
 interface Transform {

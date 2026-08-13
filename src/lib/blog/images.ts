@@ -1,7 +1,7 @@
 import { getImage } from "astro:assets";
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createHash } from "node:crypto";
 import sharp, { type Sharp } from "sharp";
 import { fsExists, Mutex, toBase64Image } from "./util";
 
@@ -182,7 +182,7 @@ function getCleanBasename(filePath: string): string {
     return path
         .basename(filePath)
         .replace(/\.\w+$/, "")
-        .replace(/[^\w\-]/g, "-");
+        .replace(/[^\w-]/g, "-");
 }
 
 async function generateInlineImagePreviewData(imagePath: string): Promise<string> {
@@ -263,7 +263,7 @@ async function toTinyImage(
     encode: (image: Sharp, quality: number) => Sharp,
     qualityRange: readonly [number, number] = [1, 75],
 ): Promise<[Buffer, number]> {
-    let best: Buffer | undefined = undefined;
+    let best: Buffer | undefined;
     let bestQuality: number = NaN;
 
     let low = qualityRange[0];

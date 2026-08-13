@@ -386,7 +386,7 @@ const ErrorCanvas = memo(({ block }: { block: Block }) => {
                 let counter = 0;
                 while (nextBlockRef.current) {
                     counter++;
-                    const forceDraw = counter % 2 == 0;
+                    const forceDraw = counter % 2 === 0;
 
                     const block = nextBlockRef.current;
                     nextBlockRef.current = null;
