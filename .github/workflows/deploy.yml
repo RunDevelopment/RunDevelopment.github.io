@@ -39,6 +39,14 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+
+      - name: Cache cover images
+        id: cover-images-cache
+        uses: actions/cache@v6
+        with:
+          path: .cover-cache
+          key: cover-cache
+
       - name: Build with Next.js
         run: npm run build
       - name: Build again
