@@ -8,7 +8,12 @@ import { RiResetLeftFill } from "react-icons/ri";
 
 const SIZE = 120;
 
-const IMAGES: { name: string; url: string; offset: [number, number]; threshold: number }[] = [
+const IMAGES: {
+    name: string;
+    url: string;
+    offset: [number, number];
+    threshold: number;
+}[] = [
     {
         name: "@",
         url: "/grayscale-images/at-sdf.webp",

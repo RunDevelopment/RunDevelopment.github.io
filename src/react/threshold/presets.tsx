@@ -1,6 +1,10 @@
 import type { Kernel } from "./kernel";
 
-export const PRESETS: Readonly<{ icon: React.ReactNode; title: string; kernel: Kernel }>[] = [
+export const PRESETS: Readonly<{
+    icon: React.ReactNode;
+    title: string;
+    kernel: Kernel;
+}>[] = [
     {
         icon: (
             <svg

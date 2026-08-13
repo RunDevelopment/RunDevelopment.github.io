@@ -31,9 +31,8 @@ function floorDiv2pnM1Iters(v: number, n: number, iters: number): number {
     return r;
 }
 
-
 function roundDiv2pnP1Iters(v: number, n: number, iters: number): number {
-    let x = v + (1 << (n - 1)) - iters % 2;
+    let x = v + (1 << (n - 1)) - (iters % 2);
     let r = x >> n;
     while (iters-- > 1) {
         r = (x - r) >> n;
@@ -41,7 +40,7 @@ function roundDiv2pnP1Iters(v: number, n: number, iters: number): number {
     return r;
 }
 function ceilDiv2pnP1Iters(v: number, n: number, iters: number): number {
-    let x = v + (1 << n) - iters % 2;
+    let x = v + (1 << n) - (iters % 2);
     let r = x >> n;
     while (iters-- > 1) {
         r = (x - r) >> n;
@@ -49,7 +48,7 @@ function ceilDiv2pnP1Iters(v: number, n: number, iters: number): number {
     return r;
 }
 function floorDiv2pnP1Iters(v: number, n: number, iters: number): number {
-    let x = v - iters % 2;
+    let x = v - (iters % 2);
     let r = x >> n;
     while (iters-- > 1) {
         r = (x - r) >> n;
@@ -89,7 +88,14 @@ interface TableOptions {
 function printSmallestIncorrectTable(
     f: (v: number, n: number, iters: number) => number,
     ref: (v: number, n: number) => number,
-    { maxN = 8, maxIters = 5, maxV = 1e7, minV = 0, quickSearch = true, cellWidth = 8 }: TableOptions = {}
+    {
+        maxN = 8,
+        maxIters = 5,
+        maxV = 1e7,
+        minV = 0,
+        quickSearch = true,
+        cellWidth = 8,
+    }: TableOptions = {},
 ) {
     const printCells = (cells: (string | number)[]) => {
         let s = "| " + cells[0].toString().padStart(3) + " | ";
@@ -97,7 +103,7 @@ function printSmallestIncorrectTable(
             s += cell.toString().padEnd(cellWidth) + " | ";
         }
         console.log(s);
-    }
+    };
     printCells(["n", ...Array.from({ length: maxIters }, (_, i) => `iters=${i + 1}`)]);
     printCells(["--:", ...Array.from({ length: maxIters }, (_) => "---")]);
 
@@ -125,25 +131,23 @@ function printSmallestIncorrectTable(
                 const diff = smallestIncorrect - base;
                 cells.push(`2^${n * iters}${diff >= 0 ? "+" : ""}${diff}`);
             }
-
         }
         printCells(cells);
     }
 }
-function printSmallestIncorrectTableFor(mode: "round" | "ceil" | "floor", options: TableOptions = {}) {
+function printSmallestIncorrectTableFor(
+    mode: "round" | "ceil" | "floor",
+    options: TableOptions = {},
+) {
     console.log(`Table for ${mode} division:`);
 
     const [f, ref] = {
-        "round": [roundDiv2pnM1Iters, roundDiv] as const,
-        "ceil": [ceilDiv2pnM1Iters, ceilDiv] as const,
-        "floor": [floorDiv2pnM1Iters, floorDiv] as const,
+        round: [roundDiv2pnM1Iters, roundDiv] as const,
+        ceil: [ceilDiv2pnM1Iters, ceilDiv] as const,
+        floor: [floorDiv2pnM1Iters, floorDiv] as const,
     }[mode];
 
-    printSmallestIncorrectTable(
-        f,
-        (v, n) => ref(v, (2 ** n) - 1),
-        options
-    );
+    printSmallestIncorrectTable(f, (v, n) => ref(v, 2 ** n - 1), options);
 }
 function printSmallestIncorrectTableForAll(options: TableOptions = {}) {
     printSmallestIncorrectTableFor("round", options);
@@ -154,11 +158,13 @@ function printSmallestIncorrectTableForAll(options: TableOptions = {}) {
 }
 // printSmallestIncorrectTableForAll({ maxN: 8, maxIters: 5, quickSearch: true });
 
-printSmallestIncorrectTable(
-    floorDiv2pnP1Iters,
-    (v, n) => floorDiv(v, (1 << n) + 1),
-    { maxN: 8, maxIters: 8, quickSearch: false, maxV: 1e9, minV: 1 }
-)
+printSmallestIncorrectTable(floorDiv2pnP1Iters, (v, n) => floorDiv(v, (1 << n) + 1), {
+    maxN: 8,
+    maxIters: 8,
+    quickSearch: false,
+    maxV: 1e9,
+    minV: 1,
+});
 // const n = 4;
 // findDiff(
 //     (v) => roundDiv2pnP1Iters(v, n, 6),
@@ -199,7 +205,6 @@ printSmallestIncorrectTable(
 //     (v) => floorDiv2pnM1Iters(v, N, ITERS),
 //     (v) => floorDiv(v, (1 << N) - 1),
 // );
-
 
 // function analyseDeltas(n: number, iters: number = 2, maxOutput: number = 20) {
 //     const f = (v: number) => roundDiv2pnM1Iters(v, n, iters);

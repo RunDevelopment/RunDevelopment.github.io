@@ -1,4 +1,4 @@
-import { Prism, Token, type TokenStream } from "./vendor-prism/core"
+import { Prism, Token, type TokenStream } from "./vendor-prism/core";
 
 // Only import components as needed
 import "./vendor-prism/c";
@@ -12,20 +12,24 @@ import "./vendor-prism/markdown";
 
 export function highlight(code: string, lang: string): string {
     lang = resolveAlias(lang);
-    return Prism.highlight(code, (Prism.languages as Record<string, any>)[lang] || Prism.languages.plain, lang);
+    return Prism.highlight(
+        code,
+        (Prism.languages as Record<string, any>)[lang] || Prism.languages.plain,
+        lang,
+    );
 }
 
 const aliases = {
-    "md": "markdown",
-    "nasm": "asm",
-    "py": "python",
-    "rs": "rust",
-    "yml": "yaml",
+    md: "markdown",
+    nasm: "asm",
+    py: "python",
+    rs: "rust",
+    yml: "yaml",
     "c++": "cpp",
     "c#": "cs",
-    "markup": "html",
-    "js": "javascript",
-    "ts": "typescript",
+    markup: "html",
+    js: "javascript",
+    ts: "typescript",
 } as const;
 export function resolveAlias(lang: string): string {
     lang = lang.toLowerCase().trim();
@@ -78,14 +82,14 @@ Prism.hooks.add("after-tokenize", (env) => {
             } else {
                 newTokens.push(str);
             }
-        }
+        };
         const add = (e: Token | string) => {
             if (typeof e === "string") {
                 addString(e);
             } else {
                 newTokens.push(e);
             }
-        }
+        };
 
         for (const token of tokens) {
             if (typeof token !== "string" && token.type === "punctuation") {
@@ -108,5 +112,4 @@ Prism.hooks.add("after-tokenize", (env) => {
     env.tokens = withoutPunctuation(tokens);
 });
 
-export { Prism }
-
+export { Prism };

@@ -314,7 +314,12 @@ export function Markdown({
 }: MarkdownProps) {
     return (
         <MarkdownContext.Provider
-            value={{ inline, inlineCodeLanguage, componentInsertFunction, getImage }}
+            value={{
+                inline,
+                inlineCodeLanguage,
+                componentInsertFunction,
+                getImage,
+            }}
         >
             <MarkdownRenderer markdown={markdown} />
         </MarkdownContext.Provider>

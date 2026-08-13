@@ -2,7 +2,11 @@
  * An RGB color. Channels are 0-1 in either linear or sRGB.
  */
 export class Rgb {
-    constructor(public r: number, public g: number, public b: number) { }
+    constructor(
+        public r: number,
+        public g: number,
+        public b: number,
+    ) {}
 
     /** Return luma as a weighted sum of the RGB channels. The color should be linear. */
     get luma(): number {
@@ -19,17 +23,13 @@ export class Rgb {
     }
 
     srgbToLinear(): Rgb {
-        return new Rgb(
-            Math.pow(this.r, 2.2),
-            Math.pow(this.g, 2.2),
-            Math.pow(this.b, 2.2)
-        );
+        return new Rgb(Math.pow(this.r, 2.2), Math.pow(this.g, 2.2), Math.pow(this.b, 2.2));
     }
     linearToSrgb(): Rgb {
         return new Rgb(
             Math.pow(this.r, 1 / 2.2),
             Math.pow(this.g, 1 / 2.2),
-            Math.pow(this.b, 1 / 2.2)
+            Math.pow(this.b, 1 / 2.2),
         );
     }
 
@@ -45,51 +45,34 @@ export class Rgb {
         return new Rgb(
             this.r + (other.r - this.r) * t,
             this.g + (other.g - this.g) * t,
-            this.b + (other.b - this.b) * t
+            this.b + (other.b - this.b) * t,
         );
     }
     clamp(min = 0, max = 1): Rgb {
         return new Rgb(
             Math.max(min, Math.min(max, this.r)),
             Math.max(min, Math.min(max, this.g)),
-            Math.max(min, Math.min(max, this.b))
+            Math.max(min, Math.min(max, this.b)),
         );
     }
 
     add(other: Rgb | number): Rgb {
         if (typeof other === "number") {
-            return new Rgb(
-                this.r + other,
-                this.g + other,
-                this.b + other
-            );
+            return new Rgb(this.r + other, this.g + other, this.b + other);
         }
-        return new Rgb(
-            this.r + other.r,
-            this.g + other.g,
-            this.b + other.b
-        );
+        return new Rgb(this.r + other.r, this.g + other.g, this.b + other.b);
     }
     mul(other: Rgb | number): Rgb {
         if (typeof other === "number") {
-            return new Rgb(
-                this.r * other,
-                this.g * other,
-                this.b * other
-            );
+            return new Rgb(this.r * other, this.g * other, this.b * other);
         }
-        return new Rgb(
-            this.r * other.r,
-            this.g * other.g,
-            this.b * other.b
-        );
+        return new Rgb(this.r * other.r, this.g * other.g, this.b * other.b);
     }
 
     saturateHsv(amount: number): Rgb {
         const [h, s, v] = rgbToHsv(this.r, this.g, this.b);
         return new Rgb(...hsvToRgb(h, Math.min(1, s * amount), v));
     }
-
 
     /** Returns an 8-bit hex color string. Color should be sRGB. */
     toCss(): string {
@@ -101,15 +84,28 @@ export class Rgb {
 
     static parse(color: string): Rgb | null {
         const matchRgb = color.match(/^rgb\((\d+)[,\s]\s*(\d+)[,\s]\s*(\d+)\)$/);
-        if (matchRgb) return new Rgb(parseInt(matchRgb[1]) / 255, parseInt(matchRgb[2]) / 255, parseInt(matchRgb[3]) / 255);
+        if (matchRgb)
+            return new Rgb(
+                parseInt(matchRgb[1]) / 255,
+                parseInt(matchRgb[2]) / 255,
+                parseInt(matchRgb[3]) / 255,
+            );
 
         const matchHex2 = color.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
         if (matchHex2)
-            return new Rgb(parseInt(matchHex2[1], 16) / 255, parseInt(matchHex2[2], 16) / 255, parseInt(matchHex2[3], 16) / 255);
+            return new Rgb(
+                parseInt(matchHex2[1], 16) / 255,
+                parseInt(matchHex2[2], 16) / 255,
+                parseInt(matchHex2[3], 16) / 255,
+            );
 
         const matchHex1 = color.match(/^#?([a-f\d])([a-f\d])([a-f\d])$/i);
         if (matchHex1)
-            return new Rgb(parseInt(matchHex1[1], 16) / 15, parseInt(matchHex1[2], 16) / 15, parseInt(matchHex1[3], 16) / 15);
+            return new Rgb(
+                parseInt(matchHex1[1], 16) / 15,
+                parseInt(matchHex1[2], 16) / 15,
+                parseInt(matchHex1[3], 16) / 15,
+            );
 
         return null;
     }
@@ -162,10 +158,8 @@ function rgbToHsv(r: number, g: number, b: number): Hsv {
     }
 
     return [h, s, v];
-
 }
 function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
-
     // Ensure Hue wraps around correctly if it exceeds 360 or is negative
     h = ((h % 360) + 360) % 360;
 
@@ -173,20 +167,34 @@ function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
     const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
     const m = v - c;
 
-    let r = 0, g = 0, b = 0;
+    let r = 0,
+        g = 0,
+        b = 0;
 
     if (h >= 0 && h < 60) {
-        r = c; g = x; b = 0;
+        r = c;
+        g = x;
+        b = 0;
     } else if (h >= 60 && h < 120) {
-        r = x; g = c; b = 0;
+        r = x;
+        g = c;
+        b = 0;
     } else if (h >= 120 && h < 180) {
-        r = 0; g = c; b = x;
+        r = 0;
+        g = c;
+        b = x;
     } else if (h >= 180 && h < 240) {
-        r = 0; g = x; b = c;
+        r = 0;
+        g = x;
+        b = c;
     } else if (h >= 240 && h < 300) {
-        r = x; g = 0; b = c;
+        r = x;
+        g = 0;
+        b = c;
     } else if (h >= 300 && h < 360) {
-        r = c; g = 0; b = x;
+        r = c;
+        g = 0;
+        b = x;
     }
 
     return [r + m, g + m, b + m];

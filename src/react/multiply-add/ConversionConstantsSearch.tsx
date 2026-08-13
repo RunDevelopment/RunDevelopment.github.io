@@ -542,8 +542,8 @@ const AllSolutions = memo(({ problem, time, solutions, searchMore }: AllSolution
                 </summary>
 
                 <div className="my-4">
-                    Found {solutions.length} solution{solutions.length !== 1 && "s"} in{" "}
-                    {formatDuration(time)}.
+                    Found {solutions.length} solution
+                    {solutions.length !== 1 && "s"} in {formatDuration(time)}.
                 </div>
 
                 <div className="my-4" key={resetKey}>

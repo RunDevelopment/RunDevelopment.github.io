@@ -5,17 +5,19 @@ import { IS_DEV } from "../config";
 
 export interface BlogPosts {
     posts: readonly PostMetadata[];
-    collectionEntries: readonly CollectionEntry<'blog'>[];
+    collectionEntries: readonly CollectionEntry<"blog">[];
     byYear: [number, readonly PostMetadata[]][];
     tags: ReadonlyMap<string, number>;
 }
 
 export async function getBlogPosts(): Promise<BlogPosts> {
-    const rawCollectionEntries = (await getCollection("blog")).filter(e => IS_DEV || !e.data.draft);
+    const rawCollectionEntries = (await getCollection("blog")).filter(
+        (e) => IS_DEV || !e.data.draft,
+    );
 
     const entries = rawCollectionEntries
-        .filter(e => IS_DEV || !e.data.draft)
-        .map(e => [e, toPostMetadata(e)] as const)
+        .filter((e) => IS_DEV || !e.data.draft)
+        .map((e) => [e, toPostMetadata(e)] as const)
         .sort((a, b) => {
             const dateA = new Date(a[1].datePublished);
             const dateB = new Date(b[1].datePublished);

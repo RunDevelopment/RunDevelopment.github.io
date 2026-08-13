@@ -58,7 +58,8 @@ export function Div2pnM1() {
                     defaultValue={"round" as RoundingMode}
                     label={
                         <>
-                            Rounding<span className="hidden xs:inline"> mode</span>
+                            Rounding
+                            <span className="hidden xs:inline"> mode</span>
                         </>
                     }
                     renderValue={(value, setValue, disable) => (

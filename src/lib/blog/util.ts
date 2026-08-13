@@ -1,5 +1,3 @@
-
-
 import fs from "node:fs/promises";
 
 type KnownImageFormat = "jpeg" | "png" | "webp" | "avif" | "gif";

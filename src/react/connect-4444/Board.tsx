@@ -81,7 +81,13 @@ export function GamePage() {
             ]),
     );
     const [game, setGame] = useState<ReadonlyGameBoard>(
-        () => new GameBoard({ width: 7, height: 6, playerCount: players.count, goal: 4 }),
+        () =>
+            new GameBoard({
+                width: 7,
+                height: 6,
+                playerCount: players.count,
+                goal: 4,
+            }),
     );
     const [player, setPlayer] = useState<PlayerId>(FIRST_PLAYER);
     const [gameResult, setGameResult] = useState<GameResult>(ONGOING);
@@ -199,8 +205,20 @@ function GameModeSelect({ settings, players, setGameMode }: GameModeSelectProps)
         goal: number;
     }
     const presets: GameModePreset[] = [
-        { name: "Solo 1P", players: ["human", "ai"], gridWidth: 7, gridHeight: 6, goal: 4 },
-        { name: "Classic 2P", players: ["human", "human"], gridWidth: 7, gridHeight: 6, goal: 4 },
+        {
+            name: "Solo 1P",
+            players: ["human", "ai"],
+            gridWidth: 7,
+            gridHeight: 6,
+            goal: 4,
+        },
+        {
+            name: "Classic 2P",
+            players: ["human", "human"],
+            gridWidth: 7,
+            gridHeight: 6,
+            goal: 4,
+        },
         {
             name: "Squad 4P",
             players: ["human", "human", "human", "human"],
@@ -349,7 +367,11 @@ function GameModeSelect({ settings, players, setGameMode }: GameModeSelectProps)
                                     playerTypes.map((type) =>
                                         type === "human"
                                             ? { type, symbol: HUMAN_SYMBOL }
-                                            : { type, symbol: AI_SYMBOL, level: aiLevel },
+                                            : {
+                                                  type,
+                                                  symbol: AI_SYMBOL,
+                                                  level: aiLevel,
+                                              },
                                     ),
                                 ),
                                 {
@@ -665,7 +687,9 @@ function BoardView({ board, nextDropPlayer, onColumnClick, result, readonly }: B
                                         <div className="relative size-full">
                                             <div
                                                 className="absolute size-full rounded-full"
-                                                style={{ backgroundColor: COLORS[0] }}
+                                                style={{
+                                                    backgroundColor: COLORS[0],
+                                                }}
                                             />
                                             <div
                                                 className={

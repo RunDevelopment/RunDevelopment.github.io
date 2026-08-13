@@ -2,16 +2,17 @@ import { getImage } from "astro:assets";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import sharp, { type Sharp } from 'sharp';
+import sharp, { type Sharp } from "sharp";
 import { fsExists, Mutex, toBase64Image } from "./util";
 
 const PROJECT_DIR = path.resolve(".");
 const PUBLIC_DIR = path.join(PROJECT_DIR, "public");
 const BLOG_COVERS_DIR = path.join(PROJECT_DIR, "src/assets/blog-covers");
 
-const imports = import.meta.glob<{ default: ImageMetadata }>(
-    ["/src/content/blog/**/*.{jpeg,jpg,png,gif,webp,avif,svg}", "/src/assets/blog-covers/*.{webp,avif}"],
-);
+const imports = import.meta.glob<{ default: ImageMetadata }>([
+    "/src/content/blog/**/*.{jpeg,jpg,png,gif,webp,avif,svg}",
+    "/src/assets/blog-covers/*.{webp,avif}",
+]);
 const images = new Map(
     Object.entries(imports).map(([p, resolve]) => {
         // make file path absolute
@@ -33,7 +34,10 @@ export async function resolveBlogImage(url: string, postFilePath: string): Promi
 
     if (url.startsWith("/")) {
         // references to public/ images remain unchanged; just read the dimensions of the file
-        const file = path.join(PUBLIC_DIR, decodeURIComponent(url.replace(/\/public\//i, "/").slice(1)));
+        const file = path.join(
+            PUBLIC_DIR,
+            decodeURIComponent(url.replace(/\/public\//i, "/").slice(1)),
+        );
         let metadata;
         try {
             metadata = await openImage(file).metadata();
@@ -66,7 +70,10 @@ export interface CoverImageInfo {
     height?: number;
 }
 
-export async function resolveBlogCoverImage(url: string, postFilePath: string): Promise<CoverImageInfo> {
+export async function resolveBlogCoverImage(
+    url: string,
+    postFilePath: string,
+): Promise<CoverImageInfo> {
     const postDir = path.resolve(PROJECT_DIR, path.dirname(postFilePath));
     const imagePath = path.resolve(postDir, decodeURIComponent(url));
 
@@ -74,7 +81,11 @@ export async function resolveBlogCoverImage(url: string, postFilePath: string): 
     const COVER_HEIGHT = 800;
 
     const name = getCleanBasename(imagePath);
-    const coverPath = await generateCoverImage(imagePath, name, { width: COVER_WIDTH, height: COVER_HEIGHT, quality: 80 });
+    const coverPath = await generateCoverImage(imagePath, name, {
+        width: COVER_WIDTH,
+        height: COVER_HEIGHT,
+        quality: 80,
+    });
     const inlineSrc = await generateInlineImagePreviewData(coverPath);
 
     const postId = createHash("sha256").update(postFilePath).digest("hex").slice(0, 8);
@@ -87,10 +98,12 @@ export async function resolveBlogCoverImage(url: string, postFilePath: string): 
         const coverLowPath = await generateCoverImage(blogCoverFile, name, {
             width: COVER_WIDTH / 2,
             height: COVER_HEIGHT / 2,
-            quality: 85
-
+            quality: 85,
         });
-        const blogCoverLowFile = path.join(BLOG_COVERS_DIR, `cover-lowRes-${postId}${path.extname(coverLowPath)}`);
+        const blogCoverLowFile = path.join(
+            BLOG_COVERS_DIR,
+            `cover-lowRes-${postId}${path.extname(coverLowPath)}`,
+        );
         await syncFile(coverLowPath, blogCoverLowFile);
 
         const coverImport = images.get(blogCoverLowFile);
@@ -115,16 +128,19 @@ async function syncFile(src: string, dest: string): Promise<void> {
         const stat1 = await fs.stat(src);
         const stat2 = await fs.stat(dest);
         if (stat1.size !== stat2.size) {
-            throw new Error()
+            throw new Error();
         }
     } catch {
         await fs.mkdir(path.dirname(dest), { recursive: true });
         await fs.copyFile(src, dest);
     }
-
 }
 
-async function generateCoverImage(imagePath: string, name: string, options: { width: number, height: number, quality: number }): Promise<string> {
+async function generateCoverImage(
+    imagePath: string,
+    name: string,
+    options: { width: number; height: number; quality: number },
+): Promise<string> {
     try {
         // Use the image directly if it is small enough and AVIF. See the Fast Unorm article
         if (imagePath.endsWith(".avif")) {
@@ -144,21 +160,30 @@ async function generateCoverImage(imagePath: string, name: string, options: { wi
             "cover-" + name + "-#.avif",
             { height, width, quality },
             async (image) => {
-                image = image.resize({ width, height, fit: "cover", withoutEnlargement: true });
+                image = image.resize({
+                    width,
+                    height,
+                    fit: "cover",
+                    withoutEnlargement: true,
+                });
                 return image.avif({ quality }).toBuffer();
             },
         );
 
         return cachePath;
     } catch (cause) {
-        throw new Error(`Failed to generate cover image for ${imagePath}`, { cause });
+        throw new Error(`Failed to generate cover image for ${imagePath}`, {
+            cause,
+        });
     }
 }
 
 function getCleanBasename(filePath: string): string {
-    return path.basename(filePath).replace(/\.\w+$/, "").replace(/[^\w\-]/g, "-");
+    return path
+        .basename(filePath)
+        .replace(/\.\w+$/, "")
+        .replace(/[^\w\-]/g, "-");
 }
-
 
 async function generateInlineImagePreviewData(imagePath: string): Promise<string> {
     try {
@@ -288,7 +313,10 @@ async function cachedImageFile<T>(
     }
 
     const fileStats = await fs.stat(srcImagePath);
-    const hash = createHash("sha256").update(`${fileStats.size}\n${srcImagePath}\n${JSON.stringify(options)}`).digest("hex").slice(0, 8);
+    const hash = createHash("sha256")
+        .update(`${fileStats.size}\n${srcImagePath}\n${JSON.stringify(options)}`)
+        .digest("hex")
+        .slice(0, 8);
     const destName = destNamePattern.replace("#", hash);
     const cachePath = path.join(COVER_CACHE, destName);
 

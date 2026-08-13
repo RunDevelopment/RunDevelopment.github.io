@@ -1,4 +1,4 @@
-export const noop = (): void => { };
+export const noop = (): void => {};
 export const identity = <T>(x: T): T => x;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

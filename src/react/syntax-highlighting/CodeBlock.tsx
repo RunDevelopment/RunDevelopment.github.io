@@ -34,7 +34,13 @@ export function CodeBlock({ code, lang, langTitle, wide = "auto", links = [] }: 
             {links.length > 0 && (
                 <div className="CodeBlockLinks">
                     {links.map(({ text, title, href }, i) => (
-                        <a key={i} href={href} title={title} target="_blank" rel="noopener noreferrer">
+                        <a
+                            key={i}
+                            href={href}
+                            title={title}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
                             {text}
                         </a>
                     ))}

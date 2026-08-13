@@ -445,7 +445,12 @@ export function SolutionVisualizer() {
                     <div className="mt-4 flex gap-2">
                         <SmallButton
                             onClick={() => {
-                                setTransform({ x: 0.5, y: 0.5, scaleX: 0.5, scaleY: -0.5 });
+                                setTransform({
+                                    x: 0.5,
+                                    y: 0.5,
+                                    scaleX: 0.5,
+                                    scaleY: -0.5,
+                                });
                             }}
                         >
                             Reset view
