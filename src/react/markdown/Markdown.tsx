@@ -1,21 +1,23 @@
-import { useContext, createContext } from "react";
+/** biome-ignore-all lint/correctness/useHookAtTopLevel: Using hooks inside staticComponents is safe */
+
+import { createContext, useContext } from "react";
 import ReactMarkdown from "react-markdown";
+import rehypeCodeMeta from "rehype-code-meta";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
-import remarkToc from "remark-toc";
-import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import rehypeCodeMeta from "rehype-code-meta";
-import { type Components, nodeTextContent, parseMetaString } from "./md-util";
-import { TextLink } from "../TextLink";
-import { ForwardChildren } from "../util";
-import { Info } from "./Info";
-import { Image } from "./Image";
+import remarkToc from "remark-toc";
+import type { ImageInfo } from "../../lib/blog/images";
+import { getDomain } from "../../lib/util";
 import { CodeBlock } from "../syntax-highlighting/CodeBlock";
 import { InlineCode } from "../syntax-highlighting/InlineCode";
-import { getDomain } from "../../lib/util";
-import type { ImageInfo } from "../../lib/blog/images";
+import { TextLink } from "../TextLink";
+import { ForwardChildren } from "../util";
+import { Image } from "./Image";
+import { Info } from "./Info";
+import { type Components, nodeTextContent, parseMetaString } from "./md-util";
 import "katex/dist/katex.min.css";
 import "../../styles/markdown.css";
 
@@ -262,6 +264,7 @@ const staticComponents = {
             }
         }
 
+        // biome-ignore lint/suspicious/noExplicitAny: I think that's a TypeScript bug.
         return <Image src={src} alt={alt} width={width as any} height={height as any} {...props} />;
     },
 } satisfies Partial<Components>;
@@ -314,7 +317,12 @@ export function Markdown({
 }: MarkdownProps) {
     return (
         <MarkdownContext.Provider
-            value={{ inline, inlineCodeLanguage, componentInsertFunction, getImage }}
+            value={{
+                inline,
+                inlineCodeLanguage,
+                componentInsertFunction,
+                getImage,
+            }}
         >
             <MarkdownRenderer markdown={markdown} />
         </MarkdownContext.Provider>

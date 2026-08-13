@@ -258,6 +258,7 @@ export function SmallButton({
             onClick={onClick}
             title={title}
             data-active={showActive ? "true" : undefined}
+            type="button"
         >
             {children}
         </button>

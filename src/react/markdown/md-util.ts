@@ -1,4 +1,4 @@
-import { type ReactNode, type JSX } from "react";
+import type { JSX, ReactNode } from "react";
 import * as z from "zod";
 
 export type MdElement = NonNullable<import("hast-util-to-jsx-runtime").ExtraProps["node"]>;
@@ -37,17 +37,15 @@ export function nodeTextContent(n: import("hast").ElementContent): string {
 
 export interface Component {
     type: string;
-    props?: Record<string, any>;
+    props?: Record<string, unknown>;
 }
 const componentSchema = z.object({
     type: z.string(),
     props: z.record(z.string(), z.any()).optional(),
 });
 export function getComponents(markdown: string): Component[] {
-    const regex = /^```json:component\s*\n([\s\S]*?)\n```$/gm;
     const components: Component[] = [];
-    let match;
-    while ((match = regex.exec(markdown)) !== null) {
+    for (const match of markdown.matchAll(/^```json:component\s*\n([\s\S]*?)\n```$/gm)) {
         const json = match[1];
         const error = (message: string): Component => ({
             type: "Error",
@@ -78,9 +76,7 @@ export function getComponents(markdown: string): Component[] {
 export function parseMetaString(metaString: string): Record<string, string | boolean> {
     const meta: Record<string, string | boolean> = {};
 
-    const regex = /@([\w-]+)(?:=(?:"([^"]+)"|(\S+)))?/g;
-    let match;
-    while ((match = regex.exec(metaString)) !== null) {
+    for (const match of metaString.matchAll(/@([\w-]+)(?:=(?:"([^"]+)"|(\S+)))?/g)) {
         const key = match[1];
         if (match[2] !== undefined) {
             // use string values directly

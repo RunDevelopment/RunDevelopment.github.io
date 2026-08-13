@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { easyAiNextMove, hardAiNextMove, mediumAiNextMove } from "./ai";
 import {
     type BoardSettings,
-    type GameResult,
-    type PlayerId,
-    type ReadonlyGameBoard,
     FIRST_PLAYER,
     GameBoard,
+    type GameResult,
     getNextPlayer,
     ONGOING,
+    type PlayerId,
+    type ReadonlyGameBoard,
 } from "./game";
-import { easyAiNextMove, hardAiNextMove, mediumAiNextMove } from "./ai";
 
 const HUMAN_SYMBOL = "🧠";
 const AI_SYMBOL = "🤖";
@@ -81,7 +81,13 @@ export function GamePage() {
             ]),
     );
     const [game, setGame] = useState<ReadonlyGameBoard>(
-        () => new GameBoard({ width: 7, height: 6, playerCount: players.count, goal: 4 }),
+        () =>
+            new GameBoard({
+                width: 7,
+                height: 6,
+                playerCount: players.count,
+                goal: 4,
+            }),
     );
     const [player, setPlayer] = useState<PlayerId>(FIRST_PLAYER);
     const [gameResult, setGameResult] = useState<GameResult>(ONGOING);
@@ -199,8 +205,20 @@ function GameModeSelect({ settings, players, setGameMode }: GameModeSelectProps)
         goal: number;
     }
     const presets: GameModePreset[] = [
-        { name: "Solo 1P", players: ["human", "ai"], gridWidth: 7, gridHeight: 6, goal: 4 },
-        { name: "Classic 2P", players: ["human", "human"], gridWidth: 7, gridHeight: 6, goal: 4 },
+        {
+            name: "Solo 1P",
+            players: ["human", "ai"],
+            gridWidth: 7,
+            gridHeight: 6,
+            goal: 4,
+        },
+        {
+            name: "Classic 2P",
+            players: ["human", "human"],
+            gridWidth: 7,
+            gridHeight: 6,
+            goal: 4,
+        },
         {
             name: "Squad 4P",
             players: ["human", "human", "human", "human"],
@@ -242,6 +260,7 @@ function GameModeSelect({ settings, players, setGameMode }: GameModeSelectProps)
                             return (
                                 <button
                                     key={i}
+                                    type="button"
                                     onClick={() => {
                                         setPlayerTypes(preset.players);
                                         setGridWidth(preset.gridWidth);
@@ -268,6 +287,7 @@ function GameModeSelect({ settings, players, setGameMode }: GameModeSelectProps)
                             return (
                                 <button
                                     key={i}
+                                    type="button"
                                     onClick={() => {
                                         setPlayerTypes((types) => {
                                             const newTypes = [...types];
@@ -304,6 +324,7 @@ function GameModeSelect({ settings, players, setGameMode }: GameModeSelectProps)
                     <div className="inline-block select-none leading-[1em]">
                         <span>Bot Level:</span>
                         <button
+                            type="button"
                             onClick={() =>
                                 setAiLevel((l) => AI_LEVELS[AI_LEVELS.indexOf(l) - 1] ?? l)
                             }
@@ -314,6 +335,7 @@ function GameModeSelect({ settings, players, setGameMode }: GameModeSelectProps)
                         </button>
                         <span className="inline-block w-[4em]">{AI_LEVEL_NAME[aiLevel]}</span>
                         <button
+                            type="button"
                             onClick={() =>
                                 setAiLevel((l) => AI_LEVELS[AI_LEVELS.indexOf(l) + 1] ?? l)
                             }
@@ -328,6 +350,7 @@ function GameModeSelect({ settings, players, setGameMode }: GameModeSelectProps)
                     <div className="inline-block select-none leading-[1em]">
                         <span>Goal:</span>
                         <button
+                            type="button"
                             onClick={() => setGoal((g) => g - 1)}
                             disabled={goal <= 3}
                             className="inline-block size-[1em] bg-black"
@@ -335,7 +358,11 @@ function GameModeSelect({ settings, players, setGameMode }: GameModeSelectProps)
                             -
                         </button>
                         <span className="inline-block w-[1em]">{goal}</span>
-                        <button onClick={() => setGoal((g) => g + 1)} disabled={goal >= 5}>
+                        <button
+                            type="button"
+                            onClick={() => setGoal((g) => g + 1)}
+                            disabled={goal >= 5}
+                        >
                             +
                         </button>
                     </div>
@@ -343,13 +370,18 @@ function GameModeSelect({ settings, players, setGameMode }: GameModeSelectProps)
 
                 <div className="text-[250%]">
                     <button
+                        type="button"
                         onClick={() => {
                             setGameMode(
                                 new Players(
                                     playerTypes.map((type) =>
                                         type === "human"
                                             ? { type, symbol: HUMAN_SYMBOL }
-                                            : { type, symbol: AI_SYMBOL, level: aiLevel },
+                                            : {
+                                                  type,
+                                                  symbol: AI_SYMBOL,
+                                                  level: aiLevel,
+                                              },
                                     ),
                                 ),
                                 {
@@ -394,19 +426,16 @@ function GameControls({
         <div className="p-[1em]">
             <div className="text-center">
                 <span>{players.count} Players - </span>
-                <span className="whitespace-nowrap">First to Connect {settings.goal} Wins!</span>
-                <span className="whitespace-nowrap" onClick={selectGameMode}>
-                    {" "}
+                <span className="whitespace-nowrap">First to Connect {settings.goal} Wins!</span>{" "}
+                <button type="button" className="whitespace-nowrap" onClick={selectGameMode}>
                     Change
-                </span>
-                <span className="whitespace-nowrap" onClick={restart}>
-                    {" "}
+                </button>{" "}
+                <button type="button" className="whitespace-nowrap" onClick={restart}>
                     Restart
-                </span>
-                <span className="whitespace-nowrap" onClick={undo}>
-                    {" "}
+                </button>{" "}
+                <button type="button" className="whitespace-nowrap" onClick={undo}>
                     Undo
-                </span>
+                </button>
             </div>
             <div className="text-center">
                 {result.kind === "win" && `${players.getPlayerName(result.winner)} won!`}
@@ -597,6 +626,7 @@ function BoardView({ board, nextDropPlayer, onColumnClick, result, readonly }: B
                 <svg
                     className="pointer-events-none absolute size-full select-none"
                     viewBox={`0 0 ${board.width} ${board.height}`}
+                    role="presentation"
                 >
                     {win.lines.map((win, i) => (
                         <line
@@ -615,6 +645,7 @@ function BoardView({ board, nextDropPlayer, onColumnClick, result, readonly }: B
                 <svg
                     className="pointer-events-none absolute z-1 size-full select-none"
                     viewBox={`0 0 ${board.width} ${board.height}`}
+                    role="presentation"
                 >
                     {hintLines}
                 </svg>
@@ -624,7 +655,7 @@ function BoardView({ board, nextDropPlayer, onColumnClick, result, readonly }: B
                     const canDrop = !readonly && !result.finished && board.canDrop(x);
 
                     return (
-                        <div
+                        <button
                             key={x}
                             className={
                                 (canDrop ? "cursor-pointer" : "cursor-not-allowed") +
@@ -635,6 +666,8 @@ function BoardView({ board, nextDropPlayer, onColumnClick, result, readonly }: B
                                     onColumnClick(x);
                                 }
                             }}
+                            disabled={!canDrop}
+                            type="button"
                         >
                             {Array.from({ length: board.height }).map((_, y) => {
                                 const player = board.get(x, y);
@@ -665,7 +698,9 @@ function BoardView({ board, nextDropPlayer, onColumnClick, result, readonly }: B
                                         <div className="relative size-full">
                                             <div
                                                 className="absolute size-full rounded-full"
-                                                style={{ backgroundColor: COLORS[0] }}
+                                                style={{
+                                                    backgroundColor: COLORS[0],
+                                                }}
                                             />
                                             <div
                                                 className={
@@ -689,7 +724,7 @@ function BoardView({ board, nextDropPlayer, onColumnClick, result, readonly }: B
                                     </div>
                                 );
                             })}
-                        </div>
+                        </button>
                     );
                 })}
             </div>

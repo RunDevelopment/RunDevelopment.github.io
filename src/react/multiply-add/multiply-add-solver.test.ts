@@ -1,12 +1,12 @@
 // @ts-nocheck
-import { Problem, Solution, SolutionRange } from "./multiply-add-solver";
+import { Problem, type Solution, SolutionRange } from "./multiply-add-solver";
 
 function gcd(a: bigint, b: bigint): bigint {
-    if (b == 0n) return a;
+    if (b === 0n) return a;
     return gcd(b, a % b);
 }
 
-const toString = (solution: Solution | SolutionRange) => {
+const formatSolution = (solution: Solution | SolutionRange) => {
     const { f, A, s } = SolutionRange.from(solution);
     const { min: aMin, max: aMax } = A;
     if (aMin === aMax) {
@@ -31,7 +31,7 @@ const format = <T extends Solution | SolutionRange | null>(
     if (!correct) {
         throw new Error("Invalid solution generated for problem " + p);
     }
-    return toString(solution);
+    return formatSolution(solution);
 };
 
 describe("MA:", () => {
@@ -40,7 +40,7 @@ describe("MA:", () => {
     for (let d = 2n; d <= MAX; d++) {
         for (let t = 1n; t <= MAX; t++) {
             if (d === t) continue;
-            if (gcd(d, t) != 1n) continue;
+            if (gcd(d, t) !== 1n) continue;
 
             test(`t/d=${t}/${d}    `, () => {
                 let s = "";
@@ -58,7 +58,7 @@ describe("MA:", () => {
                         s += `    in order:  ${minimal}\n`;
                         try {
                             let count = -1;
-                            let min = undefined;
+                            let min;
                             for (const solution of solve.iterateSolutions()) {
                                 count++;
                                 if (count === 0) {

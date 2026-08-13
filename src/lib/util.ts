@@ -1,7 +1,7 @@
-export const noop = (): void => { };
+export const noop = (): void => {};
 export const identity = <T>(x: T): T => x;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: eh
 export function timedCached<F extends (...args: any[]) => any>(ttl: number, fn: F): F {
     const cache = new Map<string, { value: ReturnType<F>; expiry: number }>();
 
@@ -27,7 +27,7 @@ export function lazy<T extends NonNullable<unknown> | null>(fn: () => T): () => 
     let lazyFn = lazyCache.get(fn) as (() => T) | undefined;
 
     if (lazyFn === undefined) {
-        let value: T | undefined = undefined;
+        let value: T | undefined;
         lazyFn = () => {
             if (value === undefined) {
                 value = fn();

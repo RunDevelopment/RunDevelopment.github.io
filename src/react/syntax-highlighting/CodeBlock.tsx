@@ -34,16 +34,24 @@ export function CodeBlock({ code, lang, langTitle, wide = "auto", links = [] }: 
             {links.length > 0 && (
                 <div className="CodeBlockLinks">
                     {links.map(({ text, title, href }, i) => (
-                        <a key={i} href={href} title={title} target="_blank" rel="noopener noreferrer">
+                        <a
+                            key={i}
+                            href={href}
+                            title={title}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
                             {text}
                         </a>
                     ))}
                 </div>
             )}
 
+            {/** biome-ignore lint/a11y/noNoninteractiveTabindex: focus is necessary for scrolling */}
             <pre tabIndex={0} className={`language-${lang}`}>
                 <code
                     className={`language-${lang}`}
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: that's how PrimsJS works
                     dangerouslySetInnerHTML={{ __html: highlight(code, lang) }}
                 />
             </pre>

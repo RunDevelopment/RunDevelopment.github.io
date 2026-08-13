@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { ButtonGroup, DownDown, NumberInput, SmallButton } from "../FormInputs";
-import { type Kernel, kernelAreaLineSampling, rotateForHorizontalLineSampling } from "./kernel";
 import { FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { MdGradient } from "react-icons/md";
 import { PiCheckerboardFill } from "react-icons/pi";
 import { RiResetLeftFill } from "react-icons/ri";
+import { ButtonGroup, DownDown, NumberInput, SmallButton } from "../FormInputs";
+import { type Kernel, kernelAreaLineSampling, rotateForHorizontalLineSampling } from "./kernel";
 
 const SIZE = 120;
 
-const IMAGES: { name: string; url: string; offset: [number, number]; threshold: number }[] = [
+const IMAGES: {
+    name: string;
+    url: string;
+    offset: [number, number];
+    threshold: number;
+}[] = [
     {
         name: "@",
         url: "/grayscale-images/at-sdf.webp",
@@ -99,6 +104,7 @@ export function ThresholdDemo() {
             .catch((err) => console.error("Failed to load image:", err));
     };
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: only load image on mount
     useEffect(() => {
         selectImage(START_IMAGE_INDEX);
     }, []);

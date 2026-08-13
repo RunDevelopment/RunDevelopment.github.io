@@ -246,7 +246,7 @@ const BlockInput = memo(({ block, setBlock, blockPrec, setBlockPrec }: BlockInpu
                     />
                     {blockXY && (
                         <span
-                            className="absolute outline outline-1 outline-red-600"
+                            className="absolute outline-1 outline-red-600"
                             style={{
                                 top: blockXY.y + "px",
                                 left: blockXY.x + "px",
@@ -386,7 +386,7 @@ const ErrorCanvas = memo(({ block }: { block: Block }) => {
                 let counter = 0;
                 while (nextBlockRef.current) {
                     counter++;
-                    const forceDraw = counter % 2 == 0;
+                    const forceDraw = counter % 2 === 0;
 
                     const block = nextBlockRef.current;
                     nextBlockRef.current = null;
@@ -503,6 +503,7 @@ const ErrorCanvas = memo(({ block }: { block: Block }) => {
 
     return (
         <div className="mt-4 flex flex-wrap items-start justify-center lg:mx-0" data-wide>
+            {/** biome-ignore lint/a11y/noStaticElementInteractions: x */}
             <div
                 className="group relative aspect-square w-full max-w-[512px] md:w-[512px]"
                 onMouseMove={(e) => {

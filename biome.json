@@ -1,0 +1,68 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    },
+    "files": {
+        "includes": ["**", "!!**/dist", "!!**/vendor-prism", "!!**/.vscode", "!!**/*.svg"]
+    },
+    "formatter": {
+        "enabled": true,
+        "formatWithErrors": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 100
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "preset": "recommended",
+            "complexity": {
+                "useLiteralKeys": "off",
+                "noImportantStyles": "off"
+            },
+            "suspicious": {
+                "noImplicitAnyLet": "off",
+                "noArrayIndexKey": "off"
+            },
+            "style": {
+                "useTemplate": "off",
+                "noNonNullAssertion": "off",
+                "noDescendingSpecificity": "off"
+            }
+        }
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "double"
+        }
+    },
+    "css": {
+        "parser": {
+            "tailwindDirectives": true
+        }
+    },
+    "assist": {
+        "enabled": true,
+        "actions": {
+            "source": {
+                "organizeImports": "on"
+            }
+        }
+    },
+    "overrides": [
+        {
+            "includes": ["**/*.astro"],
+            "linter": {
+                "rules": {
+                    "correctness": {
+                        "noUnusedVariables": "off",
+                        "noUnusedImports": "off"
+                    }
+                }
+            }
+        }
+    ]
+}

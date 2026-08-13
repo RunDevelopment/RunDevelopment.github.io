@@ -81,7 +81,7 @@
             background: linear-gradient(
                 to bottom,
                 rgb(30 58 138) 75%,
-                rgb(55.4 107.2 255/54.1%) 50%
+                rgb(55.4 107.2 255 / 54.1%) 50%
             );
 
             &:hover,

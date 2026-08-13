@@ -1,7 +1,7 @@
 import { assert } from "../../lib/util";
 
 function gcd(a: bigint, b: bigint): bigint {
-    if (b == 0n) return a;
+    if (b === 0n) return a;
     return gcd(b, a % b);
 }
 function divCeil(a: bigint, b: bigint): bigint {
@@ -24,7 +24,7 @@ function mul_inv(a: bigint, b: bigint): bigint {
     const b0 = b;
     let x0 = 0n;
     let x1 = 1n;
-    if (b == 1n) {
+    if (b === 1n) {
         return 1n;
     }
     while (a > 1n) {
@@ -59,7 +59,7 @@ export class Problem {
     readonly r_d: bigint;
 
     get isSimplifiedFraction(): boolean {
-        return gcd(this.t, this.d) == 1n;
+        return gcd(this.t, this.d) === 1n;
     }
 
     constructor(u: bigint, t: bigint, d: bigint, r_d: bigint) {
@@ -81,7 +81,7 @@ export class Problem {
     }
 
     simplify(): Problem {
-        if (this.at(this.u) == 0n) {
+        if (this.at(this.u) === 0n) {
             // the problem is a constant 0 function for the given range
             return new Problem(this.u, 0n, 1n, 0n);
         }
@@ -174,7 +174,7 @@ export class Solution {
     original(): Solution {
         let { f, a, s } = this;
 
-        while (s > 0n && f % 2n == 0n) {
+        while (s > 0n && f % 2n === 0n) {
             f /= 2n;
             a /= 2n;
             s -= 1n;
@@ -310,11 +310,11 @@ export class SolutionRange {
         const { f, A, s } = this;
 
         let a;
-        if (A.min == 0n) {
+        if (A.min === 0n) {
             a = 0n;
         } else if (A.min <= f && f <= A.max) {
             a = f;
-        } else if (A.max == (1n << s) - 1n) {
+        } else if (A.max === (1n << s) - 1n) {
             a = A.max;
         } else {
             a = A.min;
@@ -329,7 +329,7 @@ export class SolutionRange {
     original(): SolutionRange {
         let { f, A, s } = this;
 
-        while (s > 0n && f % 2n == 0n) {
+        while (s > 0n && f % 2n === 0n) {
             f /= 2n;
             A = new Range(A.min / 2n, A.max / 2n);
             s -= 1n;
@@ -463,7 +463,7 @@ function algorithm2(p: Problem, inputSet: readonly bigint[]): SolutionRange {
     assert(p.isSimplifiedFraction);
     assert(p.t < p.d);
 
-    if (p.t == 0n || p.d == 1n) {
+    if (p.t === 0n || p.d === 1n) {
         // trivial solution
         return new SolutionRange(p.t, new Range(0n, 0n), 0n);
     }
@@ -471,7 +471,7 @@ function algorithm2(p: Problem, inputSet: readonly bigint[]): SolutionRange {
     // use the un-derived primitive solution as the starting point
     const primitiveSolution = p.primitiveSolution().original();
 
-    if (primitiveSolution.s == 0n) {
+    if (primitiveSolution.s === 0n) {
         // trivially minimal
         return SolutionRange.from(primitiveSolution);
     }
@@ -491,7 +491,7 @@ function algorithm2(p: Problem, inputSet: readonly bigint[]): SolutionRange {
             }
         }
 
-        if (solution.s == 0n || solution.s == lastS) {
+        if (solution.s === 0n || solution.s === lastS) {
             // found the minimal solution range
             return solution;
         }
@@ -503,7 +503,7 @@ function findAZero(p: Problem, inputSet: readonly bigint[]): Solution | null {
     assert(p.t < p.d);
     const { u, t, d } = p;
 
-    if (t == 0n || d == 1n) {
+    if (t === 0n || d === 1n) {
         // trivial solution
         return new Solution(t, 0n, 0n);
     }
@@ -525,7 +525,7 @@ function pick_most_even(range: Range): bigint {
     let a = range.min;
     let b = range.max;
 
-    if (a == 0n) {
+    if (a === 0n) {
         return 0n;
     }
 
@@ -547,7 +547,7 @@ function algorithm_1f(p: Problem, a: bigint, s: bigint, inputs: readonly bigint[
     let fMax = (((v + 1n) << s) - a) / u;
 
     for (const x of inputs) {
-        if (x == 0n) continue; // skip x=0, it gives no information about f
+        if (x === 0n) continue; // skip x=0, it gives no information about f
 
         const y = (x * t + r_d) / d;
 
@@ -604,7 +604,7 @@ function getInputSet(p: Problem, sizeLimit: number): bigint[] | null {
         return [0n, u];
     }
 
-    if (0n < t && t < d && gcd(t, d) == 1n && d * 2n <= u) {
+    if (0n < t && t < d && gcd(t, d) === 1n && d * 2n <= u) {
         // conjecture 14
         const t_inv = mul_inv(t, d);
         const x_bc = mod(-t_inv * (r_d + 1n), d);
@@ -650,7 +650,7 @@ function getInputSet(p: Problem, sizeLimit: number): bigint[] | null {
 
                 x += jump;
                 let current = p.at(x);
-                while (current == last) {
+                while (current === last) {
                     x += 1n;
                     current = p.at(x);
                 }

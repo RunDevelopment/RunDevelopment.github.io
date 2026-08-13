@@ -1,6 +1,6 @@
 import { memo } from "react";
-import { Problem, type RoundingMode, Solution, Bits } from "./multiply-add-solver";
 import { CodeBlock } from "../syntax-highlighting/CodeBlock";
+import { Bits, type Problem, type RoundingMode, type Solution } from "./multiply-add-solver";
 
 interface CodeGenParams {
     solution: Solution;
@@ -16,7 +16,7 @@ interface GeneratedCode {
 }
 function generateCode(params: CodeGenParams): GeneratedCode {
     const { f, a, s } = params.solution;
-    const { u, t: t, d: d } = params.problem;
+    const { u, t, d } = params.problem;
     const outputRange = (u * f + a) >> BigInt(s);
 
     const roundingComment: Record<RoundingMode, string> = {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type ProblemDesc, ProblemInput } from "../multiply-add/ConversionConstantsSearch";
-import { useDevicePixelRatio } from "../hooks/useDevicePixelRatio";
 import { DownDown, SmallButton } from "../FormInputs";
+import { useDevicePixelRatio } from "../hooks/useDevicePixelRatio";
+import { type ProblemDesc, ProblemInput } from "../multiply-add/ConversionConstantsSearch";
 import { GmaProblem } from "./gma";
 
 interface Transform {
@@ -445,7 +445,12 @@ export function SolutionVisualizer() {
                     <div className="mt-4 flex gap-2">
                         <SmallButton
                             onClick={() => {
-                                setTransform({ x: 0.5, y: 0.5, scaleX: 0.5, scaleY: -0.5 });
+                                setTransform({
+                                    x: 0.5,
+                                    y: 0.5,
+                                    scaleX: 0.5,
+                                    scaleY: -0.5,
+                                });
                             }}
                         >
                             Reset view

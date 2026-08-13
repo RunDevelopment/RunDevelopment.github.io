@@ -1,5 +1,5 @@
 import type { CollectionEntry } from "astro:content";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { Rgb } from "../color";
 
 export type BlogCollectionEntry = CollectionEntry<"blog">;
@@ -32,7 +32,11 @@ export function toPostMetadata(entry: BlogCollectionEntry): PostMetadata {
         draft: entry.data.draft,
         inlineCodeLanguage: entry.data.inlineCodeLanguage,
         slug,
-        tags: entry.data.tags.split(" ").map((t) => t.trim()).filter(Boolean).sort(),
+        tags: entry.data.tags
+            .split(" ")
+            .map((t) => t.trim())
+            .filter(Boolean)
+            .sort(),
         minutesToRead: getMinutesToRead(entry.body || ""),
         color,
         image: entry.data.image,
@@ -46,10 +50,13 @@ function getMinutesToRead(markdown: string): number {
 }
 
 function getSlug(entry: BlogCollectionEntry): string {
-    return entry.data.slug ?? entry.data.title
-        .toLowerCase()
-        .replace(/[:'"()$^<>]/g, "")
-        .replace(/\s+/g, "-");;
+    return (
+        entry.data.slug ??
+        entry.data.title
+            .toLowerCase()
+            .replace(/[:'"()$^<>]/g, "")
+            .replace(/\s+/g, "-")
+    );
 }
 
 function getPostColor(slug: string): string {
@@ -64,7 +71,7 @@ function getPostColor(slug: string): string {
 
     const h = mix(0, 360, r1);
     const s = mix(0.65, 0.85, r2);
-    const v = mix(0.90, 0.95, r3);
+    const v = mix(0.9, 0.95, r3);
 
     return Rgb.fromHsv(h, s, v).toCss();
 }

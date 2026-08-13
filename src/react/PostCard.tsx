@@ -24,7 +24,9 @@ export const PostCard = memo(({ meta, showYear = false, showTags = false }: Post
                         className="-mt-1 line-clamp-2 py-1 text-lg leading-tight text-blue-300 transition-colors hover:text-blue-400 md:line-clamp-1"
                     >
                         <FancyText text={meta.title} />
-                        {meta.draft && <span className="text-zinc-300 font-bold font-mono">{" [Draft]"}</span>}
+                        {meta.draft && (
+                            <span className="text-zinc-300 font-bold font-mono">{" [Draft]"}</span>
+                        )}
                     </a>
                 </h3>
                 <p className="line-clamp-1 text-xs text-zinc-400 xs:text-sm">

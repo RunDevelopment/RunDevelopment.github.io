@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { CodeBlock } from "./syntax-highlighting/CodeBlock";
-import { DownDown, NumberInput, SmallCheckbox } from "./FormInputs";
 import { capitalize } from "../lib/util";
+import { DownDown, NumberInput, SmallCheckbox } from "./FormInputs";
+import { CodeBlock } from "./syntax-highlighting/CodeBlock";
 
 type RoundingMode = "round" | "floor" | "ceil";
 type OrVariable<T> = T | "variable";
@@ -58,7 +58,8 @@ export function Div2pnM1() {
                     defaultValue={"round" as RoundingMode}
                     label={
                         <>
-                            Rounding<span className="hidden xs:inline"> mode</span>
+                            Rounding
+                            <span className="hidden xs:inline"> mode</span>
                         </>
                     }
                     renderValue={(value, setValue, disable) => (
