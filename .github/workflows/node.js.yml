@@ -25,6 +25,13 @@ jobs:
         cache: 'npm'
         cache-dependency-path: package-lock.json
     - run: npm ci
+    - name: Cache cover images
+      id: cover-images-cache
+      uses: actions/cache@v6
+      with:
+        path: .cover-cache
+        key: cover-cache
+
     - run: npm run build
 
   lint:
