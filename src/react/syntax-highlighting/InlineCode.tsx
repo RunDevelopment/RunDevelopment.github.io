@@ -21,6 +21,7 @@ export function InlineCode({ code, lang }: InlineCodeProps) {
         <code
             className={`InlineCode language-${lang}`}
             data-short={code.length < 20 || undefined}
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: that's how PrismJS works
             dangerouslySetInnerHTML={{ __html: before + highlight(code, lang) }}
         />
     );

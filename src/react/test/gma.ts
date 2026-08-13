@@ -56,14 +56,17 @@ export class GmaProblem implements ProblemLike {
         let output;
         if (d < inputRange / 2) {
             for (let x = 1; x <= d; x++) {
-                if ((output = fn(x))) return output;
+                output = fn(x);
+                if (output) return output;
             }
             for (let x = inputRange - d; x <= inputRange; x++) {
-                if ((output = fn(x))) return output;
+                output = fn(x);
+                if (output) return output;
             }
         } else {
             for (let x = 1; x <= inputRange; x++) {
-                if ((output = fn(x))) return output;
+                output = fn(x);
+                if (output) return output;
             }
         }
     }

@@ -28,7 +28,9 @@
                 "noArrayIndexKey": "off"
             },
             "style": {
-                "useTemplate": "off"
+                "useTemplate": "off",
+                "noNonNullAssertion": "off",
+                "noDescendingSpecificity": "off"
             }
         }
     },

@@ -14,6 +14,7 @@ export function highlight(code: string, lang: string): string {
     lang = resolveAlias(lang);
     return Prism.highlight(
         code,
+        // biome-ignore lint/suspicious/noExplicitAny: it's correct anyway
         (Prism.languages as Record<string, any>)[lang] || Prism.languages.plain,
         lang,
     );

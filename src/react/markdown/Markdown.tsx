@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/correctness/useHookAtTopLevel: Using hooks inside staticComponents is safe */
+
 import { createContext, useContext } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeCodeMeta from "rehype-code-meta";
@@ -262,6 +264,7 @@ const staticComponents = {
             }
         }
 
+        // biome-ignore lint/suspicious/noExplicitAny: I think that's a TypeScript bug.
         return <Image src={src} alt={alt} width={width as any} height={height as any} {...props} />;
     },
 } satisfies Partial<Components>;

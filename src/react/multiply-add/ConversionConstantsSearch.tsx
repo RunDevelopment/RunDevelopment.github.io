@@ -185,7 +185,7 @@ function updateFromUrlHash(old: ProblemDesc): ProblemDesc {
         }
         return value as RoundingMode;
     };
-    const parseInt = (value: string | null): bigint | undefined => {
+    const parseBigInt = (value: string | null): bigint | undefined => {
         if (!value) {
             return undefined;
         }
@@ -198,9 +198,9 @@ function updateFromUrlHash(old: ProblemDesc): ProblemDesc {
     try {
         const hash = new URLSearchParams(window.location.hash.slice(1));
         const rounding = parseRounding(hash.get("r"));
-        const t = parseInt(hash.get("t"), 10);
-        const d = parseInt(hash.get("d"), 10);
-        const u = parseInt(hash.get("u"), 10);
+        const t = parseBigInt(hash.get("t"));
+        const d = parseBigInt(hash.get("d"));
+        const u = parseBigInt(hash.get("u"));
 
         return {
             ...old,
@@ -552,7 +552,15 @@ const AllSolutions = memo(({ problem, time, solutions, searchMore }: AllSolution
                     })}
                 </div>
 
-                {searchMore ? <button onClick={searchMore}>Show more solution</button> : undefined}
+                {searchMore ? (
+                    <button
+                        onClick={searchMore}
+                        type="button"
+                        className="cursor-pointer hover:text-white"
+                    >
+                        Show more solution
+                    </button>
+                ) : undefined}
             </details>
         </div>
     );
@@ -580,14 +588,15 @@ const SolutionList = memo(({ solutions }: { solutions: readonly SolutionRange[] 
                 <>
                     {formatMany(solutions.slice(0, COMPACT_PADDING))}
                     {"\n"}
-                    <span
+                    <button
+                        type="button"
                         className="cursor-pointer text-zinc-400 hover:text-white"
                         onClick={() => {
                             setCollapsed(false);
                         }}
                     >
                         {"... show " + (solutions.length - COMPACT_PADDING * 2) + " more"}
-                    </span>
+                    </button>
                     {"\n"}
                     {formatMany(solutions.slice(-COMPACT_PADDING))}
                 </>

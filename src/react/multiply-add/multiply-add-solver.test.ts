@@ -6,7 +6,7 @@ function gcd(a: bigint, b: bigint): bigint {
     return gcd(b, a % b);
 }
 
-const toString = (solution: Solution | SolutionRange) => {
+const formatSolution = (solution: Solution | SolutionRange) => {
     const { f, A, s } = SolutionRange.from(solution);
     const { min: aMin, max: aMax } = A;
     if (aMin === aMax) {
@@ -31,7 +31,7 @@ const format = <T extends Solution | SolutionRange | null>(
     if (!correct) {
         throw new Error("Invalid solution generated for problem " + p);
     }
-    return toString(solution);
+    return formatSolution(solution);
 };
 
 describe("MA:", () => {
