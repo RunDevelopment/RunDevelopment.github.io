@@ -189,10 +189,10 @@ async function generateInlineImagePreviewData(imagePath: string): Promise<string
     try {
         const format = "avif" as const;
         const options: InlinePreviewOptions = {
-            height: 200,
+            height: 200, // half res
             maxBytes: 4 * 1024,
             format,
-            maxQuality: 50,
+            minQuality: 25,
         };
         const cachePath = await cachedImageFile(
             imagePath,
@@ -214,36 +214,48 @@ type InlinePreviewOptions = {
     fit?: "cover" | "contain" | "inside" | "outside";
     maxBytes: number;
     format: "webp" | "avif" | "jpeg";
-    maxQuality: number;
+    minQuality: number;
 };
 async function createInlineImagePreview(
     image: Sharp,
     options: InlinePreviewOptions,
 ): Promise<Buffer> {
-    async function toTiny(image: Sharp, targetSize: number): Promise<Buffer> {
-        const qualityRange = [1, options.maxQuality] as const;
-        const [tiny] = await toTinyImage(
-            image,
-            targetSize,
-            (image, quality) => {
-                switch (options.format) {
-                    case "webp":
-                        return image.webp({
-                            quality,
-                            effort: 6,
-                            smartDeblock: true,
-                            smartSubsample: true,
-                            preset: "photo",
-                        });
-                    case "avif":
-                        return image.avif({ quality, effort: 6 });
-                    case "jpeg":
-                        return image.jpeg({ quality });
-                }
-            },
-            qualityRange,
-        );
-        return tiny;
+    function encode(image: Sharp, quality: number): Sharp {
+        switch (options.format) {
+            case "webp":
+                return image.webp({
+                    quality,
+                    effort: 6,
+                    smartDeblock: true,
+                    smartSubsample: true,
+                    preset: "photo",
+                });
+            case "avif":
+                return image.avif({ quality, effort: 6 });
+            case "jpeg":
+                return image.jpeg({ quality });
+        }
+    }
+    async function toTinyFit(image: Sharp, targetSize: number): Promise<Buffer> {
+        let currentQuality = options.minQuality;
+        let current = await encode(image, currentQuality).toBuffer();
+
+        // do exponential search to find a higher quality that still fits within the size budget
+        let stepSize = 2;
+        while (current.length <= targetSize && stepSize > 0 && currentQuality !== 100) {
+            const nextQuality = Math.min(100, currentQuality + stepSize);
+            const next = await encode(image, nextQuality).toBuffer();
+            if (next.length <= targetSize) {
+                current = next;
+                currentQuality = nextQuality;
+                stepSize <<= 1;
+            } else {
+                stepSize >>= 1;
+            }
+        }
+
+        console.log(`toTinyFit: ${current.length} bytes (quality=${currentQuality})`);
+        return current;
     }
 
     const resizedImage = image.resize({
@@ -251,43 +263,7 @@ async function createInlineImagePreview(
         width: options.width,
         fit: options.fit ?? "outside",
     });
-    return toTiny(resizedImage, options.maxBytes);
-}
-/**
- * Performs binary search to find the highest quality encoding of an image
- * that fits within the target size.
- */
-async function toTinyImage(
-    image: Sharp,
-    targetSize: number,
-    encode: (image: Sharp, quality: number) => Sharp,
-    qualityRange: readonly [number, number] = [1, 75],
-): Promise<[Buffer, number]> {
-    let best: Buffer | undefined;
-    let bestQuality: number = NaN;
-
-    let low = qualityRange[0];
-    let high = qualityRange[1] + 1;
-
-    do {
-        const mid = (low + high) >> 1;
-        const tiny = await encode(image, mid).toBuffer();
-        if (tiny.length <= targetSize) {
-            low = mid + 1; // try higher quality
-        } else {
-            high = mid; // try lower quality
-        }
-        if (
-            !best ||
-            (tiny.length < best.length && best.length > targetSize) ||
-            (tiny.length > best.length && tiny.length <= targetSize)
-        ) {
-            best = tiny;
-            bestQuality = mid;
-        }
-    } while (low < high);
-
-    return [best, bestQuality];
+    return toTinyFit(resizedImage, options.maxBytes);
 }
 
 function getLock(cachePath: string): Mutex {
