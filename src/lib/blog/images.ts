@@ -221,6 +221,7 @@ async function createInlineImagePreview(
     options: InlinePreviewOptions,
 ): Promise<Buffer> {
     function encode(image: Sharp, quality: number): Sharp {
+        // console.log("Encoding with quality", quality, "format", options.format);
         switch (options.format) {
             case "webp":
                 return image.webp({
@@ -242,19 +243,23 @@ async function createInlineImagePreview(
 
         // do exponential search to find a higher quality that still fits within the size budget
         let stepSize = 2;
+        let foundEnd = false;
         while (current.length <= targetSize && stepSize > 0 && currentQuality !== 100) {
             const nextQuality = Math.min(100, currentQuality + stepSize);
             const next = await encode(image, nextQuality).toBuffer();
             if (next.length <= targetSize) {
                 current = next;
                 currentQuality = nextQuality;
-                stepSize <<= 1;
-            } else {
-                stepSize >>= 1;
+                if (!foundEnd) {
+                    stepSize <<= 1;
+                    continue;
+                }
             }
+            stepSize >>= 1;
+            foundEnd = true;
         }
 
-        console.log(`toTinyFit: ${current.length} bytes (quality=${currentQuality})`);
+        // console.log(`toTinyFit: ${current.length} bytes (quality=${currentQuality})`);
         return current;
     }
 
