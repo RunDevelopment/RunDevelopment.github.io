@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from "astro:content";
+import AdvertiseRss from "../../components/AdvertiseRss.astro";
 import BaseArticle from "../../components/BaseArticle.astro";
 import BlogHeading from "../../components/BlogHeading.astro";
 import MarkdownComponentSupport, {
@@ -53,6 +54,9 @@ if (meta.image) {
         }}
         slot="meta"
     />
+    <Fragment slot="head">
+        <AdvertiseRss />
+    </Fragment>
 
     <BaseArticle>
         <BlogHeading meta={meta} cover={cover} />
