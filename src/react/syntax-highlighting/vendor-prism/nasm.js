@@ -35,11 +35,18 @@ Prism.languages.nasm = Prism.languages.asm = {
         lookbehind: true,
         alias: "function",
     },
-    register: {
-        pattern:
-            /%?\b(?:st\d|[xyz]mm\d\d?|[cdt]r\d|r\d\d?[bwd]?|[er]?[abcd]x|[abcd][hl]|[er]?(?:bp|di|si|sp)|[cdefgs]s|[sd]i[lh]|[bs]p[lh])\b/,
-        alias: "variable",
-    },
+    register: [
+        {
+            pattern:
+                /%?\b(?:st\d|[xyz]mm\d\d?|[cdt]r\d|r\d\d?[bwd]?|[er]?[abcd]x|[abcd][hl]|[er]?(?:bp|di|si|sp)|[cdefgs]s|[sd]i[lh]|[bs]p[lh])\b/,
+            alias: "variable",
+        },
+        {
+            pattern:
+                /%?\b[er]ip\b/,
+            alias: "builtin",
+        }
+    ],
     number: /\b\d+\b|\b0x[\da-f]+\b/i,
     punctuation: /[[\]:,+]/,
 };
