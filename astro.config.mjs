@@ -1,6 +1,7 @@
 // @ts-check
 
 import react from "@astrojs/react";
+import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, passthroughImageService } from "astro/config";
 // import minify from "astro-minify-html-swc";
@@ -24,6 +25,9 @@ export default defineConfig({
 
     integrations: [
         react(),
+        sitemap({
+            filter: (page) => !page.includes("/test/"),
+        }),
         // minify(), // IMPORTANT: Must be last
     ],
 
