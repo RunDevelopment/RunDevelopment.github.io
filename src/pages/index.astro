@@ -1,4 +1,5 @@
 ---
+import AdvertiseRss from "../components/AdvertiseRss.astro";
 import BasicLayout from "../layouts/BasicLayout.astro";
 import Metadata from "../layouts/Metadata.astro";
 import { getBlogPosts } from "../lib/blog/posts";
@@ -12,6 +13,9 @@ const recent = posts.slice(0, 5); // latest K posts
 
 <BasicLayout headerSelected="home">
     <Metadata title="RunDev" author="Michael Schmidt" slot="meta" />
+    <Fragment slot="head">
+        <AdvertiseRss />
+    </Fragment>
 
     <div class="py-8" data-narrow-container>
         <H2>About me</H2>
