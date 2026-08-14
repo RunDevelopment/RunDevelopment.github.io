@@ -44,11 +44,18 @@ article,
         table {
             table-layout: auto;
             margin: 0 auto;
+
+            @media (width < 480px) {
+                min-width: 100%;
+                box-sizing: border-box;
+            }
         }
         th {
             color: white;
             background: var(--color-zinc-950);
             padding: 0.5rem;
+            text-align: left;
+            text-wrap: pretty;
         }
         td {
             padding: 0.25rem 0.5rem;

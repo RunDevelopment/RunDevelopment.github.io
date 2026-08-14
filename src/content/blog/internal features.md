@@ -192,6 +192,13 @@ Very large tables will be horizontally scrollable on small displays:
 | Data 1   | Data 2   | Data 3   | Data 4   | Data 5   | Data 6   | Data 7   | Data 8   | Data 9   | Data 10   | Data 11   | Data 12   |
 | Data 1   | Data 2   | Data 3   | Data 4   | Data 5   | Data 6   | Data 7   | Data 8   | Data 9   | Data 10   | Data 11   | Data 12   |
 
+```md @render
+| Default align       | Left           |     Center     |          Right |
+| ------------------- | :------------- | :------------: | -------------: |
+| short               | short          |     short      |          short |
+| very very very long | very very long | very very long | very very long |
+```
+
 ### Images
 
 Images can be either relative paths to a file, a static file in `public/`, or URLs.
