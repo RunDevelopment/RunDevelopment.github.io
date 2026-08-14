@@ -125,7 +125,7 @@ With bilinear kernels, we can take as many samples for thresholding as we want w
 
 Unfortunately, there's a slight issue. When interpolating an image, we generally imagine the value of a pixel to be at the **center** of the pixel cell. This means that the corners of bilinear kernels will be at the center of pixel cells.
 
-![3×3 image with bilinear interpolation]/3x3-interpolation.svg)
+![3×3 image with bilinear interpolation](3x3-interpolation.svg)
 
 Consequently, one bilinear kernel is not sufficient. We need to consider the 4 bilinear kernels in the 3×3 neighborhood around the pixel. And of these 4 kernels, only the parts that intersect the pixel cell are relevant. Each intersection is exactly one quadrant of a kernel, so the full pixel cell is covered by 4 quadrants (Q1-Q4) from the 4 kernels.
 
