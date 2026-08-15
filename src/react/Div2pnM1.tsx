@@ -16,12 +16,14 @@ export function Div2pnM1() {
         <>
             <p>
                 <VariableOption
+                    inputId="input-n"
                     value={n}
                     setValue={setN}
                     defaultValue={10}
                     label="n"
-                    renderValue={(value, setValue, disable) => (
+                    renderValue={(value, setValue, disable, id) => (
                         <NumberInput
+                            id={id}
                             value={value}
                             onChange={setValue}
                             min={1}
@@ -32,6 +34,7 @@ export function Div2pnM1() {
                     )}
                 />
                 <VariableOption
+                    inputId="input-i"
                     value={i}
                     setValue={setI}
                     defaultValue={2}
@@ -41,8 +44,9 @@ export function Div2pnM1() {
                             <span className="inline xs:hidden">Iterations</span>
                         </>
                     }
-                    renderValue={(value, setValue, disable) => (
+                    renderValue={(value, setValue, disable, id) => (
                         <NumberInput
+                            id={id}
                             value={value}
                             onChange={setValue}
                             min={1}
@@ -53,6 +57,7 @@ export function Div2pnM1() {
                     )}
                 />
                 <VariableOption
+                    inputId="input-rounding"
                     value={rounding}
                     setValue={setRounding}
                     defaultValue={"round" as RoundingMode}
@@ -62,8 +67,9 @@ export function Div2pnM1() {
                             <span className="hidden xs:inline"> mode</span>
                         </>
                     }
-                    renderValue={(value, setValue, disable) => (
+                    renderValue={(value, setValue, disable, id) => (
                         <DownDown
+                            id={id}
                             value={value}
                             onChange={setValue}
                             options={["floor", "round", "ceil"]}
@@ -74,6 +80,7 @@ export function Div2pnM1() {
                     )}
                 />
                 <ViewThree
+                    inputId="input-bit-width"
                     label={
                         <>
                             Int<span className="hidden xs:inline">eger</span> type
@@ -81,6 +88,7 @@ export function Div2pnM1() {
                     }
                     input={
                         <DownDown
+                            id="input-bit-width"
                             value={String(bitWidth)}
                             onChange={(value) => setBitWidth(Number(value))}
                             options={["8", "16", "32", "64", "128"]}
@@ -99,13 +107,20 @@ type VariableOptionProps<T, S extends (value: OrVariable<T>) => void> = {
     value: OrVariable<T>;
     setValue: S;
     defaultValue: T;
+    inputId: string;
     label: React.ReactNode;
-    renderValue: (value: T, setValue: (value: T) => void, disable: boolean) => React.ReactNode;
+    renderValue: (
+        value: T,
+        setValue: (value: T) => void,
+        disable: boolean,
+        id: string,
+    ) => React.ReactNode;
 };
 function VariableOption<T, S extends (value: OrVariable<T>) => void>({
     value,
     setValue,
     defaultValue,
+    inputId,
     label,
     renderValue,
 }: VariableOptionProps<T, S>) {
@@ -115,6 +130,7 @@ function VariableOption<T, S extends (value: OrVariable<T>) => void>({
 
     return (
         <ViewThree
+            inputId={inputId}
             label={label}
             input={renderValue(
                 nonVar,
@@ -123,6 +139,7 @@ function VariableOption<T, S extends (value: OrVariable<T>) => void>({
                     setValue(newValue);
                 },
                 value === "variable",
+                inputId,
             )}
             other={
                 <SmallCheckbox
@@ -145,14 +162,17 @@ function VariableOption<T, S extends (value: OrVariable<T>) => void>({
     );
 }
 type ViewThreeProps = {
+    inputId: string;
     label: React.ReactNode;
     input: React.ReactNode;
     other?: React.ReactNode;
 };
-function ViewThree({ label, input, other }: ViewThreeProps) {
+function ViewThree({ inputId: inputName, label, input, other }: ViewThreeProps) {
     return (
         <span className="my-2 flex items-center gap-2 sm:max-w-96">
-            <span className="w-16 shrink-0 text-right xs:w-32">{label}:</span>
+            <label className="w-16 shrink-0 text-right xs:w-32" htmlFor={inputName}>
+                {label}:
+            </label>
             <span className="grow">{input}</span>
             <span className="w-20 xs:w-32">{other}</span>
         </span>
