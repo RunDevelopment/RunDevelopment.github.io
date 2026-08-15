@@ -14,7 +14,7 @@ export interface PostMetadata {
     slug: string;
     tags: string[];
     minutesToRead: number;
-    color: string;
+    accent: string;
     image?: string;
     imageInlineData?: string;
     imageFadeColor?: string;
@@ -22,7 +22,7 @@ export interface PostMetadata {
 
 export function toPostMetadata(entry: BlogCollectionEntry): PostMetadata {
     const slug = getSlug(entry);
-    const color = entry.data.color ?? getPostColor(slug);
+    const accent = entry.data.accent ?? getPostAccentColor(slug);
 
     return {
         title: entry.data.title,
@@ -38,7 +38,7 @@ export function toPostMetadata(entry: BlogCollectionEntry): PostMetadata {
             .filter(Boolean)
             .sort(),
         minutesToRead: getMinutesToRead(entry.body || ""),
-        color,
+        accent,
         image: entry.data.image,
         imageFadeColor: entry.data.imageFadeColor,
     };
@@ -59,7 +59,7 @@ function getSlug(entry: BlogCollectionEntry): string {
     );
 }
 
-function getPostColor(slug: string): string {
+function getPostAccentColor(slug: string): string {
     // hash the slug and pick a random color based on it
     const hash = crypto.createHash("sha256").update(slug).digest("hex");
     // derive 3 random numbers from the hash

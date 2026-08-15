@@ -39,8 +39,8 @@ inlineCodeLanguage: string | null = null
 slug: string | null = null
 # A space-separated list of tags. E.g. "rust math".
 tags: string = ""
-# The cover color of the article. E.g. "#f0f0f0". If no color is given, a random color will be generated.
-color: string | null = null
+# The accent color of the article. E.g. "#f0f0f0". If no color is given, a random color will be generated.
+accent: string | null = null
 # The cover image of the article. E.g. "./images/cover.jpg".
 image: string | null = null
 # The color the image will fade out to. E.g. "#000". If `image` is specified, this should also be specified

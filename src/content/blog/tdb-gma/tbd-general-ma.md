@@ -6,7 +6,7 @@ draft: true
 tags: math optimization compilers
 inlineCodeLanguage: rust
 
-color: "#9b0029"
+accent: "#9b0029"
 image: ./m34 org.avif
 imageFadeColor: "#0A0D18"
 ---

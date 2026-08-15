@@ -16,6 +16,8 @@ if (cover?.srcLow) {
 const needsBalancing = meta.title.length > 36;
 ---
 
+<style is:inline set:html={`:root{--accent:${meta.accent};}`}></style>
+
 {
     cover && (
         <>
@@ -43,11 +45,7 @@ const needsBalancing = meta.title.length > 36;
             {/* Fancy Title */}
             <div id="bg-text-wrapper" data-wide aria-hidden>
                 <div>
-                    <span
-                        id="bg-text"
-                        class={needsBalancing ? "balanced-box" : undefined}
-                        style={{ "--color": meta.color } as never}
-                    >
+                    <span id="bg-text" class={needsBalancing ? "balanced-box" : undefined}>
                         <FancyText text={meta.title} />
                     </span>
                     {needsBalancing && <BalanceBox />}
@@ -58,8 +56,7 @@ const needsBalancing = meta.title.length > 36;
 }
 
 <!-- Color bar -->
-<div class={"ColorBar " + (cover ? "" : "FullWidth")} data-wide style={{ background: meta.color }}>
-</div>
+<div class={"ColorBar " + (cover ? "" : "FullWidth")} data-wide></div>
 
 <!-- Header -->
 <h1 class="BlogH1">
@@ -207,7 +204,7 @@ const needsBalancing = meta.title.length > 36;
             /* This causes a 1px overdraw with the color line, which is necessary, because *some* browsers draw a 1px gap between them. Not naming names, but Chrome. */
             margin-bottom: -1px;
 
-            background-color: color-mix(in srgb, rgb(0 0 0 / 40%), var(--color, black) 10%);
+            background-color: color-mix(in srgb, rgb(0 0 0 / 40%), var(--accent, black) 10%);
             backdrop-filter: blur(12px);
 
             /* poor man's stroke */
@@ -218,6 +215,7 @@ const needsBalancing = meta.title.length > 36;
     }
 
     .ColorBar {
+        background: var(--accent);
         position: relative;
         z-index: 10;
         margin-left: calc(0px - var(--page-px));

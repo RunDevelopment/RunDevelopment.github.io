@@ -15,7 +15,7 @@ export const PostCard = memo(({ meta, showYear = false, showTags = false }: Post
         <div className="my-6 -mr-1 flex flex-row gap-4">
             <span
                 className="-my-0.5 block w-2 shrink-0 rounded-xl"
-                style={{ background: meta.color }}
+                style={{ background: meta.accent }}
             />
             <div>
                 <h3>

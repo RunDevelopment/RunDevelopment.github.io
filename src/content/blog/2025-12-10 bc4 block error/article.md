@@ -5,7 +5,7 @@ description: A visualization of BC4 block compression error for all possible enc
 inlineCodeLanguage: rust
 tags: compression bcn
 
-color: "#d9552d"
+accent: "#d9552d"
 image: ./m31-whiteout-edit.avif
 imageFadeColor: "#10131E"
 ---

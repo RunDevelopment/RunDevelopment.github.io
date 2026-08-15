@@ -5,7 +5,7 @@ description: Performant and high-quality image thresholding (binarization) with 
 inlineCodeLanguage: rust
 tags: rust anti-aliasing threshold math
 
-color: "#418289"
+accent: "#418289"
 image: "m31.avif"
 imageFadeColor: "#0A0D18"
 ---

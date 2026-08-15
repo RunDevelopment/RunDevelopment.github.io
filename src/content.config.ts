@@ -24,7 +24,7 @@ const blog = defineCollection({
             slug: z.string().optional(),
             tags: z.string().default(""),
 
-            color: z.string().optional(),
+            accent: z.string().optional(),
             image: z.string().optional(),
             imageFadeColor: z.string().optional(),
         }),
