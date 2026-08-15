@@ -40,9 +40,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Cache cover images
-        id: cover-images-cache
-        uses: actions/cache@v6
+      - name: Restore cover image cache
+        id: restore-cover-images
+        uses: actions/cache/restore@v6
         with:
           path: .cover-cache
           key: cover-cache
@@ -55,6 +55,13 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
+
+      - name: Save cover image cache
+        id: save-cover-images
+        uses: actions/cache/save@v6
+        with:
+          path: .cover-cache
+          key: cover-cache
 
   # Deployment job
   deploy:

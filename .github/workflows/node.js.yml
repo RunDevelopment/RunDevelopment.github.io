@@ -26,14 +26,21 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
 
-      - name: Cache cover images
-        id: cover-images-cache
-        uses: actions/cache@v6
+      - name: Restore cover image cache
+        id: restore-cover-images
+        uses: actions/cache/restore@v6
         with:
           path: .cover-cache
           key: cover-cache
 
       - run: npm run build
+
+      - name: Save cover image cache
+        id: save-cover-images
+        uses: actions/cache/save@v6
+        with:
+          path: .cover-cache
+          key: cover-cache
 
   lint:
     runs-on: ubuntu-latest
