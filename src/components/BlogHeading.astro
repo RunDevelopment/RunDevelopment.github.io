@@ -12,6 +12,8 @@ let srcSet;
 if (cover?.srcLow) {
     srcSet = `${cover.srcLow} 1x, ${cover.src} 2x`;
 }
+
+const needsBalancing = meta.title.length > 36;
 ---
 
 {
@@ -43,12 +45,12 @@ if (cover?.srcLow) {
                 <div>
                     <span
                         id="bg-text"
-                        class="balanced-box"
+                        class={needsBalancing ? "balanced-box" : undefined}
                         style={{ "--color": meta.color } as never}
                     >
                         <FancyText text={meta.title} />
                     </span>
-                    <BalanceBox />
+                    {needsBalancing && <BalanceBox />}
                 </div>
             </div>
         </>
